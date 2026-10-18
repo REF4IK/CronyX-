@@ -72,8 +72,8 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/window_vert.h
     COMMAND ${GLSLANG_VALIDATOR} -V --vn window_vert_code
             -x -o ${CMAKE_CURRENT_BINARY_DIR}/window_vert.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/winlator/window.vert
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/window.vert
+            ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/window.vert
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/window.vert
     COMMENT "Compiling window.vert -> window_vert.h"
 )
 
@@ -81,8 +81,8 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/window_frag.h
     COMMAND ${GLSLANG_VALIDATOR} -V --vn window_frag_code
             -x -o ${CMAKE_CURRENT_BINARY_DIR}/window_frag.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/winlator/window.frag
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/window.frag
+            ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/window.frag
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/window.frag
     COMMENT "Compiling window.frag -> window_frag.h"
 )
 
@@ -101,8 +101,8 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/effect_vert.h
     COMMAND ${GLSLANG_VALIDATOR} -V --vn effect_vert_code
             -x -o ${CMAKE_CURRENT_BINARY_DIR}/effect_vert.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/winlator/effect.vert
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/effect.vert
+            ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/effect.vert
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/effect.vert
     COMMENT "Compiling effect.vert -> effect_vert.h"
 )
 
@@ -111,8 +111,8 @@ foreach(EFFECT ${EFFECT_SHADERS})
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${EFFECT}_frag.h
         COMMAND ${GLSLANG_VALIDATOR} -V --vn ${EFFECT}_frag_code
                 -x -o ${CMAKE_CURRENT_BINARY_DIR}/${EFFECT}_frag.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/winlator/${EFFECT}.frag
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/${EFFECT}.frag
+                ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/${EFFECT}.frag
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/${EFFECT}.frag
         COMMENT "Compiling ${EFFECT}.frag -> ${EFFECT}_frag.h"
     )
     list(APPEND EFFECT_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${EFFECT}_frag.h)
@@ -123,26 +123,26 @@ endforeach()
 # chain, ported from Bannerlator feat/lsfg-native-compositor). Runs inside
 # the host compositor on already-imported VkImages — no guest layer.
 add_library(vulkan_renderer SHARED
-        winlator/vulkan_jni.cpp
-        winlator/VulkanRendererContext.cpp
-        winlator/VulkanRendererScanout.cpp
-        winlator/lsfg/lsfg_probe.cpp
-        winlator/lsfg/lsfg_dll.cpp
-        winlator/lsfg/lsfg_dxbc.cpp
-        winlator/lsfg/lsfg_vkd.cpp
-        winlator/lsfg/lsfg_common.cpp
-        winlator/lsfg/lsfg_shaders.cpp
-        winlator/lsfg/lsfg_mipmaps.cpp
-        winlator/lsfg/lsfg_alpha.cpp
-        winlator/lsfg/lsfg_beta.cpp
-        winlator/lsfg/lsfg_gamma.cpp
-        winlator/lsfg/lsfg_delta.cpp
-        winlator/lsfg/lsfg_generate.cpp
-        winlator/lsfg/lsfg_chain.cpp
-        winlator/lsfg/lsfg_pacer.cpp
-        winlator/lsfg/lsfg_engine.cpp
-        winlator/lsfg/lsfg_governor.cpp
-        winlator/lsfg/lsfg_jni.cpp
+        winlator/vulkan_render/vulkan_jni.cpp
+        winlator/vulkan_render/VulkanRendererContext.cpp
+        winlator/vulkan_render/VulkanRendererScanout.cpp
+        winlator/vulkan_render/lsfg/lsfg_probe.cpp
+        winlator/vulkan_render/lsfg/lsfg_dll.cpp
+        winlator/vulkan_render/lsfg/lsfg_dxbc.cpp
+        winlator/vulkan_render/lsfg/lsfg_vkd.cpp
+        winlator/vulkan_render/lsfg/lsfg_common.cpp
+        winlator/vulkan_render/lsfg/lsfg_shaders.cpp
+        winlator/vulkan_render/lsfg/lsfg_mipmaps.cpp
+        winlator/vulkan_render/lsfg/lsfg_alpha.cpp
+        winlator/vulkan_render/lsfg/lsfg_beta.cpp
+        winlator/vulkan_render/lsfg/lsfg_gamma.cpp
+        winlator/vulkan_render/lsfg/lsfg_delta.cpp
+        winlator/vulkan_render/lsfg/lsfg_generate.cpp
+        winlator/vulkan_render/lsfg/lsfg_chain.cpp
+        winlator/vulkan_render/lsfg/lsfg_pacer.cpp
+        winlator/vulkan_render/lsfg/lsfg_engine.cpp
+        winlator/vulkan_render/lsfg/lsfg_governor.cpp
+        winlator/vulkan_render/lsfg/lsfg_jni.cpp
 
         ${CMAKE_CURRENT_BINARY_DIR}/window_vert.h
         ${CMAKE_CURRENT_BINARY_DIR}/window_frag.h
