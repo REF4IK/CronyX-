@@ -64,6 +64,12 @@ class PreloaderDialog(private val activity: Activity) {
     private var exitTriggered by mutableStateOf(false)
     private var onFadeOutComplete: (() -> Unit)? = null
 
+    // Плавное закрытие: fade-out альфы корня, потом настоящий dismiss
+    private var closing by mutableStateOf(false)
+    private val closeHandler = Handler(Looper.getMainLooper())
+    private var forceDismissRunnable: Runnable? = null
+    private var closeGeneration = 0
+
     private fun create() {
         if (dialog != null) return
         dialog = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar_Fullscreen).apply {
@@ -139,9 +145,21 @@ class PreloaderDialog(private val activity: Activity) {
             visible = true
         }
 
+        // Fade-out при закрытии: анимируем альфу корня, затем реально закрываем диалог
+        val fade = remember { Animatable(1f) }
+        LaunchedEffect(closing) {
+            if (closing) {
+                fade.animateTo(0f, tween(450, easing = EaseOutCubic))
+                if (closing) dismissNow()
+            } else {
+                fade.snapTo(1f)
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer { alpha = fade.value }
                 .background(Color(0xFF0F1016))
         ) {
             val appId = _steamAppId?.toIntOrNull()
@@ -493,9 +511,13 @@ class PreloaderDialog(private val activity: Activity) {
     @Synchronized
     fun show(textResId: Int) {
         if (isShowing()) return
-        close()
+        // Отменяем незавершённый fade-out: новый показ обнуляет предыдущее закрытие
+        closeGeneration++
+        forceDismissRunnable?.let { closeHandler.removeCallbacks(it) }
+        forceDismissRunnable = null
         if (dialog == null) create()
         exitTriggered = false
+        closing = false
         stageText = activity.getString(textResId)
         dialog?.show()
         isVisible = true
@@ -558,10 +580,33 @@ class PreloaderDialog(private val activity: Activity) {
 
     @Synchronized
     fun close() {
-        if (dialog == null) return
+        if (dialog == null || closing) return
+        val gen = closeGeneration
+        activity.runOnUiThread {
+            if (dialog == null || closing || closeGeneration != gen) return@runOnUiThread
+            // Диалог не показан — закрываем сразу, без анимации
+            if (dialog?.isShowing != true) {
+                dismissNow()
+                return@runOnUiThread
+            }
+            closing = true
+            // Фолбэк: если анимация не отработает (композиция не жива) — принудительно закрыть
+            val force = Runnable {
+                if (dialog != null && closeGeneration == gen) dismissNow()
+            }
+            forceDismissRunnable = force
+            closeHandler.postDelayed(force, 800)
+        }
+    }
+
+    @Synchronized
+    private fun dismissNow() {
+        forceDismissRunnable?.let { closeHandler.removeCallbacks(it) }
+        forceDismissRunnable = null
         val d = dialog
         dialog = null
         isVisible = false
+        closing = false
         exitMode = false
         try {
             d?.dismiss()
