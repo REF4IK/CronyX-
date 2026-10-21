@@ -36,6 +36,8 @@ import com.winlator.cmod.container.ContainerManager
 import com.winlator.cmod.container.Shortcut
 import com.winlator.cmod.core.AppUtils
 import com.winlator.cmod.core.FileUtils
+import com.winlator.cmod.core.GameTitleParser
+import com.winlator.cmod.core.ShortcutCoverFetcher
 import com.winlator.cmod.win32.PEParser
 import java.io.File
 import java.util.Locale
@@ -82,8 +84,13 @@ fun ImportGameScreen(
             },
             onFilePicked = { file ->
                 exePath = file.absolutePath
-                // Авто-заполняем имя
-                name = file.nameWithoutExtension
+                // Имя из манифеста Steam/GOG, PE-версии или чистое имя папки/exe
+                name = try {
+                    GameTitleParser.suggestName(file)?.takeIf { it.isNotBlank() }
+                        ?: file.nameWithoutExtension
+                } catch (_: Throwable) {
+                    file.nameWithoutExtension
+                }
                 // Извлекаем иконку
                 exeIcon = try { PEParser.extractIcon(file) } catch (_: Throwable) { null }
                 showFileBrowser = false
@@ -153,11 +160,11 @@ fun ImportGameScreen(
                 // Имя
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { if (it.length <= 30) name = it },
+                    onValueChange = { if (it.length <= 60) name = it },
                     label = { Text(stringResource(R.string.name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    supportingText = { Text("${name.length}/30") },
+                    supportingText = { Text("${name.length}/60") },
                 )
 
                 // Описание (опционально)
@@ -221,6 +228,8 @@ fun ImportGameScreen(
                             val absolutePath = exePath
                             val exeFile = File(absolutePath)
                             val fileName = exeFile.name
+                            val safeName = GameTitleParser.normalizeName(name).ifBlank { name }
+                            ShortcutCoverFetcher.clearCoverCache(ctx, safeName)
                             val externalStoragePath = Environment.getExternalStorageDirectory().absolutePath
                             val relativePath = absolutePath.lowercase(Locale.ENGLISH)
 
@@ -254,7 +263,7 @@ fun ImportGameScreen(
                             val pathDir = if (lastSlash > 0) pathWOutPrefix.substring(0, lastSlash) else ""
 
                             val randomNum = (Math.random() * 10000).toInt()
-                            val iconName = "${randomNum}_$name.0"
+                            val iconName = "${randomNum}_$safeName.0"
 
                             val exeIcon = try { PEParser.extractIcon(exeFile) } catch (_: Throwable) { null }
                             if (exeIcon != null) {
@@ -265,10 +274,10 @@ fun ImportGameScreen(
 
                             val desktopDir = selectedContainer.desktopDir
                             if (!desktopDir.exists()) desktopDir.mkdirs()
-                            val file = File(desktopDir, "$name.desktop")
+                            val file = File(desktopDir, "$safeName.desktop")
                             val content = buildString {
                                 append("[Desktop Entry]\n")
-                                append("Name=$name\n")
+                                append("Name=$safeName\n")
                                 append("Exec=env WINEPREFIX=\"/data/user/0/${MainActivity.PACKAGE_NAME}/files/imagefs/home/xuser/.wine/dosdevices/z:/home/xuser/.wine\" wine $driveLetter/$execPath\n")
                                 if (description.isNotEmpty()) append("Comment=$description\n")
                                 append("Type=Application\n")
@@ -283,7 +292,7 @@ fun ImportGameScreen(
                             coverBitmap?.let { bmp ->
                                 val coverDir = File(selectedContainer.rootDir, "app_data/cover_arts")
                                 coverDir.mkdirs()
-                                FileUtils.saveBitmapToFile(bmp, File(coverDir, "$name.png"))
+                                FileUtils.saveBitmapToFile(bmp, File(coverDir, "$safeName.png"))
                             }
                             AppUtils.showToast(ctx, R.string.game_imported)
                             onBack()

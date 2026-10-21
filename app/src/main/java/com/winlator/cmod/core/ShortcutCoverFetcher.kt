@@ -12,14 +12,11 @@ import com.winlator.cmod.steamgrid.SteamGridGridsResponseDeserializer
 import com.winlator.cmod.steamgrid.SteamGridSearchResponse
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.json.JSONArray
-import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -29,16 +26,24 @@ import java.util.concurrent.TimeUnit
 object ShortcutCoverFetcher {
     private const val STEAMGRID_BASE_URL = "https://www.steamgriddb.com/api/v2/"
     private const val STEAMGRID_API_KEY = "4765cce5e92f8406ab0f5346c3b5e3ba"
+    private const val STEAMGRID_STYLES = "alternate,blurred,white_logo,material,no_logo"
+    private const val MATCH_THRESHOLD = 70
+    private const val CACHE_PREFS = "cover_art_cache"
+    private const val CACHE_VERSION = 2
 
     private val COVER_ART_EXECUTOR = Executors.newFixedThreadPool(5)
+    private val CACHE_LOCK = Any()
+    @Volatile private var cacheVersionChecked = false
 
-    private val COVER_ART_HTTP = DohOkHttp.get().newBuilder()
+    private val COVER_ART_HTTP: OkHttpClient = DohOkHttp.get().newBuilder()
         .callTimeout(90, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
         .build()
 
     private val STEAMGRID_LAST_FAIL = ConcurrentHashMap<String, Long>()
-    private val STEAM_APPID_CACHE = ConcurrentHashMap<String, Int>()
+    private val TITLE_CACHE = ConcurrentHashMap<String, ResolvedTitle>()
+
+    private data class ResolvedTitle(val appId: Int?, val title: String, val stamp: Long)
 
     private val STEAM_ASSET_HOSTS = arrayOf(
         "cdn.cloudflare.steamstatic.com",
@@ -49,6 +54,7 @@ object ShortcutCoverFetcher {
     private val ANIMATED_EXTENSIONS = arrayOf(".gif", ".webp", ".apng")
 
     fun getCachedCoverFile(context: Context, shortcutName: String, landscape: Boolean): File? {
+        ensureCacheVersion(context)
         val cacheDir = File(context.filesDir, "coverArtCache")
         for (ext in ANIMATED_EXTENSIONS) {
             val name = if (landscape) "${shortcutName}_l$ext" else "$shortcutName$ext"
@@ -58,6 +64,46 @@ object ShortcutCoverFetcher {
         val staticFile = File(cacheDir, coverCacheFileName(shortcutName, landscape))
         if (staticFile.exists()) return staticFile
         return null
+    }
+
+    /**
+     * One-time migration: covers cached by the old matcher may belong to a DLC/bundle
+     * (e.g. Dying Light -> Harran Tactical Unit Bundle). Deleting the app's cover cache
+     * once makes every shortcut re-resolve with the new matcher. Custom covers in the
+     * container's app_data/cover_arts are untouched.
+     */
+    private fun ensureCacheVersion(context: Context) {
+        if (cacheVersionChecked) return
+        synchronized(CACHE_LOCK) {
+            if (cacheVersionChecked) return
+            try {
+                val prefs = context.getSharedPreferences(CACHE_PREFS, Context.MODE_PRIVATE)
+                if (prefs.getInt("version", 0) < CACHE_VERSION) {
+                    File(context.filesDir, "coverArtCache").listFiles()
+                        ?.forEach { it.deleteRecursively() }
+                    prefs.edit().putInt("version", CACHE_VERSION).apply()
+                }
+            } catch (_: Throwable) {
+            }
+            cacheVersionChecked = true
+        }
+    }
+
+    /** Forget cached covers for one shortcut (called when it is imported again). */
+    @JvmStatic
+    fun clearCoverCache(context: Context, shortcutName: String) {
+        try {
+            val cacheDir = File(context.filesDir, "coverArtCache")
+            for (ext in ANIMATED_EXTENSIONS) {
+                File(cacheDir, "$shortcutName$ext").delete()
+                File(cacheDir, "${shortcutName}_l$ext").delete()
+            }
+            File(cacheDir, "$shortcutName.png").delete()
+            File(cacheDir, "${shortcutName}_l.png").delete()
+            STEAMGRID_LAST_FAIL.remove(shortcutName)
+            TITLE_CACHE.clear()
+        } catch (_: Throwable) {
+        }
     }
 
     private fun coverCacheFileName(shortcutName: String, landscape: Boolean): String {
@@ -87,11 +133,12 @@ object ShortcutCoverFetcher {
         if (loadCoverArt(context, shortcut, landscape) != null) return
 
         COVER_ART_EXECUTOR.execute {
+            val (knownAppId, title) = resolveIdentity(shortcut)
             try {
-                val appId = resolveSteamAppIdByStoreSearch(shortcut.name)
+                val appId = knownAppId ?: SteamTitleResolver.findAppId(context, title)
                 if (appId == null || appId <= 0) {
-                    Log.w("CoverArt", "Steam CDN: appid not found name=${shortcut.name}, falling back to SteamGridDB")
-                    fetchSteamGridCoverArt(context, shortcut, landscape, onDone)
+                    Log.w("CoverArt", "Steam CDN: appid not found title=\"$title\" name=${shortcut.name}, falling back to SteamGridDB")
+                    fetchSteamGridCoverArt(context, shortcut, landscape, title, null, onDone)
                     return@execute
                 }
 
@@ -109,58 +156,148 @@ object ShortcutCoverFetcher {
                 }
 
                 Log.w("CoverArt", "Steam CDN: all urls failed name=${shortcut.name} appId=$appId, falling back to SteamGridDB")
-                fetchSteamGridCoverArt(context, shortcut, landscape, onDone)
+                fetchSteamGridCoverArt(context, shortcut, landscape, title, appId, onDone)
             } catch (e: Exception) {
                 Log.w("CoverArt", "Steam CDN cover art failed name=${shortcut.name}", e)
-                fetchSteamGridCoverArt(context, shortcut, landscape, onDone)
+                fetchSteamGridCoverArt(context, shortcut, landscape, title, null, onDone)
             }
         }
     }
 
-    private fun fetchSteamGridCoverArt(context: Context, shortcut: Shortcut, landscape: Boolean, onDone: () -> Unit) {
+    /**
+     * Exact identity for a shortcut:
+     *  - the game's own files (steam_appid.txt, appmanifest, emu ini, ...) win;
+     *  - `steamAppId` already stored in Extra Data (Steam library / Steam Info dialog) is
+     *    used only after its store name validates against the title, so an old wrong bundle
+     *    appId cannot hijack the cover;
+     *  - title from the disk footprint (manifest/GOG/PE) or the cleaned shortcut name.
+     * Cached per shortcut until its .desktop or exe changes.
+     */
+    private fun resolveIdentity(shortcut: Shortcut): Pair<Int?, String> {
+        val key = shortcut.file?.absolutePath ?: shortcut.name
+        val exe = try {
+            shortcut.resolveExeFile()
+        } catch (_: Throwable) {
+            null
+        }
+        val stamp = maxOf(shortcut.file?.lastModified() ?: 0L, exe?.lastModified() ?: 0L)
+        TITLE_CACHE[key]?.takeIf { it.stamp == stamp }?.let { return it.appId to it.title }
+
+        val extraAppId = shortcut.getExtra("steamAppId")?.toIntOrNull()?.takeIf { it > 0 }
+        val identity = exe?.let {
+            try {
+                GameTitleParser.identify(it)
+            } catch (_: Throwable) {
+                null
+            }
+        }
+        val parsed = if (identity != null && exe != null) GameTitleParser.displayName(identity, exe) else null
+        val title = parsed?.takeIf { it.isNotBlank() }
+            ?: GameTitleParser.cleanTitle(shortcut.name).takeIf { it.isNotBlank() }
+            ?: shortcut.name
+
+        val diskAppId = identity?.appId
+        val verifiedExtraAppId = extraAppId?.takeIf { id ->
+            val matches = SteamTitleResolver.appIdMatchesTitle(id, title)
+            if (matches == false) {
+                Log.w("CoverArt", "stored steamAppId=$id does not match title=\"$title\"; ignoring it")
+            }
+            matches != false
+        }
+        val appId = diskAppId ?: verifiedExtraAppId
+
+        Log.i(
+            "CoverArt",
+            "identity name=${shortcut.name} title=\"$title\" diskAppId=$diskAppId " +
+                "extraAppId=$extraAppId chosenAppId=$appId"
+        )
+        TITLE_CACHE[key] = ResolvedTitle(appId, title, stamp)
+        return appId to title
+    }
+
+    private fun fetchSteamGridCoverArt(
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        appId: Int?,
+        onDone: () -> Unit
+    ) {
         val lastFail = STEAMGRID_LAST_FAIL[shortcut.name]
         if (lastFail != null && (System.currentTimeMillis() - lastFail) < 10 * 60 * 1000L) {
-            fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+            fetchSteamHeaderFallback(context, shortcut, landscape, title, onDone)
             return
         }
 
-        // Skip SteamGridDB search for very short names (likely abbreviations with no match)
-        if (shortcut.name.trim().length < 3) {
-            Log.w("CoverArt", "SteamGrid: name too short (len<3), skipping search name=${shortcut.name}")
-            fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+        if (title.trim().length < 3) {
+            Log.w("CoverArt", "SteamGrid: name too short (len<3), skipping search title=\"$title\" name=${shortcut.name}")
+            fetchSteamHeaderFallback(context, shortcut, landscape, title, onDone)
             return
         }
 
-        val retrofit = Retrofit.Builder()
-            .baseUrl(STEAMGRID_BASE_URL)
-            .client(DohOkHttp.get())
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+        val api = buildSteamGridApi()
+        if (appId != null && appId > 0) {
+            fetchGrids(
+                api, appId, bySteamAppId = true,
+                context, shortcut, landscape, title,
+                onNoCover = { fetchSteamGridByName(api, context, shortcut, landscape, title, onDone) },
+                onDone = onDone,
+            )
+        } else {
+            fetchSteamGridByName(api, context, shortcut, landscape, title, onDone)
+        }
+    }
 
-        val api = retrofit.create(SteamGridDBApi::class.java)
-        val searchName = normalizeSteamGridSearchName(shortcut.name)
-        val call = api.searchGame("Bearer $STEAMGRID_API_KEY", searchName)
+    private fun fetchSteamGridByName(
+        api: SteamGridDBApi,
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        onDone: () -> Unit
+    ) {
+        val queries = GameTitleMatcher.searchQueries(title).ifEmpty { listOf(title) }
+        searchNextGridGame(api, queries, 0, context, shortcut, landscape, title, onDone)
+    }
 
+    private fun searchNextGridGame(
+        api: SteamGridDBApi,
+        queries: List<String>,
+        index: Int,
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        onDone: () -> Unit
+    ) {
+        if (index >= queries.size) {
+            Log.w("CoverArt", "SteamGrid: no good match title=\"$title\" name=${shortcut.name}")
+            STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
+            fetchSteamHeaderFallback(context, shortcut, landscape, title, onDone)
+            return
+        }
+
+        val query = queries[index]
+        val call = api.searchGame("Bearer $STEAMGRID_API_KEY", query)
         call.enqueue(object : retrofit2.Callback<SteamGridSearchResponse> {
-            override fun onResponse(call: retrofit2.Call<SteamGridSearchResponse>, response: retrofit2.Response<SteamGridSearchResponse>) {
-                if (!response.isSuccessful || response.body()?.data.isNullOrEmpty()) {
-                    Log.w("CoverArt", "SteamGrid search failed/empty name=${shortcut.name}")
-                    STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                    fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+            override fun onResponse(
+                call: retrofit2.Call<SteamGridSearchResponse>,
+                response: retrofit2.Response<SteamGridSearchResponse>
+            ) {
+                val data = response.body()?.data
+                if (!response.isSuccessful || data.isNullOrEmpty()) {
+                    searchNextGridGame(api, queries, index + 1, context, shortcut, landscape, title, onDone)
                     return
                 }
 
-                // --- Name validation: find the best matching result ---
-                val data = response.body()!!.data
                 var bestId = -1
                 var bestScore = -1
                 var bestResultName = ""
-
                 for (result in data) {
                     val resultName = result.name?.trim() ?: continue
                     if (resultName.isEmpty()) continue
-                    val score = computeMatchScore(shortcut.name, resultName)
-                    Log.d("CoverArt", "SteamGrid result: query=${shortcut.name} -> result=$resultName id=${result.id} score=$score")
+                    val score = GameTitleMatcher.matchScore(title, resultName)
+                    Log.d("CoverArt", "SteamGrid result: title=\"$title\" query=\"$query\" -> \"$resultName\" id=${result.id} score=$score")
                     if (score > bestScore) {
                         bestScore = score
                         bestId = result.id
@@ -168,50 +305,64 @@ object ShortcutCoverFetcher {
                     }
                 }
 
-                if (bestId <= 0 || bestScore < 70) {
-                    Log.w("CoverArt", "SteamGrid: no good match found name=${shortcut.name} bestScore=$bestScore bestResult=$bestResultName")
-                    STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                    fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+                if (bestId <= 0 || bestScore < MATCH_THRESHOLD) {
+                    Log.w("CoverArt", "SteamGrid: no good match query=\"$query\" title=\"$title\" bestScore=$bestScore bestResult=\"$bestResultName\"")
+                    searchNextGridGame(api, queries, index + 1, context, shortcut, landscape, title, onDone)
                     return
                 }
 
-                Log.i("CoverArt", "SteamGrid: selected match name=${shortcut.name} -> result=$bestResultName id=$bestId score=$bestScore")
-                fetchGridsForGame(context, bestId, shortcut, landscape, onDone)
+                Log.i("CoverArt", "SteamGrid: selected match title=\"$title\" query=\"$query\" -> \"$bestResultName\" id=$bestId score=$bestScore")
+                fetchGrids(
+                    api, bestId, bySteamAppId = false,
+                    context, shortcut, landscape, title,
+                    onNoCover = {
+                        searchNextGridGame(api, queries, index + 1, context, shortcut, landscape, title, onDone)
+                    },
+                    onDone = onDone,
+                )
             }
 
             override fun onFailure(call: retrofit2.Call<SteamGridSearchResponse>, t: Throwable) {
-                Log.w("CoverArt", "SteamGrid search error name=${shortcut.name}", t)
-                STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+                Log.w("CoverArt", "SteamGrid search error query=\"$query\" title=\"$title\"", t)
+                searchNextGridGame(api, queries, index + 1, context, shortcut, landscape, title, onDone)
             }
         })
     }
 
-    private fun fetchGridsForGame(context: Context, gameId: Int, shortcut: Shortcut, landscape: Boolean, onDone: () -> Unit) {
-        val gson = GsonBuilder()
-            .registerTypeAdapter(SteamGridGridsResponse::class.java, SteamGridGridsResponseDeserializer())
-            .create()
-
-        val retrofit = Retrofit.Builder()
-            .baseUrl(STEAMGRID_BASE_URL)
-            .client(DohOkHttp.get())
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .build()
-
-        val api = retrofit.create(SteamGridDBApi::class.java)
+    private fun fetchGrids(
+        api: SteamGridDBApi,
+        id: Int,
+        bySteamAppId: Boolean,
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        onNoCover: () -> Unit,
+        onDone: () -> Unit
+    ) {
         val dimensions = if (landscape) "920x430,460x215" else "600x900"
         val auth = "Bearer $STEAMGRID_API_KEY"
 
-        val animatedCall = api.getAnimatedGridsByGameId(
-            auth, gameId, "alternate,blurred,white_logo,material,no_logo", dimensions, "animated", "image/webp", "false", "false"
-        )
+        val animatedCall = if (bySteamAppId) {
+            api.getAnimatedGridsBySteamAppId(
+                auth, id, STEAMGRID_STYLES, dimensions, "animated", "image/webp", "false", "false"
+            )
+        } else {
+            api.getAnimatedGridsByGameId(
+                auth, id, STEAMGRID_STYLES, dimensions, "animated", "image/webp", "false", "false"
+            )
+        }
 
         animatedCall.enqueue(object : retrofit2.Callback<SteamGridGridsResponse> {
-            override fun onResponse(call: retrofit2.Call<SteamGridGridsResponse>, response: retrofit2.Response<SteamGridGridsResponse>) {
-                if (response.isSuccessful && !response.body()?.data.isNullOrEmpty()) {
+            override fun onResponse(
+                call: retrofit2.Call<SteamGridGridsResponse>,
+                response: retrofit2.Response<SteamGridGridsResponse>
+            ) {
+                val data = response.body()?.data
+                if (response.isSuccessful && !data.isNullOrEmpty()) {
                     var best: SteamGridGridsResponse.Grid? = null
                     var apngFallback: SteamGridGridsResponse.Grid? = null
-                    for (g in response.body()!!.data) {
+                    for (g in data) {
                         val mime = g.mime?.lowercase(Locale.US) ?: ""
                         val ext = if (g.url != null) urlToExtension(g.url) else ""
                         if (mime.contains("webp") || ext == ".webp" || mime.contains("gif") || ext == ".gif") {
@@ -225,81 +376,125 @@ object ShortcutCoverFetcher {
                     if (best == null) best = apngFallback
                     if (best?.url != null && best.url.isNotEmpty()) {
                         Log.i("CoverArt", "Animated cover found name=${shortcut.name} mime=${best.mime} url=${best.url}")
-                        downloadCoverArt(context, best.url, shortcut, landscape, true, best.mime, onDone)
+                        downloadCoverArt(context, best.url, shortcut, landscape, true, best.mime, onDone, onNoCover)
                         return
                     }
                 }
                 Log.i("CoverArt", "No WebP animated cover for name=${shortcut.name}, trying any animated cover")
-                fetchAnyAnimatedGridsFallback(context, gameId, shortcut, landscape, api, dimensions, auth, onDone)
+                fetchAnyAnimatedGridsFallback(api, id, bySteamAppId, context, shortcut, landscape, title, onNoCover, onDone)
             }
 
             override fun onFailure(call: retrofit2.Call<SteamGridGridsResponse>, t: Throwable) {
-                fetchAnyAnimatedGridsFallback(context, gameId, shortcut, landscape, api, dimensions, auth, onDone)
+                fetchAnyAnimatedGridsFallback(api, id, bySteamAppId, context, shortcut, landscape, title, onNoCover, onDone)
             }
         })
     }
 
     private fun fetchAnyAnimatedGridsFallback(
-        context: Context, gameId: Int, shortcut: Shortcut, landscape: Boolean,
-        api: SteamGridDBApi, dimensions: String, auth: String, onDone: () -> Unit
+        api: SteamGridDBApi,
+        id: Int,
+        bySteamAppId: Boolean,
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        onNoCover: () -> Unit,
+        onDone: () -> Unit
     ) {
-        val anyAnimatedCall = api.getAnimatedGridsByGameId(
-            auth, gameId, "alternate,blurred,white_logo,material,no_logo", dimensions, "animated", null, "false", "false"
-        )
+        val dimensions = if (landscape) "920x430,460x215" else "600x900"
+        val auth = "Bearer $STEAMGRID_API_KEY"
+        val anyAnimatedCall = if (bySteamAppId) {
+            api.getAnimatedGridsBySteamAppId(
+                auth, id, STEAMGRID_STYLES, dimensions, "animated", null, "false", "false"
+            )
+        } else {
+            api.getAnimatedGridsByGameId(
+                auth, id, STEAMGRID_STYLES, dimensions, "animated", null, "false", "false"
+            )
+        }
+
         anyAnimatedCall.enqueue(object : retrofit2.Callback<SteamGridGridsResponse> {
-            override fun onResponse(call: retrofit2.Call<SteamGridGridsResponse>, response: retrofit2.Response<SteamGridGridsResponse>) {
-                if (response.isSuccessful && !response.body()?.data.isNullOrEmpty()) {
-                    val grid = response.body()!!.data[0]
+            override fun onResponse(
+                call: retrofit2.Call<SteamGridGridsResponse>,
+                response: retrofit2.Response<SteamGridGridsResponse>
+            ) {
+                val data = response.body()?.data
+                if (response.isSuccessful && !data.isNullOrEmpty()) {
+                    val grid = data[0]
                     if (!grid.url.isNullOrEmpty()) {
-                        downloadCoverArt(context, grid.url, shortcut, landscape, true, grid.mime, onDone)
+                        downloadCoverArt(context, grid.url, shortcut, landscape, true, grid.mime, onDone, onNoCover)
                         return
                     }
                 }
-                fetchStaticGridsFallback(context, gameId, shortcut, landscape, api, dimensions, auth, onDone)
+                fetchStaticGridsFallback(api, id, bySteamAppId, context, shortcut, landscape, title, onNoCover, onDone)
             }
 
             override fun onFailure(call: retrofit2.Call<SteamGridGridsResponse>, t: Throwable) {
-                fetchStaticGridsFallback(context, gameId, shortcut, landscape, api, dimensions, auth, onDone)
+                fetchStaticGridsFallback(api, id, bySteamAppId, context, shortcut, landscape, title, onNoCover, onDone)
             }
         })
     }
 
     private fun fetchStaticGridsFallback(
-        context: Context, gameId: Int, shortcut: Shortcut, landscape: Boolean,
-        api: SteamGridDBApi, dimensions: String, auth: String, onDone: () -> Unit
+        api: SteamGridDBApi,
+        id: Int,
+        bySteamAppId: Boolean,
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        onNoCover: () -> Unit,
+        onDone: () -> Unit
     ) {
-        val gridsCall = api.getGridsByGameId(auth, gameId, "alternate", dimensions, "static")
+        val dimensions = if (landscape) "920x430,460x215" else "600x900"
+        val auth = "Bearer $STEAMGRID_API_KEY"
+        val gridsCall = if (bySteamAppId) {
+            api.getGridsBySteamAppId(auth, id, "alternate", dimensions, "static")
+        } else {
+            api.getGridsByGameId(auth, id, "alternate", dimensions, "static")
+        }
+
         gridsCall.enqueue(object : retrofit2.Callback<SteamGridGridsResponse> {
-            override fun onResponse(call: retrofit2.Call<SteamGridGridsResponse>, response: retrofit2.Response<SteamGridGridsResponse>) {
-                if (!response.isSuccessful || response.body()?.data.isNullOrEmpty()) {
-                    Log.w("CoverArt", "SteamGrid grids failed/empty name=${shortcut.name}")
+            override fun onResponse(
+                call: retrofit2.Call<SteamGridGridsResponse>,
+                response: retrofit2.Response<SteamGridGridsResponse>
+            ) {
+                val data = response.body()?.data
+                if (!response.isSuccessful || data.isNullOrEmpty()) {
+                    Log.w("CoverArt", "SteamGrid grids failed/empty name=${shortcut.name} title=\"$title\"")
                     STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                    fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+                    onNoCover()
                     return
                 }
-                val url = response.body()!!.data[0].url
+                val url = data[0].url
                 if (url.isNullOrEmpty()) {
                     STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                    fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+                    onNoCover()
                     return
                 }
-                downloadCoverArt(context, url, shortcut, landscape, isAnimated = false, mime = null, onDone = onDone)
+                downloadCoverArt(context, url, shortcut, landscape, isAnimated = false, mime = null, onDone, onNoCover)
             }
 
             override fun onFailure(call: retrofit2.Call<SteamGridGridsResponse>, t: Throwable) {
                 Log.w("CoverArt", "SteamGrid grids error name=${shortcut.name}", t)
                 STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
+                onNoCover()
             }
         })
     }
 
-    private fun fetchSteamHeaderFallback(context: Context, shortcut: Shortcut, landscape: Boolean, onDone: () -> Unit) {
+    private fun fetchSteamHeaderFallback(
+        context: Context,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        title: String,
+        onDone: () -> Unit
+    ) {
         COVER_ART_EXECUTOR.execute {
             try {
-                val appId = resolveSteamAppIdByStoreSearch(shortcut.name)
+                val appId = SteamTitleResolver.findAppId(context, title)
                 if (appId == null || appId <= 0) {
-                    Log.w("CoverArt", "Steam fallback: appid not found name=${shortcut.name}")
+                    Log.w("CoverArt", "Steam fallback: appid not found title=\"$title\" name=${shortcut.name}")
                     return@execute
                 }
 
@@ -317,17 +512,32 @@ object ShortcutCoverFetcher {
     }
 
     private fun downloadCoverArt(
-        context: Context, url: String, shortcut: Shortcut, landscape: Boolean,
-        isAnimated: Boolean = false, mime: String? = null, onDone: () -> Unit
+        context: Context,
+        url: String,
+        shortcut: Shortcut,
+        landscape: Boolean,
+        isAnimated: Boolean = false,
+        mime: String? = null,
+        onDone: () -> Unit,
+        onError: () -> Unit = {}
     ) {
         COVER_ART_EXECUTOR.execute {
             try {
                 val request = Request.Builder().url(url).build()
                 COVER_ART_HTTP.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) return@execute
-                    val body = response.body ?: return@execute
+                    if (!response.isSuccessful) {
+                        onError()
+                        return@execute
+                    }
+                    val body = response.body ?: run {
+                        onError()
+                        return@execute
+                    }
                     val bytes = body.bytes()
-                    if (bytes.isEmpty()) return@execute
+                    if (bytes.isEmpty()) {
+                        onError()
+                        return@execute
+                    }
 
                     var ext = urlToExtension(url)
                     if (mime != null && mime.contains("webp")) ext = ".webp"
@@ -349,17 +559,28 @@ object ShortcutCoverFetcher {
                         if (coverArt != null) {
                             cacheCoverArt(context, coverArt, shortcut.name, landscape)
                             onDone()
+                        } else {
+                            onError()
                         }
                     }
                 }
             } catch (e: Exception) {
                 Log.w("CoverArt", "Download failed name=${shortcut.name} url=$url", e)
-                if (url.contains("steamgriddb.com")) {
-                    STEAMGRID_LAST_FAIL[shortcut.name] = System.currentTimeMillis()
-                    fetchSteamHeaderFallback(context, shortcut, landscape, onDone)
-                }
+                onError()
             }
         }
+    }
+
+    private fun buildSteamGridApi(): SteamGridDBApi {
+        val gson = GsonBuilder()
+            .registerTypeAdapter(SteamGridGridsResponse::class.java, SteamGridGridsResponseDeserializer())
+            .create()
+        return Retrofit.Builder()
+            .baseUrl(STEAMGRID_BASE_URL)
+            .client(DohOkHttp.get())
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(SteamGridDBApi::class.java)
     }
 
     private fun buildSteamCoverUrls(appId: Int, landscape: Boolean): List<String> {
@@ -410,191 +631,6 @@ object ShortcutCoverFetcher {
             }
         }
         return urls
-    }
-
-    private fun resolveSteamAppIdByStoreSearch(queryName: String): Int? {
-        val q = queryName.trim()
-        if (q.length < 3) return null
-
-        val cached = STEAM_APPID_CACHE[queryName]
-        if (cached != null && cached > 0) return cached
-
-        try {
-            val encoded = URLEncoder.encode(queryName, StandardCharsets.UTF_8.name())
-            val url = "https://store.steampowered.com/api/storesearch/?term=$encoded&l=english&cc=us"
-
-            val request = Request.Builder().url(url).build()
-            DohOkHttp.get().newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return null
-                val body = response.body?.string() ?: return null
-                val json = JSONObject(body)
-                val items = json.optJSONArray("items") ?: return null
-                if (items.length() == 0) return null
-
-                val qNorm = q.lowercase(Locale.US)
-                val qTokens = qNorm.split("[^a-z0-9]+".toRegex()).toTypedArray()
-                var bestScore = -1
-                var bestId = 0
-                var bestName = ""
-
-                for (i in 0 until items.length()) {
-                    val it = items.optJSONObject(i) ?: continue
-                    val name = it.optString("name", "").trim()
-                    if (name.isEmpty()) continue
-                    val id = it.optInt("id", 0)
-                    if (id <= 0) continue
-
-                    val nNorm = name.lowercase(Locale.US)
-                    var score = 0
-
-                    if (nNorm == qNorm) {
-                        score += 100
-                    } else if (nNorm.contains(qNorm) || qNorm.contains(nNorm)) {
-                        score += 20
-                    }
-
-                    val nTokens = nNorm.split("[^a-z0-9]+".toRegex()).toTypedArray()
-                    var matched = 0
-                    var qTokenCount = 0
-
-                    for (qt in qTokens) {
-                        if (qt.isEmpty()) continue
-                        qTokenCount++
-
-                        var found = false
-                        for (nt in nTokens) {
-                            if (nt.isEmpty()) continue
-                            if (nt == qt) {
-                                found = true
-                                break
-                            }
-                        }
-                        if (found) matched++
-                    }
-
-                    if (qTokenCount > 0) {
-                        score += matched * 10
-                        if (matched == qTokenCount) score += 60
-                    }
-
-                    if (qTokenCount == 1 && nNorm != qNorm) {
-                        var nTokenCount = 0
-                        for (nt in nTokens) {
-                            if (nt.isNotEmpty()) nTokenCount++
-                        }
-                        if (nTokenCount > 1) score -= 50
-                    }
-
-                    // Stricter: if no tokens matched AND no substring relation, force zero
-                    if (qTokenCount > 0 && matched == 0 && !nNorm.contains(qNorm) && !qNorm.contains(nNorm)) {
-                        score = 0
-                    } else if (qTokenCount > 0 && matched == 0) {
-                        score -= 20
-                    }
-
-                    // Short query penalty (< 5 chars): need higher confidence
-                    if (qNorm.length < 5) score -= 20
-
-                    if (score > bestScore) {
-                        bestScore = score
-                        bestId = id
-                        bestName = name
-                    }
-                }
-
-                // Increased threshold from 60 to 75
-                if (bestId > 0 && bestScore >= 75) {
-                    Log.i("CoverArt", "Steam storesearch match name=$queryName -> appid=$bestId ($bestName) score=$bestScore")
-                    STEAM_APPID_CACHE[queryName] = bestId
-                    return bestId
-                }
-
-                Log.w("CoverArt", "Steam storesearch: no good match name=$queryName bestScore=$bestScore bestName=$bestName")
-            }
-        } catch (ignored: Exception) {
-        }
-        return null
-    }
-
-    private fun normalizeSteamGridSearchName(name: String): String {
-        val normalized = name.trim()
-        val lower = normalized.lowercase(Locale.US).replace("[^a-z0-9]+".toRegex(), " ").trim()
-        if (lower == "gta 4" || lower == "gta iv") return "Grand Theft Auto IV"
-        if (lower == "gta 5" || lower == "gta v") return "Grand Theft Auto V"
-        if (lower == "gta sa") return "Grand Theft Auto San Andreas"
-        if (lower == "gta vc") return "Grand Theft Auto Vice City"
-        if (lower == "gta 3" || lower == "gta iii") return "Grand Theft Auto III"
-        if (lower == "gta 6" || lower == "gta vi") return "Grand Theft Auto VI"
-        if (lower == "re4" || lower == "re 4") return "Resident Evil 4"
-        if (lower == "re5" || lower == "re 5") return "Resident Evil 5"
-        if (lower == "re6" || lower == "re 6") return "Resident Evil 6"
-        if (lower == "re7" || lower == "re 7") return "Resident Evil 7"
-        if (lower == "re8" || lower == "re 8") return "Resident Evil Village"
-        if (lower == "re2" || lower == "re 2") return "Resident Evil 2"
-        if (lower == "re3" || lower == "re 3") return "Resident Evil 3"
-        if (lower == "re1" || lower == "re 1") return "Resident Evil"
-        if (lower == "rdr2" || lower == "rdr 2") return "Red Dead Redemption 2"
-        if (lower == "rdr" || lower == "rdr1" || lower == "rdr 1") return "Red Dead Redemption"
-        if (lower == "doom 2016" || lower == "doom2016" || lower == "doom4" || lower == "doom 4") return "DOOM"
-        if (lower == "doom eternal" || lower == "doometernal") return "Doom Eternal"
-        if (lower == "witcher3" || lower == "tw3" || lower == "witcher 3") return "The Witcher 3 Wild Hunt"
-        if (lower == "witcher2" || lower == "tw2" || lower == "witcher 2") return "The Witcher 2"
-        if (lower == "witcher1" || lower == "tw1" || lower == "witcher 1") return "The Witcher"
-        if (lower == "kcd" || lower == "kingdom come" || lower == "kingdomcome") return "Kingdom Come Deliverance"
-        if (lower == "kcd2" || lower == "kingdom come 2" || lower == "kingdomcome2") return "Kingdom Come Deliverance II"
-        if (lower == "cp2077" || lower == "cyberpunk 2077" || lower == "cyberpunk2077") return "Cyberpunk 2077"
-        if (lower == "d4" || lower == "diablo 4" || lower == "diablo4") return "Diablo IV"
-        if (lower == "d3" || lower == "diablo 3" || lower == "diablo3") return "Diablo III"
-        if (lower == "hl2" || lower == "half life 2") return "Half-Life 2"
-        if (lower == "hl1" || lower == "half life" || lower == "half life 1") return "Half-Life"
-        if (lower == "sms" || lower == "supermarioshine") return "Super Mario Sunshine"
-        if (lower == "hades 1" || lower == "hades1") return "Hades"
-        return normalized
-    }
-
-    /**
-     * Вычисляет score совпадения между именем ярлыка и именем результата.
-     * Используется для валидации результатов SteamGridDB.
-     */
-    private fun computeMatchScore(queryName: String, resultName: String): Int {
-        val q = queryName.trim().lowercase(Locale.US)
-        val n = resultName.trim().lowercase(Locale.US)
-        if (q.isEmpty() || n.isEmpty()) return 0
-
-        val qTokens = q.split("[^a-z0-9]+".toRegex()).filter { it.isNotEmpty() }
-        val nTokens = n.split("[^a-z0-9]+".toRegex()).filter { it.isNotEmpty() }
-        if (qTokens.isEmpty()) return 0
-
-        var score = 0
-
-        // Exact match
-        if (n == q) {
-            score += 100
-        } else if (n.contains(q) || q.contains(n)) {
-            score += 20
-        }
-
-        // Token matching
-        val matched = qTokens.count { qt -> nTokens.any { nt -> nt == qt } }
-        score += matched * 10
-        if (matched == qTokens.size) score += 60
-
-        // Penalty for single short token overmatch
-        if (qTokens.size == 1 && n != q && nTokens.size > 1) {
-            score -= if (qTokens[0].length < 4) 60 else 50
-        }
-
-        // Strict: no token match + no substring relation = force zero
-        if (matched == 0 && !n.contains(q) && !q.contains(n)) {
-            score = 0
-        } else if (matched == 0) {
-            score -= 20
-        }
-
-        // Short query penalty
-        if (q.length < 5) score -= 20
-
-        return score
     }
 
     private fun downloadBitmap(url: String): Bitmap? {

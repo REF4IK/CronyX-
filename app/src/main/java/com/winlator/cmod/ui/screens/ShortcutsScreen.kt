@@ -69,6 +69,7 @@ import com.winlator.cmod.container.ContainerManager
 import com.winlator.cmod.container.Shortcut
 import com.winlator.cmod.core.AppUtils
 import com.winlator.cmod.core.FileUtils
+import com.winlator.cmod.core.GameTitleMatcher
 import com.winlator.cmod.core.MmkvPreferences
 import com.winlator.cmod.core.ShortcutCoverFetcher
 import com.winlator.cmod.core.SteamImageCache
@@ -989,6 +990,9 @@ class SteamGameInfo(
     val totalReviews: Int
 )
 
+private fun SteamGameInfo.hasContent(): Boolean =
+    headerImage.isNotEmpty() || screenshots.isNotEmpty() || description.isNotEmpty()
+
 fun SteamGameInfo.toJson(): JSONObject {
     val json = JSONObject()
     json.put("appId", appId)
@@ -1164,196 +1168,101 @@ private fun deleteGameInfoFromDiskCache(context: Context, appId: Int) {
  * Вычисляет score совпадения между именем ярлыка и именем результата.
  * Используется для валидации Steam Store search результатов в SteamInfoDialog.
  */
-private fun computeMatchScore(queryName: String, resultName: String): Int {
-    val q = queryName.trim().lowercase(Locale.US)
-    val n = resultName.trim().lowercase(Locale.US)
-    if (q.isEmpty() || n.isEmpty()) return 0
-
-    val qTokens = q.split("[^a-z0-9]+".toRegex()).filter { it.isNotEmpty() }
-    val nTokens = n.split("[^a-z0-9]+".toRegex()).filter { it.isNotEmpty() }
-    if (qTokens.isEmpty()) return 0
-
-    var score = 0
-
-    // Exact match
-    if (n == q) {
-        score += 100
-    } else if (n.contains(q) || q.contains(n)) {
-        score += 20
-    }
-
-    // Token matching
-    val matched = qTokens.count { qt -> nTokens.any { nt -> nt == qt } }
-    score += matched * 10
-    if (matched == qTokens.size) score += 60
-
-    // Penalty for single short token overmatch
-    if (qTokens.size == 1 && n != q && nTokens.size > 1) {
-        score -= if (qTokens[0].length < 4) 60 else 50
-    }
-
-    // Strict: no token match + no substring relation = force zero
-    if (matched == 0 && !n.contains(q) && !q.contains(n)) {
-        score = 0
-    } else if (matched == 0) {
-        score -= 20
-    }
-
-    // Short query penalty
-    if (q.length < 5) score -= 20
-
-    return score
-}
-
-data class SteamSearchResult(
-    val id: Int,
-    val name: String,
-    val tinyImage: String
-)
+private fun computeMatchScore(queryName: String, resultName: String): Int =
+    GameTitleMatcher.matchScore(queryName, resultName)
 
 private fun fetchAppIdByName(query: String, callback: (Int?) -> Unit) {
-    val cleanQuery = query.replace("_", " ").replace("-", " ")
-    val encoded = URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8.name())
-    val url = "https://store.steampowered.com/api/storesearch/?term=$encoded&l=english&cc=us"
-    val request = Request.Builder().url(url).build()
-
-    DohOkHttp.get().newCall(request).enqueue(object : Callback {
-        override fun onFailure(call: Call, e: IOException) {
+    val queries = GameTitleMatcher.searchQueries(query).ifEmpty { listOf(query.trim()) }
+    fun attempt(index: Int) {
+        if (index >= queries.size) {
             callback(null)
+            return
         }
+        val cleanQuery = queries[index]
+        if (cleanQuery.length < 3) {
+            attempt(index + 1)
+            return
+        }
+        val encoded = URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8.name())
+        val url = "https://store.steampowered.com/api/storesearch/?term=$encoded&l=english&cc=us"
+        val request = Request.Builder().url(url).build()
 
-        override fun onResponse(call: Call, response: Response) {
-            try {
-                if (!response.isSuccessful) {
-                    callback(null)
-                    return
-                }
-                val body = response.body?.string() ?: ""
-                val json = JSONObject(body)
-                val items = json.optJSONArray("items") ?: return callback(null)
-                if (items.length() == 0) {
-                    callback(null)
-                    return
-                }
-
-                val qNorm = cleanQuery.trim().lowercase(Locale.US)
-                val qTokens = qNorm.split("[^a-z0-9]+".toRegex()).filter { it.isNotEmpty() }
-                var bestScore = -1
-                var bestId: Int? = null
-
-                for (i in 0 until items.length()) {
-                    val it = items.optJSONObject(i) ?: continue
-                    val name = it.optString("name", "").trim()
-                    if (name.isEmpty()) continue
-                    val id = it.optInt("id", 0)
-                    if (id <= 0) continue
-
-                    val nNorm = name.lowercase(Locale.US)
-                    val nTokens = nNorm.split("[^a-z0-9]+".toRegex()).filter { it.isNotEmpty() }
-
-                    var score = 0
-
-                    // Exact match
-                    if (nNorm == qNorm) {
-                        score += 100
-                    } else if (nNorm.contains(qNorm) || qNorm.contains(nNorm)) {
-                        score += 20
-                    }
-
-                    // Token matching
-                    val matched = qTokens.count { qt -> nTokens.any { nt -> nt == qt } }
-                    if (qTokens.isNotEmpty()) {
-                        score += matched * 10
-                        if (matched == qTokens.size) score += 60
-                    }
-
-                    // Penalty for single short token overmatch
-                    if (qTokens.size == 1 && nNorm != qNorm && nTokens.size > 1) {
-                        score -= if (qTokens[0].length < 4) 60 else 50
-                    }
-
-                    // Strict: no token match + no substring relation = force zero
-                    if (matched == 0 && !nNorm.contains(qNorm) && !qNorm.contains(nNorm)) {
-                        score = 0
-                    } else if (matched == 0) {
-                        score -= 20
-                    }
-
-                    // Short query penalty
-                    if (qNorm.length < 5) score -= 20
-
-                    if (score > bestScore) {
-                        bestScore = score
-                        bestId = id
-                    }
-                }
-
-                if (bestId != null && bestScore >= 75) {
-                    android.util.Log.i("CoverArt", "fetchAppIdByName: match query=$query -> appId=$bestId score=$bestScore")
-                    callback(bestId)
-                } else {
-                    android.util.Log.w("CoverArt", "fetchAppIdByName: no good match query=$query bestScore=$bestScore")
-                    callback(null)
-                }
-            } catch (e: Exception) {
-                callback(null)
+        DohOkHttp.get().newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                attempt(index + 1)
             }
-        }
-    })
-}
 
-private fun searchGamesOnSteam(query: String, callback: (List<SteamSearchResult>) -> Unit) {
-    val cleanQuery = query.replace("_", " ").replace("-", " ")
-    val encoded = URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8.name())
-    val url = "https://store.steampowered.com/api/storesearch/?term=$encoded&l=english&cc=us"
-    val request = Request.Builder().url(url).build()
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    if (!response.isSuccessful) {
+                        attempt(index + 1)
+                        return
+                    }
+                    val body = response.body?.string() ?: ""
+                    val items = JSONObject(body).optJSONArray("items")
+                    if (items == null || items.length() == 0) {
+                        attempt(index + 1)
+                        return
+                    }
 
-    DohOkHttp.get().newCall(request).enqueue(object : Callback {
-        override fun onFailure(call: Call, e: IOException) {
-            callback(emptyList())
-        }
+                    var bestScore = -1
+                    var bestId: Int? = null
+                    var bestName = ""
 
-        override fun onResponse(call: Call, response: Response) {
-            try {
-                if (!response.isSuccessful) {
-                    callback(emptyList())
-                    return
+                    for (i in 0 until items.length()) {
+                        val item = items.optJSONObject(i) ?: continue
+                        val name = item.optString("name", "").trim()
+                        if (name.isEmpty()) continue
+                        val id = item.optInt("id", 0)
+                        if (id <= 0) continue
+
+                        val score = GameTitleMatcher.matchScore(cleanQuery, name)
+                        if (score > bestScore) {
+                            bestScore = score
+                            bestId = id
+                            bestName = name
+                        }
+                    }
+
+                    if (bestId != null && bestScore >= 70) {
+                        android.util.Log.i("CoverArt", "fetchAppIdByName: query=\"$query\" clean=\"$cleanQuery\" -> appId=$bestId \"$bestName\" score=$bestScore")
+                        callback(bestId)
+                    } else {
+                        android.util.Log.w("CoverArt", "fetchAppIdByName: no good match query=\"$query\" clean=\"$cleanQuery\" bestScore=$bestScore best=\"$bestName\"")
+                        attempt(index + 1)
+                    }
+                } catch (e: Exception) {
+                    attempt(index + 1)
                 }
-                val body = response.body?.string() ?: ""
-                val json = JSONObject(body)
-                val items = json.optJSONArray("items") ?: return callback(emptyList())
-                val list = mutableListOf<SteamSearchResult>()
-                for (i in 0 until items.length()) {
-                    val obj = items.getJSONObject(i)
-                    list.add(SteamSearchResult(
-                        id = obj.getInt("id"),
-                        name = obj.getString("name"),
-                        tinyImage = obj.optString("tiny_image", "")
-                    ))
-                }
-                callback(list)
-            } catch (e: Exception) {
-                callback(emptyList())
             }
-        }
-    })
+        })
+    }
+    attempt(0)
 }
 
 private fun fetchGameDetails(appId: Int, locale: String, callback: (SteamGameInfo?) -> Unit) {
-    val url = "https://store.steampowered.com/api/appdetails?appids=$appId&l=$locale"
-    val request = Request.Builder().url(url).build()
-
-    DohOkHttp.get().newCall(request).enqueue(object : Callback {
-        override fun onFailure(call: Call, e: IOException) {
+    // Steam's appdetails endpoint rejects some localized values with success=false even for
+    // a valid app (e.g. l=russian for 239140). Retry in English instead of showing "not found".
+    val languages = if (locale.equals("russian", ignoreCase = true)) listOf("russian", "english") else listOf(locale)
+    fun attempt(index: Int) {
+        if (index >= languages.size) {
             callback(null)
+            return
         }
+        val url = "https://store.steampowered.com/api/appdetails?appids=$appId&l=${languages[index]}"
+        val request = Request.Builder().url(url).build()
 
-        override fun onResponse(call: Call, response: Response) {
-            try {
-                if (!response.isSuccessful) {
-                    callback(null)
-                    return
-                }
+        DohOkHttp.get().newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                attempt(index + 1)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    if (!response.isSuccessful) {
+                        attempt(index + 1)
+                        return
+                    }
                 val body = response.body?.string() ?: ""
                 val json = JSONObject(body)
                 val appObj = json.optJSONObject(appId.toString())
@@ -1443,6 +1352,13 @@ private fun fetchGameDetails(appId: Int, locale: String, callback: (SteamGameInf
                     val metacriticScore = metacriticObj?.optInt("score", 0) ?: 0
                     val metacriticUrl = metacriticObj?.optString("url", "") ?: ""
 
+                    // A localized response can be success=true but carry no usable details.
+                    // Try the next language before showing an empty card.
+                    if (headerImage.isEmpty() && screenshots.isEmpty() && description.isEmpty() && index + 1 < languages.size) {
+                        attempt(index + 1)
+                        return
+                    }
+
                     val reviewsUrl = "https://store.steampowered.com/appreviews/$appId?json=1&language=all&purchase_type=all"
                     val reviewsRequest = Request.Builder().url(reviewsUrl).build()
                     DohOkHttp.get().newCall(reviewsRequest).enqueue(object : Callback {
@@ -1510,13 +1426,15 @@ private fun fetchGameDetails(appId: Int, locale: String, callback: (SteamGameInf
                         }
                     })
                 } else {
-                    callback(null)
+                    attempt(index + 1)
                 }
             } catch (e: Exception) {
-                callback(null)
+                attempt(index + 1)
             }
         }
     })
+    }
+    attempt(0)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1541,6 +1459,10 @@ fun SteamInfoDialog(
     }
     val initialInfo = remember(initialAppId) {
         initialAppId?.let { getGameInfoFromCache(ctx, it) }
+            ?.takeIf {
+                it.hasContent() &&
+                    GameTitleMatcher.matchScore(GameTitleMatcher.bestQuery(shortcut.name), it.name) >= 75
+            }
     }
 
     var appIdState by remember(shortcut) { mutableStateOf<Int?>(initialAppId) }
@@ -1548,33 +1470,41 @@ fun SteamInfoDialog(
     var isLoading by remember(shortcut) { mutableStateOf(initialInfo == null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    var searchQuery by remember { mutableStateOf(shortcut.name) }
-    var searchResults by remember { mutableStateOf<List<SteamSearchResult>>(emptyList()) }
-    var isSearching by remember { mutableStateOf(false) }
-
     var activeFullScreenScreenshotIndex by remember { mutableStateOf<Int?>(null) }
     var activeTrailerUrl by remember { mutableStateOf<String?>(null) }
+
+    val scrollState = rememberScrollState()
 
     /**
      * Проверяет, совпадает ли имя игры из Steam API с именем ярлыка.
      * Если score < 75 — считаем что appId не соответствует этой игре.
      */
     fun isGameNameMatch(shortcutName: String, gameName: String): Boolean {
-        return computeMatchScore(shortcutName, gameName) >= 75
+        return computeMatchScore(GameTitleMatcher.bestQuery(shortcutName), gameName) >= 75
     }
 
-    fun loadDetails(appId: Int, skipNameValidation: Boolean = false) {
+    /** Persist the chosen Steam appId so the details survive closing/reopening the menu. */
+    fun applyAppId(appId: Int) {
+        if (appId <= 0) return
+        STEAM_NAME_TO_APP_ID_CACHE[shortcut.name] = appId
+        saveCachedAppIdByName(ctx, shortcut.name, appId)
+        shortcut.putExtra("steamAppId", appId.toString())
+        shortcut.saveData()
+    }
+
+    fun loadDetails(appId: Int) {
         val cachedInfo = getGameInfoFromCache(ctx, appId)
         if (cachedInfo != null) {
-            // If name validation is skipped OR names match — accept cached info
-            if (skipNameValidation || isGameNameMatch(shortcut.name, cachedInfo.name)) {
+            // If names match and the cache actually has content — accept cached info
+            if (isGameNameMatch(shortcut.name, cachedInfo.name) && cachedInfo.hasContent()) {
+                applyAppId(appId)
                 gameInfo = cachedInfo
                 isLoading = false
                 errorMessage = null
                 return
             } else {
-                // Cached info is for a different game — invalidate it
-                android.util.Log.w("CoverArt", "Cached game info mismatch: shortcut=${shortcut.name} vs game=${cachedInfo.name} appId=$appId")
+                // Cached info is for a different game or is empty/stale — invalidate it
+                android.util.Log.w("CoverArt", "Cached game info mismatch/empty: shortcut=${shortcut.name} vs game=${cachedInfo.name} appId=$appId")
                 STEAM_GAME_INFO_CACHE.remove(appId)
                 deleteGameInfoFromDiskCache(ctx, appId)
                 // Clear shortcut's cached appId
@@ -1587,16 +1517,12 @@ fun SteamInfoDialog(
         fetchGameDetails(appId, if (isRussian) "russian" else "english") { info ->
             if (info != null) {
                 // If name validation is skipped OR names match — accept
-                if (skipNameValidation || isGameNameMatch(shortcut.name, info.name)) {
+                if (isGameNameMatch(shortcut.name, info.name)) {
+                    applyAppId(appId)
                     STEAM_GAME_INFO_CACHE[appId] = info
                     saveToDiskCache(ctx, info)
                     gameInfo = info
                     isLoading = false
-                    // Save appId to shortcut as cache
-                    if (!skipNameValidation) {
-                        shortcut.putExtra("steamAppId", appId.toString())
-                        shortcut.saveData()
-                    }
                 } else {
                     android.util.Log.w("CoverArt", "Fetched game info mismatch: shortcut=${shortcut.name} vs game=${info.name} appId=$appId — re-searching")
                     // Name mismatch — clear cached appId and re-search
@@ -1609,34 +1535,63 @@ fun SteamInfoDialog(
                     // Try to find the correct appId via search
                     fetchAppIdByName(shortcut.name) { resolvedId ->
                         if (resolvedId != null && resolvedId > 0 && resolvedId != appId) {
-                            STEAM_NAME_TO_APP_ID_CACHE[shortcut.name] = resolvedId
-                            saveCachedAppIdByName(ctx, shortcut.name, resolvedId)
+                            applyAppId(resolvedId)
                             appIdState = resolvedId
                             loadDetails(resolvedId)
                         } else {
                             isLoading = false
-                            isSearching = true
-                            searchGamesOnSteam(shortcut.name) { results ->
-                                isSearching = false
-                                searchResults = results
-                                if (results.isEmpty()) {
-                                    errorMessage = if (isRussian) "Игры не найдены. Попробуйте другой запрос." else "No games found. Try another search query."
-                                } else {
-                                    errorMessage = null
-                                }
-                            }
+                            errorMessage = if (isRussian) "Не удалось автоматически найти игру в Steam." else "Could not find the game on Steam automatically."
                         }
                     }
                 }
             } else {
+                // appdetails returns null for bundle/package ids (e.g. a DLC bundle stored
+                // by an older version). Resolve a real app by name before giving up.
+                shortcut.putExtra("steamAppId", "")
+                shortcut.saveData()
+                STEAM_NAME_TO_APP_ID_CACHE.remove(shortcut.name)
+                deleteCachedAppIdByName(ctx, shortcut.name)
+                fetchAppIdByName(shortcut.name) { resolvedId ->
+                    if (resolvedId != null && resolvedId > 0 && resolvedId != appId) {
+                        applyAppId(resolvedId)
+                        appIdState = resolvedId
+                        loadDetails(resolvedId)
+                    } else {
+                        isLoading = false
+                        errorMessage = if (isRussian) "Не удалось автоматически найти игру в Steam." else "Could not find the game on Steam automatically."
+                    }
+                }
+            }
+        }
+    }
+
+    /** Automatic retry: no manual search, just resolve the shortcut title again. */
+    fun retryAutoResolve() {
+        isLoading = true
+        errorMessage = null
+        fetchAppIdByName(shortcut.name) { resolvedId ->
+            if (resolvedId != null && resolvedId > 0) {
+                applyAppId(resolvedId)
+                appIdState = resolvedId
+                loadDetails(resolvedId)
+            } else {
                 isLoading = false
-                errorMessage = if (isRussian) "Не удалось загрузить детали игры." else "Failed to load game details."
+                errorMessage = if (isRussian) "Не удалось автоматически найти игру в Steam." else "Could not find the game on Steam automatically."
             }
         }
     }
 
     LaunchedEffect(shortcut) {
-        if (gameInfo != null) return@LaunchedEffect
+        val existingInfo = gameInfo
+        if (existingInfo != null) {
+            // Cached details already valid: persist the id that produced them, so the
+            // shortcut stops carrying an old bundle/package id.
+            if (existingInfo.appId > 0) {
+                appIdState = existingInfo.appId
+                applyAppId(existingInfo.appId)
+            }
+            return@LaunchedEffect
+        }
         val cachedAppId = shortcut.getExtra("steamAppId").toIntOrNull()
             ?: STEAM_NAME_TO_APP_ID_CACHE[shortcut.name]
             ?: getCachedAppIdByName(ctx, shortcut.name)
@@ -1645,26 +1600,7 @@ fun SteamInfoDialog(
             STEAM_NAME_TO_APP_ID_CACHE[shortcut.name] = cachedAppId
             loadDetails(cachedAppId)
         } else {
-            fetchAppIdByName(shortcut.name) { resolvedId ->
-                if (resolvedId != null && resolvedId > 0) {
-                    STEAM_NAME_TO_APP_ID_CACHE[shortcut.name] = resolvedId
-                    saveCachedAppIdByName(ctx, shortcut.name, resolvedId)
-                    appIdState = resolvedId
-                    loadDetails(resolvedId)
-                } else {
-                    isLoading = false
-                    isSearching = true
-                    searchGamesOnSteam(shortcut.name) { results ->
-                        isSearching = false
-                        searchResults = results
-                        if (results.isEmpty()) {
-                            errorMessage = if (isRussian) "Игры не найдены. Попробуйте другой запрос." else "No games found. Try another search query."
-                        } else {
-                            errorMessage = null
-                        }
-                    }
-                }
-            }
+            retryAutoResolve()
         }
     }
 
@@ -1676,7 +1612,7 @@ fun SteamInfoDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                 ) {
                     Box(
                         modifier = Modifier
@@ -2282,134 +2218,29 @@ fun SteamInfoDialog(
                                 }
                             }
 
-                            Spacer(Modifier.height(10.dp))
-                            HorizontalDivider()
-                            Spacer(Modifier.height(10.dp))
-
-                            Text(
-                                text = if (isRussian) "Не та игра? Найти вручную:" else "Wrong game? Search manually:",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    label = { Text(if (isRussian) "Название игры" else "Game Name") },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Button(
-                                    onClick = { 
-                                        gameInfo = null
-                                        isSearching = true
-                                        searchGamesOnSteam(searchQuery) { results ->
-                                            isSearching = false
-                                            searchResults = results
-                                            errorMessage = if (results.isEmpty()) {
-                                                if (isRussian) "Игры не найдены. Попробуйте другой запрос." else "No games found. Try another search query."
-                                            } else null
-                                        }
-                                    },
-                                    enabled = searchQuery.trim().isNotEmpty()
-                                ) {
-                                    Text(if (isRussian) "Поиск" else "Search")
-                                }
-                            }
                             Spacer(modifier = Modifier.height(32.dp).navigationBarsPadding())
                         } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text(
-                                    text = if (isRussian) "Поиск игры в Steam" else "Search game on Steam",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        label = { Text(if (isRussian) "Введите название" else "Enter name") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator()
+                                    Text(
+                                        text = if (isRussian) "Ищем игру в Steam…" else "Looking up the game on Steam…",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.secondary
                                     )
-                                    Button(
-                                        onClick = {
-                                            isSearching = true
-                                            searchGamesOnSteam(searchQuery) { results ->
-                                                isSearching = false
-                                                searchResults = results
-                                                errorMessage = if (results.isEmpty()) {
-                                                    if (isRussian) "Игры не найдены. Попробуйте другой запрос." else "No games found. Try another search query."
-                                                } else null
-                                            }
-                                        },
-                                        enabled = searchQuery.trim().isNotEmpty()
-                                    ) {
-                                        Text(if (isRussian) "Искать" else "Search")
-                                    }
-                                }
-
-                                if (isSearching) {
-                                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                                        CircularProgressIndicator()
-                                    }
-                                } else if (searchResults.isNotEmpty()) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        searchResults.forEach { res ->
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { 
-                                                        appIdState = res.id
-                                                        loadDetails(res.id, skipNameValidation = true) 
-                                                    },
-                                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(8.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(60.dp, 30.dp)
-                                                            .clip(RoundedCornerShape(4.dp))
-                                                            .background(Color.DarkGray)
-                                                    ) {
-                                                        if (res.tinyImage.isNotEmpty()) {
-                                                            coil.compose.AsyncImage(
-                                                                model = rememberCachedSteamImage(res.tinyImage),
-                                                                contentDescription = res.name,
-                                                                modifier = Modifier.fillMaxSize(),
-                                                                contentScale = ContentScale.Crop
-                                                            )
-                                                        }
-                                                    }
-                                                    Spacer(Modifier.width(12.dp))
-                                                    Column {
-                                                        Text(text = res.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                        Text(text = "AppID: ${res.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
                                 } else {
-                                    Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = errorMessage ?: (if (isRussian) "Игра не найдена в Steam. Вы можете настроить ярлык кнопками выше." else "Game details not found on Steam. You can manage the shortcut using actions above."),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
+                                    Text(
+                                        text = errorMessage ?: (if (isRussian) "Игра не найдена в Steam." else "Game not found on Steam."),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Button(onClick = { retryAutoResolve() }) {
+                                        Text(if (isRussian) "Повторить поиск" else "Retry")
                                     }
                                 }
                             }

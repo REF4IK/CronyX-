@@ -34,6 +34,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.winlator.cmod.container.Container;
 import com.winlator.cmod.container.ContainerManager;
 import com.winlator.cmod.core.FileUtils;
+import com.winlator.cmod.core.GameTitleParser;
 import com.winlator.cmod.win32.PEParser;
 
 import java.io.File;
@@ -582,6 +583,10 @@ public class FileManagerActivity extends AppCompatActivity {
             String absolutePath = exeFile.getAbsolutePath();
             String fileName = exeFile.getName();
             String fileNameWithoutExt = fileName.substring(0, fileName.length() - 4);
+            String suggested = GameTitleParser.suggestName(exeFile);
+            String displayName = GameTitleParser.normalizeName(
+                    suggested != null && !suggested.trim().isEmpty() ? suggested : fileNameWithoutExt);
+            if (displayName.trim().isEmpty()) displayName = fileNameWithoutExt;
 
             String driveLetter = null;
             String relativePath = absolutePath.toLowerCase(Locale.ENGLISH);
@@ -624,7 +629,7 @@ public class FileManagerActivity extends AppCompatActivity {
             String pathDir = (lastSlash > 0) ? pathWOutPrefix.substring(0, lastSlash) : "";
 
             int randomNum = (int)(Math.random() * 10000);
-            String iconName = randomNum + "_" + fileNameWithoutExt + ".0";
+            String iconName = randomNum + "_" + displayName + ".0";
 
             try {
                 Bitmap exeIcon = PEParser.extractIcon(exeFile);
@@ -640,7 +645,7 @@ public class FileManagerActivity extends AppCompatActivity {
 
             String shortcutDesktop =
                 "[Desktop Entry]\n" +
-                "Name=" + fileNameWithoutExt + "\n" +
+                "Name=" + displayName + "\n" +
                 "Exec=env WINEPREFIX=\"/data/user/0/" + MainActivity.PACKAGE_NAME + "/files/imagefs/home/xuser/.wine/dosdevices/z:/home/xuser/.wine\" wine " + driveLetter + "/" + execPath + "\n" +
                 "Type=Application\n" +
                 "StartupNotify=true\n" +
@@ -648,7 +653,7 @@ public class FileManagerActivity extends AppCompatActivity {
                 "Icon=" + iconName + "\n" +
                 "StartupWMClass=" + fileName.toLowerCase(Locale.ENGLISH);
 
-            File desktopFile = new File(container.getDesktopDir(), fileNameWithoutExt + ".desktop");
+            File desktopFile = new File(container.getDesktopDir(), displayName + ".desktop");
 
             try (FileWriter writer = new FileWriter(desktopFile)) {
                 writer.write(shortcutDesktop);

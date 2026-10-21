@@ -45,6 +45,7 @@ import com.winlator.cmod.container.Container
 import com.winlator.cmod.container.ContainerManager
 import com.winlator.cmod.core.AppUtils
 import com.winlator.cmod.core.FileUtils
+import com.winlator.cmod.core.GameTitleParser
 import com.winlator.cmod.win32.PEParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -991,6 +992,9 @@ private fun createShortcutForContainer(ctx: Context, exeFile: File, container: C
         val absolutePath = exeFile.absolutePath
         val fileName = exeFile.name
         val fileNameWithoutExt = exeFile.nameWithoutExtension
+        val displayName = GameTitleParser.normalizeName(
+            GameTitleParser.suggestName(exeFile)?.takeIf { it.isNotBlank() } ?: fileNameWithoutExt
+        ).ifBlank { fileNameWithoutExt }
 
         var driveLetter = "D:"
         val externalStoragePath = Environment.getExternalStorageDirectory().absolutePath
@@ -1022,7 +1026,7 @@ private fun createShortcutForContainer(ctx: Context, exeFile: File, container: C
         val pathDir = if (lastSlash > 0) pathWOutPrefix.substring(0, lastSlash) else ""
 
         val randomNum = (Math.random() * 10000).toInt()
-        val iconName = "${randomNum}_$fileNameWithoutExt.0"
+        val iconName = "${randomNum}_$displayName.0"
 
         try {
             val exeIcon = PEParser.extractIcon(exeFile)
@@ -1038,7 +1042,7 @@ private fun createShortcutForContainer(ctx: Context, exeFile: File, container: C
 
         val shortcutDesktop =
             "[Desktop Entry]\n" +
-            "Name=$fileNameWithoutExt\n" +
+            "Name=$displayName\n" +
             "Exec=env WINEPREFIX=\"/data/user/0/${MainActivity.PACKAGE_NAME}/files/imagefs/home/xuser/.wine/dosdevices/z:/home/xuser/.wine\" wine $driveLetter/$execPath\n" +
             "Type=Application\n" +
             "StartupNotify=true\n" +
@@ -1046,7 +1050,7 @@ private fun createShortcutForContainer(ctx: Context, exeFile: File, container: C
             "Icon=$iconName\n" +
             "StartupWMClass=${fileName.lowercase(Locale.ENGLISH)}"
 
-        val desktopFile = File(container.getDesktopDir(), "$fileNameWithoutExt.desktop")
+        val desktopFile = File(container.getDesktopDir(), "$displayName.desktop")
         FileWriter(desktopFile).use { it.write(shortcutDesktop) }
 
         AppUtils.showToast(ctx, ctx.getString(R.string.fm_shortcut_created_success, container.name))

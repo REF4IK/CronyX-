@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.winlator.cmod.core.GameTitleParser;
+import com.winlator.cmod.core.ShortcutCoverFetcher;
 import com.winlator.cmod.win32.PEParser;
 
 import java.io.File;
@@ -87,7 +89,8 @@ public class GameImportConfirmActivity extends AppCompatActivity {
         String nameNoExt = fileName.contains(".")
                 ? fileName.substring(0, fileName.lastIndexOf('.'))
                 : fileName;
-        nameEdit.setText(nameNoExt);
+        String suggested = GameTitleParser.suggestName(exeFile);
+        nameEdit.setText(suggested != null && !suggested.trim().isEmpty() ? suggested : nameNoExt);
         pathView.setText(exeFile.getAbsolutePath());
 
         if (exeIcon != null) {
@@ -112,8 +115,9 @@ public class GameImportConfirmActivity extends AppCompatActivity {
 
         // Confirm
         confirmBtn.setOnClickListener(v -> {
-            String finalName = nameEdit.getText().toString().trim();
+            String finalName = GameTitleParser.normalizeName(nameEdit.getText().toString().trim());
             if (finalName.isEmpty()) finalName = nameNoExt;
+            ShortcutCoverFetcher.clearCoverCache(this, finalName);
             String desc = descEdit.getText().toString().trim();
 
             Intent result = new Intent();
@@ -148,7 +152,8 @@ public class GameImportConfirmActivity extends AppCompatActivity {
                         ? fileName.substring(0, fileName.lastIndexOf('.'))
                         : fileName;
                 if (nameEdit.getText().toString().trim().isEmpty()) {
-                    nameEdit.setText(nameNoExt);
+                    String suggested = GameTitleParser.suggestName(exeFile);
+                    nameEdit.setText(suggested != null && !suggested.trim().isEmpty() ? suggested : nameNoExt);
                 }
             }
         }
