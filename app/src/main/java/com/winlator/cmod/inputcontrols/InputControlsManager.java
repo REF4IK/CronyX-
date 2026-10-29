@@ -226,7 +226,8 @@ public class InputControlsManager {
             int profileId = 0;
             String profileName = null;
             float cursorSpeed = Float.NaN;
-            int visualStyle = 1; // Стиль Glass по умолчанию
+            int visualStyle = VisualStyle.GAMEHUB.code; // Стиль Glass по умолчанию
+            int accentTheme = AccentTheme.CYAN.code;
             int fieldsRead = 0;
 
             reader.beginObject();
@@ -249,8 +250,12 @@ public class InputControlsManager {
                     visualStyle = reader.nextInt();
                     fieldsRead++;
                 }
+                else if (name.equals("accentTheme")) {
+                    accentTheme = reader.nextInt();
+                    fieldsRead++;
+                }
                 else {
-                    if (fieldsRead == 4) break;
+                    if (fieldsRead == 5) break;
                     reader.skipValue();
                 }
             }
@@ -258,7 +263,8 @@ public class InputControlsManager {
             ControlsProfile profile = new ControlsProfile(context, profileId);
             profile.setName(profileName);
             profile.setCursorSpeed(cursorSpeed);
-            profile.setVisualStyle(visualStyle > 2 ? 1 : visualStyle);
+            profile.setVisualStyle(VisualStyle.fromCode(visualStyle).code);
+            profile.setAccentTheme(AccentTheme.fromCode(accentTheme).code);
             return profile;
         }
         catch (IOException e) {

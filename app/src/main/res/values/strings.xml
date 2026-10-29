@@ -214,6 +214,8 @@
     <string name="content_type">Content Type</string>
     <string name="contents">Contents</string>
     <string name="contrast">Contrast</string>
+    <string name="accent_color">Accent</string>
+    <string name="button_style">Button style</string>
     <string name="controls_editor">Controls Editor</string>
     <string name="copy">Copy</string>
     <string name="creating_container">Creating ContainerРІР‚В¦</string>

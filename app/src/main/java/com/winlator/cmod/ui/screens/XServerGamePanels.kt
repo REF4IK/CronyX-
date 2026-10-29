@@ -11,6 +11,7 @@ import android.text.TextWatcher
 import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -52,7 +54,9 @@ import com.winlator.cmod.core.MmkvPreferences
 import com.winlator.cmod.core.ProcessHelper
 import com.winlator.cmod.core.SensorReader
 import com.winlator.cmod.core.StringUtils
+import com.winlator.cmod.inputcontrols.AccentTheme
 import com.winlator.cmod.inputcontrols.ControlsProfile
+import com.winlator.cmod.inputcontrols.VisualStyle
 import com.winlator.cmod.renderer.EffectComposer
 import com.winlator.cmod.widget.FpsCounterConfig
 import com.winlator.cmod.winhandler.OnGetProcessInfoListener
@@ -125,6 +129,70 @@ fun XPanelInput(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                     onDismiss()
                 }) {
                     Icon(Icons.Filled.Settings, stringResource(R.string.edit), tint = GameOverlayColors.Accent)
+                }
+            }
+            val selectedProfile = if (selectedProfileIdx > 0) profiles[selectedProfileIdx - 1] else null
+            if (selectedProfile != null) {
+                val styleItems = remember { VisualStyle.displayNames().toList() }
+                var styleCode by remember(selectedProfile.id) { mutableIntStateOf(selectedProfile.visualStyle) }
+                var accentCode by remember(selectedProfile.id) { mutableIntStateOf(selectedProfile.accentTheme) }
+                fun applyStyle() {
+                    selectedProfile.visualStyle = styleCode
+                    selectedProfile.accentTheme = accentCode
+                    selectedProfile.save()
+                    val view = activity.inputControlsView ?: return
+                    if (view.profile?.id == selectedProfile.id) {
+                        view.setVisualStyle(VisualStyle.fromCode(styleCode))
+                        view.setAccentTheme(AccentTheme.fromCode(accentCode))
+                    }
+                }
+                GameSectionTitle(stringResource(R.string.button_style))
+                SpinnerRow(
+                    label = "",
+                    entries = styleItems,
+                    selected = styleItems[styleCode.coerceIn(0, styleItems.size - 1)],
+                    onSelected = { name ->
+                        val idx = styleItems.indexOf(name)
+                        if (idx >= 0) {
+                            styleCode = idx
+                            applyStyle()
+                        }
+                    }
+                )
+                Text(
+                    stringResource(R.string.accent_color),
+                    color = GameOverlayColors.TextPrimary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    AccentTheme.values().forEach { theme ->
+                        val isSelected = theme.code == accentCode
+                        Box(
+                            Modifier.size(28.dp).clip(CircleShape)
+                                .background(Color(theme.accent))
+                                .border(
+                                    if (isSelected) 3.dp else 1.dp,
+                                    if (isSelected) Color.White else Color.White.copy(alpha = 0.25f),
+                                    CircleShape
+                                )
+                                .clickable {
+                                    accentCode = theme.code
+                                    applyStyle()
+                                }
+                        )
+                    }
+                }
+                if (styleCode == VisualStyle.GAMEHUB.code) {
+                    Text(
+                        "Glass рисует собственные цвета — акцент на него не влияет",
+                        color = GameOverlayColors.TextSecondary,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
             GameSwitchRow(stringResource(R.string.show_touchscreen_controls), showTouchscreen) { showTouchscreen = it }

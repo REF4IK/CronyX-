@@ -29,6 +29,7 @@ import android.widget.FrameLayout;
 import androidx.preference.PreferenceManager;
 
 import com.winlator.cmod.R;
+import com.winlator.cmod.inputcontrols.AccentTheme;
 import com.winlator.cmod.inputcontrols.Binding;
 import com.winlator.cmod.inputcontrols.ControlElement;
 import com.winlator.cmod.inputcontrols.ControlsProfile;
@@ -37,6 +38,7 @@ import com.winlator.cmod.inputcontrols.IconPackManager;
 import com.winlator.cmod.inputcontrols.ExternalController;
 import com.winlator.cmod.inputcontrols.ExternalControllerBinding;
 import com.winlator.cmod.inputcontrols.GamepadState;
+import com.winlator.cmod.inputcontrols.VisualStyle;
 import com.winlator.cmod.math.Mathf;
 import com.winlator.cmod.winhandler.MouseEventFlags;
 import com.winlator.cmod.winhandler.WinHandler;
@@ -397,8 +399,22 @@ public class InputControlsView extends View {
         return profile;
     }
 
-    public int getVisualStyle() {
-        return profile != null ? profile.getVisualStyle() : 1;
+    public VisualStyle getVisualStyle() {
+        return profile != null ? profile.getVisualStyleEnum() : VisualStyle.GAMEHUB;
+    }
+
+    public void setVisualStyle(VisualStyle style) {
+        if (profile != null) profile.setVisualStyle((style != null ? style : VisualStyle.GAMEHUB).code);
+        invalidate();
+    }
+
+    public AccentTheme getAccentTheme() {
+        return profile != null ? profile.getAccentThemeEnum() : AccentTheme.CYAN;
+    }
+
+    public void setAccentTheme(AccentTheme theme) {
+        if (profile != null) profile.setAccentTheme((theme != null ? theme : AccentTheme.CYAN).code);
+        invalidate();
     }
 
     public synchronized void setProfile(ControlsProfile profile) {

@@ -18,6 +18,7 @@ public class RangeScroller {
     private Binding binding = Binding.NONE;
     private boolean isActionDown = false;
     private boolean scrolling = false;
+    private int bindingIndex = -1;
     private Timer timer;
 
     public RangeScroller(InputControlsView inputControlsView, ControlElement element) {
@@ -38,6 +39,15 @@ public class RangeScroller {
         return scrollOffset;
     }
 
+    public boolean isScrolling() {
+        return scrolling;
+    }
+
+    // Индекс нажатой ячейки в текущем range (-1, если нажатие не по ячейке)
+    public int getBindingIndex() {
+        return bindingIndex;
+    }
+
     public byte[] getRangeIndex() {
         ControlElement.Range range = element.getRange();
         byte from = (byte)Math.floor((scrollOffset / getElementSize()) % range.max);
@@ -52,6 +62,7 @@ public class RangeScroller {
         float offset = element.getOrientation() == 0 ? x - boundingBox.left - currentOffset : y - boundingBox.top - currentOffset;
         int index = (int)Math.floor((offset / getElementSize()) % range.max);
         if (index < 0) index = range.max + index;
+        bindingIndex = index;
 
         switch (range) {
             case FROM_A_TO_Z:
@@ -131,5 +142,6 @@ public class RangeScroller {
             else inputControlsView.handleInputEvent(binding, false);
         }
         isActionDown = false;
+        bindingIndex = -1;
     }
 }

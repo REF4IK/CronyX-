@@ -21,7 +21,8 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
     public final int id;
     private String name;
     private float cursorSpeed = 1.0f;
-    private byte visualStyle = 1; // 0=Original, 1=Glass (по умолчанию), 2=Shadow
+    private byte visualStyle = 1; // Код VisualStyle: 0=Original, 1=Glass (по умолчанию), 2=Shadow, 3=Slate, 4=Halo, 5=Glint, 6=Reticle, 7=Neon, 8=Lumina
+    private byte accentTheme = 2; // Код AccentTheme, 2=Cyan (по умолчанию)
     private final ArrayList<ControlElement> elements = new ArrayList<>();
     private final ArrayList<ExternalController> controllers = new ArrayList<>();
     private final List<ControlElement> immutableElements = Collections.unmodifiableList(elements);
@@ -59,6 +60,22 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
 
     public void setVisualStyle(int visualStyle) {
         this.visualStyle = (byte)visualStyle;
+    }
+
+    public VisualStyle getVisualStyleEnum() {
+        return VisualStyle.fromCode(visualStyle);
+    }
+
+    public int getAccentTheme() {
+        return accentTheme;
+    }
+
+    public void setAccentTheme(int accentTheme) {
+        this.accentTheme = (byte)accentTheme;
+    }
+
+    public AccentTheme getAccentThemeEnum() {
+        return AccentTheme.fromCode(accentTheme);
     }
 
     public boolean isVirtualGamepad() {
@@ -126,6 +143,7 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
             data.put("name", name);
             data.put("cursorSpeed", Float.valueOf(cursorSpeed));
             data.put("visualStyle", visualStyle);
+            data.put("accentTheme", accentTheme);
 
             JSONArray elementsJSONArray = new JSONArray();
             if (!elementsLoaded && file.isFile()) {

@@ -44,6 +44,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.winlator.cmod.R
 import com.winlator.cmod.core.AppUtils
+import com.winlator.cmod.inputcontrols.AccentTheme
 import com.winlator.cmod.inputcontrols.Binding
 import com.winlator.cmod.inputcontrols.ControlElement
 import com.winlator.cmod.inputcontrols.ControlsProfile
@@ -51,6 +52,7 @@ import com.winlator.cmod.inputcontrols.CustomIconManager
 import com.winlator.cmod.inputcontrols.IconPackManager
 import com.winlator.cmod.inputcontrols.IconPickerDialog
 import com.winlator.cmod.inputcontrols.InputControlsManager
+import com.winlator.cmod.inputcontrols.VisualStyle
 import com.winlator.cmod.widget.InputControlsView
 import kotlin.math.roundToInt
 
@@ -785,6 +787,54 @@ private fun SettingsSliderRow(
 // Theme Picker
 // ---------------------------------------------------------------------------
 
+// Цвет тела для превью-кружка стиля
+private fun styleSwatchBody(style: VisualStyle): Color = when (style) {
+    VisualStyle.ORIGINAL -> Color(0x33000000)
+    VisualStyle.GAMEHUB -> Color(0x8CFFFFFF)
+    VisualStyle.SHADOW -> Color(0xFF0A1422)
+    VisualStyle.SLATE -> Color(0xFF14181F)
+    VisualStyle.HALO -> Color(0xFF171A20)
+    VisualStyle.GLINT -> Color(0xFF101216)
+    VisualStyle.RETICLE -> Color(0xFF0E1116)
+    VisualStyle.NEON -> Color(0xFF0A0A16)
+    VisualStyle.LUMINA -> Color(0xFF2E343C)
+}
+
+@Composable
+private fun StyleSwatch(style: VisualStyle, accent: AccentTheme) {
+    val accentColor = Color(accent.accent)
+    val borderWidth = when (style) {
+        VisualStyle.HALO -> 3.dp
+        VisualStyle.GLINT -> 1.dp
+        else -> 1.5.dp
+    }
+    val borderColor = when (style) {
+        VisualStyle.ORIGINAL, VisualStyle.GAMEHUB, VisualStyle.GLINT -> Color.White.copy(alpha = 0.7f)
+        else -> accentColor
+    }
+    Box(
+        Modifier.size(28.dp).clip(CircleShape)
+            .background(styleSwatchBody(style))
+            .border(borderWidth, borderColor, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (style == VisualStyle.LUMINA || style == VisualStyle.NEON) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(accentColor))
+        }
+    }
+}
+
+@Composable
+private fun AccentChip(theme: AccentTheme, selected: Boolean, onClick: () -> Unit) {
+    val color = Color(theme.accent)
+    Box(
+        Modifier.size(30.dp).clip(CircleShape)
+            .background(color)
+            .border(if (selected) 3.dp else 1.dp, if (selected) Color.White else Color.White.copy(alpha = 0.25f), CircleShape)
+            .clickable { onClick() },
+    )
+}
+
 @Composable
 private fun ThemePickerDialog(
     profile: ControlsProfile,
@@ -792,39 +842,57 @@ private fun ThemePickerDialog(
     onChanged: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selected by remember { mutableStateOf(profile.visualStyle) }
-    val themes = listOf("Original" to 0, "Glass" to 1, "Shadow" to 2)
+    var selectedStyle by remember { mutableStateOf(profile.visualStyleEnum) }
+    var selectedAccent by remember { mutableStateOf(profile.accentThemeEnum) }
+    val styles = VisualStyle.values()
+    val styleNames = VisualStyle.displayNames()
+    val accents = AccentTheme.values()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Тема кнопок") },
+        title = { Text(stringResource(R.string.button_style)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Выбери стиль отрисовки экранных кнопок", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                themes.forEach { (name, idx) ->
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    "Выбери стиль отрисовки экранных кнопок",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                styles.forEach { style ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { selected = idx }.padding(8.dp)
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                            .clickable { selectedStyle = style }.padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
-                        RadioButton(selected = selected == idx, onClick = { selected = idx })
-                        Spacer(Modifier.width(8.dp))
-                        Text(name, modifier = Modifier.weight(1f))
-                        // превью кружок в выбранном стиле
-                        Box(
-                            Modifier.size(28.dp).clip(CircleShape).background(
-                                when (idx) {
-                                    0 -> Color(0x33000000)
-                                    1 -> Color(0x8CFFFFFF)
-                                    else -> Color(0xff1b1b26)
-                                }
-                            ).border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape)
-                        )
+                        RadioButton(selected = selectedStyle == style, onClick = { selectedStyle = style })
+                        Spacer(Modifier.width(6.dp))
+                        Text(styleNames[style.code], modifier = Modifier.weight(1f))
+                        StyleSwatch(style, selectedAccent)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.accent_color), style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(4.dp))
+                accents.toList().chunked(5).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        row.forEach { theme ->
+                            AccentChip(theme = theme, selected = selectedAccent == theme) { selectedAccent = theme }
+                        }
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                profile.visualStyle = selected
+                profile.visualStyle = selectedStyle.code
+                profile.accentTheme = selectedAccent.code
+                view.setVisualStyle(selectedStyle)
+                view.setAccentTheme(selectedAccent)
                 profile.save()
                 view.invalidate()
                 onChanged()

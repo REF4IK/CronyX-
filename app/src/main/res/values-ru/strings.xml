@@ -206,6 +206,8 @@
     <string name="content_type">Тип контента</string>
     <string name="contents">Контент</string>
     <string name="contrast">Контрастность</string>
+    <string name="accent_color">Акцент</string>
+    <string name="button_style">Стиль кнопок</string>
     <string name="controls_editor">Редактор управления</string>
     <string name="copy">Копировать</string>
     <string name="creating_container">Создание контейнера…</string>
