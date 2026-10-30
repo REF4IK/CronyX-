@@ -27,7 +27,7 @@ import com.winlator.cmod.winhandler.WinHandler;
 import com.winlator.cmod.xserver.Pointer;
 import com.winlator.cmod.xserver.XServer;
 
-public class TouchpadView extends View {
+public class TouchpadView extends View implements View.OnCapturedPointerListener {
     private static final byte MAX_FINGERS = 4;
     private static final short MAX_TWO_FINGERS_SCROLL_DISTANCE = 350;
     public static final byte MAX_TAP_TRAVEL_DISTANCE = 10;
@@ -54,6 +54,7 @@ public class TouchpadView extends View {
     private static final Byte EFFECTIVE_TOUCH_DISTANCE = 20;
     private float resolutionScale;
     private static final int UPDATE_FORM_DELAYED_TIME = 50;
+    private boolean capturePointerOnExternalMouse = true;
 
     private Handler timeoutHandler; // Reference to the activity's timeout handler
     private Runnable hideControlsRunnable; // Runnable to hide the controls
@@ -167,6 +168,19 @@ public class TouchpadView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        // Re-acquire pointer capture on any tap (Android drops capture on focus loss)
+        if (capturePointerOnExternalMouse && !hasPointerCapture()) {
+            int captureAction = event.getActionMasked();
+            if (captureAction == MotionEvent.ACTION_DOWN || captureAction == MotionEvent.ACTION_POINTER_DOWN) {
+                if (requestFocus()) {
+                    try {
+                        requestPointerCapture();
+                    }
+                    catch (IllegalStateException ignored) {}
+                }
+            }
+        }
+
         boolean isTouchscreenMode = preferences.getBoolean("touchscreen_toggle", false);
 
         // Reset the timeout timer to keep controls visible
@@ -560,6 +574,12 @@ public class TouchpadView extends View {
         this.sensitivity = sensitivity;
     }
 
+    public void setCapturePointerOnExternalMouse(boolean capturePointerOnExternalMouse) {
+        this.capturePointerOnExternalMouse = capturePointerOnExternalMouse;
+        setFocusableInTouchMode(capturePointerOnExternalMouse);
+        setOnCapturedPointerListener(capturePointerOnExternalMouse ? this : null);
+    }
+
     public boolean isPointerButtonLeftEnabled() {
         return pointerButtonLeftEnabled;
     }
@@ -671,6 +691,29 @@ public class TouchpadView extends View {
         result[0] = x - lastX;
         result[1] = y - lastY;
         return result;
+    }
+
+    @Override
+    public boolean onCapturedPointer(View view, MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            if (!isEnabled()) return true;
+
+            float dx = event.getX() * sensitivity;
+            if (Math.abs(dx) > CURSOR_ACCELERATION_THRESHOLD) dx *= CURSOR_ACCELERATION;
+
+            float dy = event.getY() * sensitivity;
+            if (Math.abs(dy) > CURSOR_ACCELERATION_THRESHOLD) dy *= CURSOR_ACCELERATION;
+
+            if (xServer.isRelativeMouseMovement())
+                xServer.getWinHandler().mouseEvent(MouseEventFlags.MOVE, Mathf.roundPoint(dx), Mathf.roundPoint(dy), 0);
+            else
+                xServer.injectPointerMoveDelta(Mathf.roundPoint(dx), Mathf.roundPoint(dy));
+
+            return true;
+        }
+
+        event.setSource(event.getSource() | InputDevice.SOURCE_MOUSE);
+        return onExternalMouseEvent(event);
     }
 
     private StateListDrawable createTransparentBg() {

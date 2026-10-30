@@ -1788,6 +1788,7 @@
     <string name="xr_mode">XR Mode</string>
     <string name="dri3">DRI3</string>
     <string name="true_mouse_control">True Mouse Control (Cursor Lock)</string>
+    <string name="pointer_capture_released">Pointer released (Esc). Tap the screen to capture it again</string>
     <string name="disable_xinput">Disable Xinput</string>
     <string name="wine_debug">Wine Debug</string>
     <string name="box86_64_logs">Box86/64 Logs</string>

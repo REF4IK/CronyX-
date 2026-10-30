@@ -407,8 +407,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
     private int frameRatingWindowId = -1;
 
-    private boolean pointerCaptureRequested = false; // Flag to track if pointer capture was requested
-
     private final float[] xform = XForm.getInstance();
 
     private ContentsManager contentsManager;
@@ -1716,153 +1714,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
 
 
-    // Inside XServerDisplayActivity class
+    // Pointer capture handling lives in TouchpadView.onCapturedPointer (raw deltas, no XForm)
 
-    private void handleCapturedPointer(MotionEvent event) {
-
-        boolean handled = false;
-
-
-
-        int actionButton = event.getActionButton();
-
-        switch (event.getAction()) {
-
-            case MotionEvent.ACTION_BUTTON_PRESS:
-
-                if (actionButton == MotionEvent.BUTTON_PRIMARY) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.LEFTDOWN, 0, 0, 0);
-
-                    else
-
-                        xServer.injectPointerButtonPress(Pointer.Button.BUTTON_LEFT);
-
-                } else if (actionButton == MotionEvent.BUTTON_SECONDARY) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.RIGHTDOWN, 0, 0, 0);
-
-                    else
-
-                        xServer.injectPointerButtonPress(Pointer.Button.BUTTON_RIGHT);
-
-                } else if (actionButton == MotionEvent.BUTTON_TERTIARY) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.MIDDLEDOWN, 0, 0, 0);
-
-                    else
-
-                        xServer.injectPointerButtonPress(Pointer.Button.BUTTON_MIDDLE); // Add this line for middle mouse button press
-
-                }
-
-                handled = true;
-
-                break;
-
-            case MotionEvent.ACTION_BUTTON_RELEASE:
-
-                if (actionButton == MotionEvent.BUTTON_PRIMARY) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.LEFTUP, 0, 0, 0);
-
-                    else
-
-                        xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_LEFT);
-
-                } else if (actionButton == MotionEvent.BUTTON_SECONDARY) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.RIGHTUP, 0, 0, 0);
-
-                    else
-
-                        xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_RIGHT);
-
-                } else if (actionButton == MotionEvent.BUTTON_TERTIARY) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.MIDDLEUP, 0, 0, 0);
-
-                    else
-
-                        xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_MIDDLE); // Add this line for middle mouse button release
-
-                }
-
-                handled = true;
-
-                break;
-
-            case MotionEvent.ACTION_MOVE:
-
-            case MotionEvent.ACTION_HOVER_MOVE:
-
-                float[] transformedPoint = XForm.transformPoint(xform, event.getX(), event.getY());
-
-                if (xServer.isRelativeMouseMovement())
-
-                    xServer.getWinHandler().mouseEvent(MouseEventFlags.MOVE, (int)transformedPoint[0], (int)transformedPoint[1], 0);
-
-                else
-
-                    xServer.injectPointerMoveDelta((int)transformedPoint[0], (int)transformedPoint[1]);
-
-                handled = true;
-
-                break;
-
-            case MotionEvent.ACTION_SCROLL:
-
-                float scrollY = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
-
-                if (scrollY <= -1.0f) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.WHEEL, 0, 0, (int)scrollY * 270);
-
-                    else {
-
-                        xServer.injectPointerButtonPress(Pointer.Button.BUTTON_SCROLL_DOWN);
-
-                        xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_SCROLL_DOWN);
-
-                    }
-
-                } else if (scrollY >= 1.0f) {
-
-                    if (xServer.isRelativeMouseMovement())
-
-                        xServer.getWinHandler().mouseEvent(MouseEventFlags.WHEEL, 0, 0,(int)scrollY * 270);
-
-                    else {
-
-                        xServer.injectPointerButtonPress(Pointer.Button.BUTTON_SCROLL_UP);
-
-                        xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_SCROLL_UP);
-
-                    }
-
-                }
-
-                handled = true;
-
-                break;
-
-        }
-
-    }
 
 
 
@@ -3121,59 +2974,31 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         super.onWindowFocusChanged(hasFocus);
 
-        boolean cursorLock = preferences.getBoolean("cursor_lock", false);
-
-
-
-        if (hasFocus && !pointerCaptureRequested && cursorLock) {
-
-            // Ensure TouchpadView and other relevant views are focused
-
-            touchpadView.setFocusable(View.FOCUSABLE);
-
-            touchpadView.setFocusableInTouchMode(true);
-
-            touchpadView.requestFocus();
-
-            touchpadView.requestPointerCapture();
-
-
-
-            touchpadView.setOnCapturedPointerListener(new View.OnCapturedPointerListener() {
-
-                @Override
-
-                public boolean onCapturedPointer(View view, MotionEvent event) {
-
-                    handleCapturedPointer(event);
-
-                    return true;
-
-                }
-
-            });
-
-
-
-            pointerCaptureRequested = true; // Ensure this is only called once
-
-
-
-        } else if (!hasFocus) {
-
-            if (touchpadView != null) {
-
-                touchpadView.releasePointerCapture();
-
-                touchpadView.setOnCapturedPointerListener(null);
-
-            }
-
+        if (hasFocus) {
+            if (preferences.getBoolean("cursor_lock", true)) requestPointerCaptureForCurrentView();
+        }
+        else if (touchpadView != null && touchpadView.hasPointerCapture()) {
+            touchpadView.releasePointerCapture();
         }
 
     }
 
 
+
+    private void requestPointerCaptureForCurrentView() {
+        View captureView = (inputControlsView != null && inputControlsView.getVisibility() == View.VISIBLE)
+                ? inputControlsView : touchpadView;
+        if (captureView == null) return;
+
+        captureView.setFocusableInTouchMode(true);
+        if (!captureView.requestFocus()) return;
+        if (captureView.hasPointerCapture()) return;
+
+        try {
+            captureView.requestPointerCapture();
+        }
+        catch (IllegalStateException ignored) {}
+    }
 
     private void extractInputDLLs(boolean isLegacyInput) {
 
@@ -4611,7 +4436,11 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         globalCursorSpeed = preferences.getFloat("cursor_speed", 1.0f);
 
+        boolean capturePointer = preferences.getBoolean("cursor_lock", true);
+
         touchpadView = new TouchpadView(this, xServer, timeoutHandler, hideControlsRunnable);
+
+        touchpadView.setCapturePointerOnExternalMouse(capturePointer);
 
         touchpadView.setSensitivity(globalCursorSpeed);
 
@@ -4630,6 +4459,11 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         inputControlsView.setOverlayOpacity(preferences.getFloat("overlay_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY));
 
         inputControlsView.setTouchpadView(touchpadView);
+
+        if (capturePointer) {
+            inputControlsView.setOnCapturedPointerListener((capturedView, capturedEvent) ->
+                    touchpadView.isEnabled() && touchpadView.onCapturedPointer(capturedView, capturedEvent));
+        }
 
         inputControlsView.setXServer(xServer);
 
@@ -5839,8 +5673,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
 
 
-    private static final int RECAPTURE_DELAY_MS = 10000; // 10 seconds
-
+    
 
 
     @Override
@@ -5865,65 +5698,11 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
 
 
-        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ESCAPE
 
-            // Release pointer capture when Volume Down key is pressed
+                && touchpadView != null && touchpadView.hasPointerCapture()) {
 
-            if (touchpadView != null && pointerCaptureRequested) {
-
-                touchpadView.releasePointerCapture();
-
-                touchpadView.setOnCapturedPointerListener(null);
-
-                pointerCaptureRequested = false;
-
-
-
-                // Show toast message for pointer release
-
-                showToast(this, "Pointer capture released for 10 seconds");
-
-
-
-                // Schedule recapture after 10 seconds
-
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-
-                    if (touchpadView != null) {
-
-                        touchpadView.requestPointerCapture();
-
-                        touchpadView.setOnCapturedPointerListener(new View.OnCapturedPointerListener() {
-
-                            @Override
-
-                            public boolean onCapturedPointer(View view, MotionEvent event) {
-
-                                handleCapturedPointer(event);
-
-                                return true;
-
-                            }
-
-                        });
-
-                        pointerCaptureRequested = true;
-
-
-
-                        // Show toast message for pointer recapture
-
-                        showToast(this, "Pointer re-captured. If not working, press again to release and re-capture");
-
-                    }
-
-                }, RECAPTURE_DELAY_MS);
-
-
-
-                return true; // Indicate that the event was handled
-
-            }
+            touchpadView.releasePointerCapture();
 
         }
 

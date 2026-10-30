@@ -3,6 +3,7 @@ package com.winlator.cmod.xserver;
 import android.util.SparseArray;
 
 import com.winlator.cmod.core.CursorLocker;
+import com.winlator.cmod.math.Mathf;
 import com.winlator.cmod.renderer.XServerRenderer;
 import com.winlator.cmod.winhandler.WinHandler;
 import com.winlator.cmod.xserver.extensions.BigReqExtension;
@@ -167,13 +168,14 @@ public class XServer {
 
     public void injectPointerMove(int x, int y) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            pointer.setPosition(x, y);
+            pointer.setPosition(Mathf.clamp(x, 0, screenInfo.width - 1), Mathf.clamp(y, 0, screenInfo.height - 1));
         }
     }
 
     public void injectPointerMoveDelta(int dx, int dy) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            pointer.setPosition(pointer.getX() + dx, pointer.getY() + dy);
+            pointer.setPosition(Mathf.clamp(pointer.getX() + dx, 0, screenInfo.width - 1),
+                                Mathf.clamp(pointer.getY() + dy, 0, screenInfo.height - 1));
         }
     }
 

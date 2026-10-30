@@ -588,14 +588,17 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
     public void onPointerMove(short x, short y) {
         synchronized (lock) {
             if (nativeHandle == 0) return;
-            nativeSetPointerPos(nativeHandle, x, y);
+            // Always draw the cursor inside the X screen bounds
+            short px = xServer.pointer.getClampedX();
+            short py = xServer.pointer.getClampedY();
+            nativeSetPointerPos(nativeHandle, px, py);
             Window pw = xServer.inputDeviceManager.getPointWindow();
             Cursor cursor = pw != null ? pw.attributes.getCursor() : null;
             if (cursor != lastCursor) { lastCursor = cursor; sendCursorToNative(cursor); }
             if (nativeMode) {
                 short hotX = 0, hotY = 0;
                 if (cursor != null) { hotX = (short)cursor.hotSpotX; hotY = (short)cursor.hotSpotY; }
-                nativeScanoutSetCursorPos(nativeHandle, x, y, hotX, hotY);
+                nativeScanoutSetCursorPos(nativeHandle, px, py, hotX, hotY);
             }
             if (screenOffsetYRelativeToCursor) updateTransform();
         }

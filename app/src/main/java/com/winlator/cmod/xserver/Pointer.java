@@ -57,6 +57,10 @@ public class Pointer {
         return (short)Mathf.clamp(y, 0, xServer.screenInfo.height -1);
     }
 
+    public void clampPosition() {
+        setPosition(Mathf.clamp(x, 0, xServer.screenInfo.width - 1), Mathf.clamp(y, 0, xServer.screenInfo.height - 1));
+    }
+
     public void setPosition(int x, int y) {
         setX(x);
         setY(y);
