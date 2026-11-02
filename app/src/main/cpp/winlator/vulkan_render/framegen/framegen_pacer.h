@@ -1,10 +1,9 @@
-// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
-// SPDX-License-Identifier: GPL-3.0-or-later
+// Shared frame-generation pacer: decides how many frames to synthesise for a
+// source frame from the measured rates, the multiplier/target and the panel's
+// refresh rate. Engine-agnostic; used by both lsfg and cronyfg.
 //
-// Ported into Bannerlator's compositor from WinNative (GPL-3.0-or-later),
-// whose LSFG port is credited to Camille LaVey / the Eden Emulator Project and
-// follows upstream lsfg-vk. Only the Vulkan dispatch differs: Bannerlator
-// resolves entry points through the renderer's own table (see lsfg_vkd.h).
+// Moved from lsfg_pacer.hpp (Eden Emulator Project / lsfg-vk lineage,
+// GPL-3.0-or-later) without behaviour changes.
 
 #pragma once
 
@@ -13,22 +12,22 @@
 #include <cstdint>
 #include <optional>
 
-namespace lsfg {
+namespace framegen {
 
-constexpr size_t LSFG_MAX_MULTIPLIER = 4;
+constexpr size_t kMaxMultiplier = 4;
 
-struct LsfgPacerConfig {
+struct Config {
     uint32_t multiplier{2};
     uint32_t target_rate{};
     float refresh_rate{};
 };
 
-struct LsfgPlan {
+struct Plan {
     size_t generations{};
     bool warm{};
 };
 
-struct LsfgPacerStats {
+struct Stats {
     float source_rate{};
     float loop_rate{};
     float refresh_rate{};
@@ -41,21 +40,14 @@ struct LsfgPacerStats {
     uint64_t source_frames{};
 };
 
-class LsfgPacer {
+class Pacer {
 public:
-    void SetConfig(const LsfgPacerConfig& config_) {
-        config = config_;
-    }
-
-    [[nodiscard]] const LsfgPacerConfig& Config() const {
-        return config;
-    }
+    void SetConfig(const Config& config_) { config = config_; }
+    [[nodiscard]] const Config& GetConfig() const { return config; }
 
     [[nodiscard]] size_t MaxGenerations() const;
-
-    [[nodiscard]] LsfgPlan Plan(size_t capacity, uint64_t source_frames);
-
-    [[nodiscard]] LsfgPacerStats Stats() const;
+    [[nodiscard]] Plan PlanFor(size_t capacity, uint64_t source_frames);
+    [[nodiscard]] Stats GetStats() const;
 
     void Reset();
 
@@ -67,7 +59,7 @@ private:
     [[nodiscard]] bool RatesSettled() const;
     [[nodiscard]] size_t HeadroomLimit() const;
 
-    LsfgPacerConfig config;
+    Config config;
 
     std::optional<Clock::time_point> last_frame;
     std::optional<Clock::time_point> last_source_sample;
@@ -84,4 +76,4 @@ private:
     size_t limit{};
 };
 
-}
+} // namespace framegen

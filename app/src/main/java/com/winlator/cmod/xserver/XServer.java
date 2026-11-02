@@ -174,8 +174,10 @@ public class XServer {
 
     public void injectPointerMoveDelta(int dx, int dy) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            pointer.setPosition(Mathf.clamp(pointer.getX() + dx, 0, screenInfo.width - 1),
-                                Mathf.clamp(pointer.getY() + dy, 0, screenInfo.height - 1));
+            // Do NOT clamp here: games derive mouse-look from the absolute delta of
+            // MotionNotify coordinates. CursorLocker pulls the pointer back softly.
+            pointer.setPosition(pointer.getX() + dx, pointer.getY() + dy);
+            if (cursorLocker == null) pointer.clampPosition();
         }
     }
 

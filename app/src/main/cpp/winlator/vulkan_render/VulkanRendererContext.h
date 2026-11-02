@@ -126,6 +126,8 @@ struct VkTable {
 
 // Native (compositor-side) LSFG frame generation — capability gate + engine.
 #include "lsfg/lsfg_probe.h"
+// CronyFG — in-house frame generation, shares the composite ring and pacer.
+#include "cronyfg/cronyfg_engine.h"
 namespace lsfg { class Engine; }
 
 static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -226,6 +228,17 @@ public:
     // not pay for.
     void setFrameGenArmed(bool armed, int multiplier);
     bool frameGenArmed() const { return fgArmed_.load(std::memory_order_relaxed); }
+
+    // Which engine produces the in-between frames. 0 = off, 1 = cronyfg,
+    // 2 = lsfg-native. Both engines share the composite ring, the pacer and
+    // the present plan; only the synthesis differs.
+    static constexpr int kFgEngineOff    = 0;
+    static constexpr int kFgEngineCronyfg = 1;
+    static constexpr int kFgEngineLsfg   = 2;
+    void setFrameGenEngine(int kind);
+    int  frameGenEngine() const { return fgEngineKind_.load(std::memory_order_relaxed); }
+    bool frameGenSupported(int kind) const;
+    const char* frameGenSupportReason(int kind) const;
     // Live frame-gen telemetry for the in-game readout:
     //   [0] generations the governor currently trusts
     //   [1] generations actually planned for the last source frame
@@ -233,13 +246,14 @@ public:
     //   [3] measured presented frames per second
     //   [4] thermal status, -1 when the device gives no signal
     //   [5] GPU milliseconds the chain spends per generated frame, -1 unknown
-    void frameGenStats(float out[6]) const;
+    //   [6] CronyFG: effective flow short side (px); 0 for LSFG / unavailable
+    void frameGenStats(float out[7]) const;
     // Path to the SPIR-V cache built from the user's Lossless.dll. Setting it
     // drops any existing engine so the next armed frame rebuilds from it.
     void setLsfgCachePath(const char* path);
     // Flow scale (0.25-1.0) and the panel's real refresh rate. The pacer never
     // generates above the refresh rate.
-    void setFrameGenTuning(float flowScale, float refreshHz);
+    void setFrameGenTuning(float flowScale, float refreshHz, int quality);
     // Adaptive output-FPS target (0 = fixed multiplier). Fed to the pacer,
     // which varies generations per source frame to hit min(target, refresh).
     void setFrameGenTargetRate(uint32_t targetRate);
@@ -491,6 +505,8 @@ private:
     std::atomic<int>  fgMultiplier_{0};
     std::atomic<float> fgFlowScale_{1.0f};
     std::atomic<float> fgRefreshHz_{0.0f};
+    // Пресет качества CronyFG (0..5, см. cronyfg_quality.h). Не влияет на LSFG.
+    std::atomic<int>   fgQuality_{2};
     std::atomic<bool>  fgConfigDirty_{true};
     std::atomic<uint32_t> fgTargetRate_{0};
 
@@ -530,6 +546,11 @@ private:
     };
     FrameGenPlan fgPlan_{};
     std::unique_ptr<lsfg::Engine> lsfgEngine_;
+    // In-house engine. Shares the ring and the plan with LSFG; the caps are
+    // independent because it does not need Vulkan 1.3 or the memory model.
+    std::unique_ptr<cronyfg::Engine> cronyfgEngine_;
+    cronyfg::Caps cronyfgCaps_;
+    std::atomic<int> fgEngineKind_{kFgEngineLsfg};
     uint64_t    fgSourceFrames_ = 0;
     std::string lsfgCachePath_;
     bool        lsfgEngineTried_ = false;
@@ -549,6 +570,9 @@ private:
     void     trackPresentedRate(uint32_t presents);
 
     bool ensureLsfgEngine();
+    bool ensureCronyfgEngine();
+    // True when the SELECTED engine can run on this device.
+    bool fgEngineUsable() const;
     uint32_t cmdSlot(uint32_t k) const { return currentFrame * kMaxPresentsPerFrame + k; }
     void recordFrameGenProcess(VkCommandBuffer cb);
     void recordFrameGenGeneration(VkCommandBuffer cb, uint32_t g);

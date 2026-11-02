@@ -2564,14 +2564,11 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             Toast.makeText(this, "Container is not ready", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (!com.winlator.cmod.core.LsfgNative.isDllAvailable(this)) {
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.lsfg_title)
-                    .setMessage(R.string.lsfg_not_in_library)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
-            return;
-        }
+
+        // Engine: the in-house chain runs without Lossless.dll; LSFG does not.
+        final String[] engineValues = {"cronyfg", "lsfg-native"};
+        final String[] engineLabels = {"CronyFG", "LSFG"};
+        final String[] selectedEngine = {container.isCronyfg() || !container.isLsfgNative() ? "cronyfg" : "lsfg-native"};
 
         final int[] mults = {0, 2, 3, 4};
         final String[] labels = {"Off", "2x", "3x", "4x"};
@@ -2585,6 +2582,27 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         layout.setOrientation(android.widget.LinearLayout.VERTICAL);
         int pad = (int) (16 * getResources().getDisplayMetrics().density);
         layout.setPadding(pad, pad, pad, pad);
+        // Секции переключаются по выбранному движку: у CronyFG — пресеты качества
+        // вместо крутилки, у LSFG — прежний ползунок flowScale.
+        final Runnable[] engineSync = new Runnable[1];
+
+        android.widget.TextView engineLabel = new android.widget.TextView(this);
+        engineLabel.setText("Engine");
+        layout.addView(engineLabel);
+        android.widget.RadioGroup engineGroup = new android.widget.RadioGroup(this);
+        engineGroup.setOrientation(android.widget.RadioGroup.HORIZONTAL);
+        for (int i = 0; i < engineValues.length; i++) {
+            android.widget.RadioButton rb = new android.widget.RadioButton(this);
+            rb.setText(engineLabels[i]);
+            rb.setChecked(engineValues[i].equals(selectedEngine[0]));
+            final String value = engineValues[i];
+            rb.setOnClickListener(v -> {
+                selectedEngine[0] = value;
+                if (engineSync[0] != null) engineSync[0].run();
+            });
+            engineGroup.addView(rb);
+        }
+        layout.addView(engineGroup);
 
         android.widget.TextView status = new android.widget.TextView(this);
         status.setText(getFgStatusText());
@@ -2644,10 +2662,13 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         targetNote.setText(R.string.lsfg_target_note);
         layout.addView(targetNote);
 
+        // --- LSFG: ползунок flowScale (только для LSFG) ---
+        android.widget.LinearLayout flowSection = new android.widget.LinearLayout(this);
+        flowSection.setOrientation(android.widget.LinearLayout.VERTICAL);
         android.widget.TextView flowLabel = new android.widget.TextView(this);
         final float[] flow = {container.getFrameGenFlowScale()};
         flowLabel.setText(getString(R.string.lsfg_flow_scale) + ": " + String.format(java.util.Locale.US, "%.2f", flow[0]));
-        layout.addView(flowLabel);
+        flowSection.addView(flowLabel);
         android.widget.SeekBar flowBar = new android.widget.SeekBar(this);
         flowBar.setMax(75);
         flowBar.setProgress(Math.round((flow[0] - 0.25f) * 100));
@@ -2659,7 +2680,35 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             @Override public void onStartTrackingTouch(android.widget.SeekBar b) {}
             @Override public void onStopTrackingTouch(android.widget.SeekBar b) {}
         });
-        layout.addView(flowBar);
+        flowSection.addView(flowBar);
+        layout.addView(flowSection);
+
+        // --- CronyFG: пресеты качества (только для CronyFG) ---
+        android.widget.RadioGroup qualitySection = new android.widget.RadioGroup(this);
+        qualitySection.setOrientation(android.widget.RadioGroup.VERTICAL);
+        android.widget.TextView qualityLabel = new android.widget.TextView(this);
+        qualityLabel.setText("Quality");
+        qualitySection.addView(qualityLabel);
+        final String[] qualityLabels = {"Эконом", "Плавно", "Баланс", "Высокий", "Усиленный", "Максимальный"};
+        final int[] selectedQuality = {container.getFrameGenQuality()};
+        for (int i = 0; i < qualityLabels.length; i++) {
+            final int idx = i;
+            android.widget.RadioButton rb = new android.widget.RadioButton(this);
+            rb.setId(i + 1);   // RadioGroup опознает соседей по уникальному id
+            rb.setText(qualityLabels[i]);
+            rb.setChecked(i == selectedQuality[0]);
+            // RadioGroup сам снимает выделение с соседей — остаётся лишь запомнить индекс.
+            rb.setOnClickListener(v -> selectedQuality[0] = idx);
+            qualitySection.addView(rb);
+        }
+        layout.addView(qualitySection);
+
+        engineSync[0] = () -> {
+            boolean cronyfg = "cronyfg".equals(selectedEngine[0]);
+            flowSection.setVisibility(cronyfg ? android.view.View.GONE : android.view.View.VISIBLE);
+            qualitySection.setVisibility(cronyfg ? android.view.View.VISIBLE : android.view.View.GONE);
+        };
+        engineSync[0].run();
 
         new AlertDialog.Builder(this)
                 .setTitle(R.string.lsfg_title)
@@ -2669,11 +2718,12 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                     int target = targets[selectedTarget[0]];
                     if (m >= 2) container.setFrameGenMultiplier(m);
                     container.setFrameGenFlowScale(flow[0]);
+                    container.setFrameGenQuality(selectedQuality[0]);
                     container.setFrameGenTargetRate(target);
-                    container.setFrameGenEngine(m > 0 ? "lsfg-native" : "off");
+                    container.setFrameGenEngine(m > 0 ? selectedEngine[0] : "off");
                     container.saveData();
                     prepareLsfgNative();
-                    applyLsfgNative(m, flow[0]);
+                    applyLsfgNative(m, flow[0], selectedQuality[0]);
                     Toast.makeText(this, getString(R.string.lsfg_applied, m > 0 ? m + "x" : "Off"), Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -2684,7 +2734,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         com.winlator.cmod.renderer.HostRenderer r = xServerView != null ? xServerView.getRenderer() : null;
         if (r instanceof VulkanRenderer) {
             VulkanRenderer vr = (VulkanRenderer) r;
-            if (!vr.isLsfgNativeSupported()) return vr.getLsfgCapsReason();
+            int kind = (container != null && container.isCronyfg())
+                    ? VulkanRenderer.FG_ENGINE_CRONYFG : VulkanRenderer.FG_ENGINE_LSFG;
+            if (!vr.isFrameGenSupported(kind)) return vr.getFrameGenSupportReason(kind);
             float[] st = vr.getFrameGenStats();
             if (st != null && st[3] > 0f) {
                 return String.format(java.util.Locale.US, "%.0f real -> %.0f shown", st[2], st[3]);
@@ -2741,6 +2793,12 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
     /** Point the renderer at the cache and arm it at `multiplier` (0 = off). */
     public void applyLsfgNative(int multiplier, float flowScale) {
+        // Пресет качества берём из контейнера (для CronyFG); для LSFG не значим.
+        applyLsfgNative(multiplier, flowScale,
+                container != null ? container.getFrameGenQuality() : 2);
+    }
+
+    public void applyLsfgNative(int multiplier, float flowScale, int quality) {
         VulkanRenderer vkr = vulkanRendererOrNull();
         if (vkr == null) {
             Log.w("XServerDisplayActivity", "applyLsfgNative(" + multiplier + ") ignored - no Vulkan renderer");
@@ -2748,16 +2806,21 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             return;
         }
         Log.i("XServerDisplayActivity", "applyLsfgNative: multiplier=" + multiplier
-                + " flow=" + flowScale + " refresh=" + currentDisplayRefreshHz());
-        if (multiplier >= 2) {
+                + " flow=" + flowScale + " quality=" + quality + " refresh=" + currentDisplayRefreshHz());
+        final boolean cronyfg = container != null && container.isCronyfg();
+        if (multiplier >= 2 && !cronyfg) {
             java.io.File cache = com.winlator.cmod.core.LsfgNative.cacheFile(this);
             if (cache == null || !cache.isFile()) {
                 android.widget.Toast.makeText(this, R.string.lsfg_building_cache, android.widget.Toast.LENGTH_LONG).show();
             }
         }
-        vkr.setLsfgCachePath(
-                com.winlator.cmod.core.LsfgNative.cacheFile(this).getAbsolutePath());
-        vkr.setFrameGenTuning(flowScale, currentDisplayRefreshHz());
+        vkr.setFrameGenEngine(cronyfg ? VulkanRenderer.FG_ENGINE_CRONYFG
+                                      : VulkanRenderer.FG_ENGINE_LSFG);
+        if (!cronyfg) {
+            java.io.File cache = com.winlator.cmod.core.LsfgNative.cacheFile(this);
+            if (cache != null) vkr.setLsfgCachePath(cache.getAbsolutePath());
+        }
+        vkr.setFrameGenTuning(flowScale, currentDisplayRefreshHz(), quality);
         vkr.setFrameGenTargetRate(container != null ? container.getFrameGenTargetRate() : 0);
         vkr.setFrameGenArmed(multiplier >= 2, multiplier);
         lastFgMult = multiplier >= 2 ? multiplier : 0;
@@ -2818,6 +2881,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                         text += ")";
                         if (st.length >= 6 && st[5] > 0f)
                             text += String.format(java.util.Locale.US, "  %.1f ms/frame GPU", st[5]);
+                        // CronyFG: the effective flow short side, so the Flow
+                        // Scale slider's real effect is visible in the menu.
+                        if (st.length >= 7 && st[6] > 0f)
+                            text += String.format(java.util.Locale.US, "  flow %dpx", (int) st[6]);
                     }
                     fgReadout = text;
                     // HUD shows the same engine numbers as the FG menu.

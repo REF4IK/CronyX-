@@ -636,18 +636,8 @@ fun FrameGenerationDialogCompose(
 ) {
     val ctx = LocalContext.current
     val container = activity.getContainer() ?: return
-
-    if (!com.winlator.cmod.core.LsfgNative.isDllAvailable(activity)) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.lsfg_title)) },
-            text = { Text(stringResource(R.string.lsfg_not_in_library)) },
-            confirmButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.ok)) }
-            }
-        )
-        return
-    }
+    val lsfgDllAvailable = remember { com.winlator.cmod.core.LsfgNative.isDllAvailable(activity) }
+    var engine by remember { mutableStateOf(if (container.isCronyfg() || !container.isLsfgNative()) "cronyfg" else "lsfg-native") }
 
     var multiplier by remember { mutableStateOf(activity.getLastFgMult()) }
     var flowScale by remember { mutableFloatStateOf(container.getFrameGenFlowScale()) }
@@ -712,6 +702,33 @@ fun FrameGenerationDialogCompose(
                     )
                     Spacer(Modifier.height(8.dp))
                 }
+
+                Text("Engine", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    listOf("cronyfg", "lsfg-native").forEachIndexed { idx, value ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { engine = value }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            RadioButton(selected = engine == value, onClick = null)
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (idx == 0) "CronyFG" else "LSFG")
+                        }
+                    }
+                }
+                if (engine == "lsfg-native" && !lsfgDllAvailable) {
+                    Text(
+                        stringResource(R.string.lsfg_not_in_library),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
 
                 Text(stringResource(R.string.lsfg_target), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 FlowRow(
@@ -796,7 +813,7 @@ fun FrameGenerationDialogCompose(
                             if (multiplier > 0) container.setFrameGenMultiplier(multiplier)
                             container.setFrameGenFlowScale(flowScale)
                             container.setFrameGenTargetRate(targetRate)
-                            container.setFrameGenEngine(if (multiplier > 0) "lsfg-native" else "off")
+                            container.setFrameGenEngine(if (multiplier > 0) engine else "off")
                             container.saveData()
                             // Same as the legacy dialog: rebuild the shader cache in
                             // background AND apply now. Prepare's completion re-sets

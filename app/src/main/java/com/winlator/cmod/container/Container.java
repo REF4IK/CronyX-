@@ -400,6 +400,8 @@ public class Container {
     // (lsfg-vk Vulkan layer) is removed — a stale "lsfg" value migrates to it.
     public static final int FRAMEGEN_DEFAULT_MULTIPLIER = 2;
     public static final float FRAMEGEN_DEFAULT_FLOW_SCALE = 0.8f;
+    // Пресет качества CronyFG: 0 эконом .. 5 максимальный (см. cronyfg_quality.h).
+    public static final int FRAMEGEN_DEFAULT_QUALITY = 2;
 
     public boolean isFrameGenEnabled() {
         return getExtra("frameGenEnabled", "0").equals("1");
@@ -413,19 +415,22 @@ public class Container {
         String e = getExtra("frameGenEngine", "");
         if (e.isEmpty()) return isFrameGenEnabled() ? "lsfg-native" : "off";
         if (e.equals("lsfg") || e.equals("bionic")) return "lsfg-native";
-        if (!e.equals("lsfg-native")) return "off";
+        if (!e.equals("lsfg-native") && !e.equals("cronyfg")) return "off";
         return e;
     }
 
     public void setFrameGenEngine(String engine) {
-        if (engine == null || engine.isEmpty()) engine = "off";
-        if (!engine.equals("lsfg-native")) engine = "off";
+        if (!"lsfg-native".equals(engine) && !"cronyfg".equals(engine)) engine = "off";
         putExtra("frameGenEngine", engine);
-        setFrameGenEnabled(engine.equals("lsfg-native"));
+        setFrameGenEnabled(!engine.equals("off"));
     }
 
     public boolean isLsfgNative() {
         return getFrameGenEngine().equals("lsfg-native");
+    }
+
+    public boolean isCronyfg() {
+        return getFrameGenEngine().equals("cronyfg");
     }
 
     // Allowed values: 0 (Off, set live from the in-game menu) or 2-4.
@@ -477,6 +482,23 @@ public class Container {
 
     public void setFrameGenFlowScale(float flowScale) {
         putExtra("frameGenFlowScale", String.valueOf(flowScale));
+    }
+
+    /** Пресет качества CronyFG (0..5). LSFG не использует — ей нужен flowScale. */
+    public int getFrameGenQuality() {
+        try {
+            int q = Integer.parseInt(getExtra("frameGenQuality", String.valueOf(FRAMEGEN_DEFAULT_QUALITY)));
+            return (q < 0 || q > 5) ? FRAMEGEN_DEFAULT_QUALITY : q;
+        }
+        catch (NumberFormatException e) {
+            return FRAMEGEN_DEFAULT_QUALITY;
+        }
+    }
+
+    public void setFrameGenQuality(int quality) {
+        if (quality < 0) quality = 0;
+        if (quality > 5) quality = 5;
+        putExtra("frameGenQuality", String.valueOf(quality));
     }
 
     public String getWineVersion() {

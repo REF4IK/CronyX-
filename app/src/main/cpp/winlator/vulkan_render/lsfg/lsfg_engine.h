@@ -28,9 +28,18 @@
 
 #include "lsfg_common.hpp"
 #include "lsfg_governor.h"
-#include "lsfg_pacer.hpp"
+#include "../framegen/framegen_pacer.h"
 
 namespace lsfg {
+
+// The pacer is engine-agnostic and lives in framegen/; these aliases keep the
+// LSFG code (and its history) readable.
+using LsfgPacerConfig = framegen::Config;
+using LsfgPlan = framegen::Plan;
+using LsfgPacerStats = framegen::Stats;
+using LsfgPacer = framegen::Pacer;
+
+constexpr size_t LSFG_MAX_MULTIPLIER = framegen::kMaxMultiplier;
 
 class LsfgShaders;
 class LsfgChain;

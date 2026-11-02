@@ -220,14 +220,11 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val container = activity.getContainer()
     if (container == null) { onDismiss(); return }
-    if (!com.winlator.cmod.core.LsfgNative.isDllAvailable(activity)) {
-        GamePanelShell {
-            Text(stringResource(R.string.lsfg_not_in_library), color = GameOverlayColors.TextPrimary, fontSize = 13.sp)
-        }
-        return
-    }
+    val lsfgDllAvailable = remember { com.winlator.cmod.core.LsfgNative.isDllAvailable(activity) }
+    var engine by remember { mutableStateOf(if (container.isCronyfg() || !container.isLsfgNative()) "cronyfg" else "lsfg-native") }
     var multiplier by remember { mutableStateOf(activity.getLastFgMult()) }
     var flowScale by remember { mutableFloatStateOf(container.getFrameGenFlowScale()) }
+    var quality by remember { mutableStateOf(container.getFrameGenQuality()) }
     var targetRate by remember { mutableStateOf(container.getFrameGenTargetRate()) }
     var readout by remember { mutableStateOf(activity.getFgReadout()) }
     LaunchedEffect(Unit) {
@@ -248,11 +245,12 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 onOk = {
                     if (multiplier > 0) container.setFrameGenMultiplier(multiplier)
                     container.setFrameGenFlowScale(flowScale)
+                    container.setFrameGenQuality(quality)
                     container.setFrameGenTargetRate(targetRate)
-                    container.setFrameGenEngine(if (multiplier > 0) "lsfg-native" else "off")
+                    container.setFrameGenEngine(if (multiplier > 0) engine else "off")
                     container.saveData()
                     activity.prepareLsfgNative()
-                    activity.applyLsfgNative(if (multiplier > 0) multiplier else 0, flowScale)
+                    activity.applyLsfgNative(if (multiplier > 0) multiplier else 0, flowScale, quality)
                     Toast.makeText(ctx, ctx.getString(R.string.lsfg_applied, if (multiplier > 0) "${multiplier}x" else "Off"), Toast.LENGTH_SHORT).show()
                     onDismiss()
                 }
@@ -269,6 +267,16 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 }
                 Spacer(Modifier.height(6.dp))
             }
+            GameSectionTitle("Engine")
+            GameChipGroup(
+                options = listOf("CronyFG", "LSFG"),
+                selectedIndex = if (engine == "cronyfg") 0 else 1,
+                onSelect = { engine = if (it == 0) "cronyfg" else "lsfg-native" }
+            )
+            if (engine == "lsfg-native" && !lsfgDllAvailable) {
+                Text(stringResource(R.string.lsfg_not_in_library), color = GameOverlayColors.TextSecondary, fontSize = 11.sp)
+            }
+            Spacer(Modifier.height(4.dp))
             GameSectionTitle(stringResource(R.string.lsfg_target))
             GameChipGroup(
                 options = targetOpts,
@@ -285,12 +293,25 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             if (targetRate != 0) {
                 Text(stringResource(R.string.lsfg_mult_fixed_note), color = GameOverlayColors.TextSecondary, fontSize = 11.sp)
             }
-            GameSliderRow(
-                label = stringResource(R.string.lsfg_flow_scale),
-                valueText = String.format(Locale.US, "%.2f", flowScale),
-                value = flowScale, onValueChange = { flowScale = it },
-                valueRange = 0.25f..1.0f, steps = 14
-            )
+            if (engine == "cronyfg") {
+                // CronyFG: пресеты качества вместо крутилки. Каждый задаёт и
+                // разрешение потока, и пороги доверия (эконом..максимальный).
+                Spacer(Modifier.height(4.dp))
+                GameSectionTitle("Quality")
+                GameChipGroup(
+                    options = listOf("Эконом", "Плавно", "Баланс", "Высокий", "Усиленный", "Максимальный"),
+                    selectedIndex = quality.coerceIn(0, 5),
+                    onSelect = { quality = it }
+                )
+            } else {
+                // LSFG по-прежнему использует float-слайдер flowScale.
+                GameSliderRow(
+                    label = stringResource(R.string.lsfg_flow_scale),
+                    valueText = String.format(Locale.US, "%.2f", flowScale),
+                    value = flowScale, onValueChange = { flowScale = it },
+                    valueRange = 0.25f..1.0f, steps = 14
+                )
+            }
         }
     }
 }

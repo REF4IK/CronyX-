@@ -1,17 +1,11 @@
-// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
-// SPDX-License-Identifier: GPL-3.0-or-later
-//
-// Ported into Bannerlator's compositor from WinNative (GPL-3.0-or-later),
-// whose LSFG port is credited to Camille LaVey / the Eden Emulator Project and
-// follows upstream lsfg-vk. Only the Vulkan dispatch differs: Bannerlator
-// resolves entry points through the renderer's own table (see lsfg_vkd.h).
+// See framegen_pacer.h. Moved from lsfg_pacer.cpp (GPL-3.0-or-later).
 
-#include "lsfg_pacer.hpp"
+#include "framegen_pacer.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace lsfg {
+namespace framegen {
 
 namespace {
 
@@ -26,15 +20,15 @@ constexpr float CREDIT_EPSILON = 1.0e-4f;
 constexpr float SOURCE_ACCUM_FLOOR = 0.01f;
 constexpr uint32_t MIN_RATE_SAMPLES = 12;
 
-}
+} // namespace
 
-size_t LsfgPacer::MaxGenerations() const {
+size_t Pacer::MaxGenerations() const {
     if (config.multiplier < 2) return 0;
-    if (config.target_rate != 0) return LSFG_MAX_MULTIPLIER - 1;
-    return std::min<size_t>(config.multiplier, LSFG_MAX_MULTIPLIER) - 1;
+    if (config.target_rate != 0) return kMaxMultiplier - 1;
+    return std::min<size_t>(config.multiplier, kMaxMultiplier) - 1;
 }
 
-void LsfgPacer::TrackSourceRate(Clock::time_point now, uint64_t source_frames) {
+void Pacer::TrackSourceRate(Clock::time_point now, uint64_t source_frames) {
     if (!last_source_sample) {
         last_source_sample = now;
         last_source_frames = source_frames;
@@ -68,28 +62,28 @@ void LsfgPacer::TrackSourceRate(Clock::time_point now, uint64_t source_frames) {
     if (source_samples < MIN_RATE_SAMPLES) ++source_samples;
 }
 
-void LsfgPacer::TrackLoopRate(float interval_seconds) {
+void Pacer::TrackLoopRate(float interval_seconds) {
     loop_interval = loop_interval > 0.0f
                         ? loop_interval + (interval_seconds - loop_interval) * INTERVAL_SMOOTHING
                         : interval_seconds;
     if (loop_samples < MIN_RATE_SAMPLES) ++loop_samples;
 }
 
-bool LsfgPacer::RatesSettled() const {
+bool Pacer::RatesSettled() const {
     return source_samples >= MIN_RATE_SAMPLES && loop_samples >= MIN_RATE_SAMPLES;
 }
 
-size_t LsfgPacer::HeadroomLimit() const {
+size_t Pacer::HeadroomLimit() const {
     if (config.refresh_rate <= 0.0f || source_interval <= 0.0f ||
         source_samples < MIN_RATE_SAMPLES) {
-        return LSFG_MAX_MULTIPLIER - 1;
+        return kMaxMultiplier - 1;
     }
 
     const float budget = std::ceil(config.refresh_rate * source_interval - HEADROOM_EPSILON);
     return budget < 2.0f ? 0 : static_cast<size_t>(budget) - 1;
 }
 
-LsfgPlan LsfgPacer::Plan(size_t capacity, uint64_t source_frames) {
+Plan Pacer::PlanFor(size_t capacity, uint64_t source_frames) {
     const size_t ceiling = std::min(capacity, MaxGenerations());
     if (ceiling == 0) {
         Reset();
@@ -108,7 +102,7 @@ LsfgPlan LsfgPacer::Plan(size_t capacity, uint64_t source_frames) {
 
     if (interval_seconds <= 0.0f || interval_seconds > DISCONTINUITY_SECONDS) {
         output_credit = 0.0f;
-        return LsfgPlan{0, true};
+        return Plan{0, true};
     }
 
     TrackLoopRate(interval_seconds);
@@ -120,19 +114,11 @@ LsfgPlan LsfgPacer::Plan(size_t capacity, uint64_t source_frames) {
 
     if (target_rate == 0.0f) {
         // No explicit target rate: the multiplier is the multiplier, full stop.
-        // The panel-headroom clamp was here briefly and was removed at the
-        // user's decision; this is also upstream's behaviour on this branch.
-        //
-        // What that means above the panel's refresh rate, for the record: the
-        // display cannot show more frames than it refreshes, so under FIFO the
-        // surplus presents queue and the render thread waits on acquire. Nothing
-        // is displayed faster, and the compositor falls behind on guest
-        // deliveries instead. Below the refresh rate - every source at or under
-        // panel/4 - this branch behaves identically with or without the clamp.
-        // To restore it: limit = std::min(ceiling, HeadroomLimit()).
+        // The panel-headroom clamp lives in lsfg_engine's history; behaviour is
+        // intentionally unchanged by the move.
         output_credit = 0.0f;
         limit = ceiling;
-        return LsfgPlan{limit, true};
+        return Plan{limit, true};
     }
 
     const size_t allowed = std::min(ceiling, HeadroomLimit());
@@ -156,11 +142,11 @@ LsfgPlan LsfgPacer::Plan(size_t capacity, uint64_t source_frames) {
     }
 
     limit = generations;
-    return LsfgPlan{generations, true};
+    return Plan{generations, true};
 }
 
-LsfgPacerStats LsfgPacer::Stats() const {
-    LsfgPacerStats stats;
+Stats Pacer::GetStats() const {
+    Stats stats;
     stats.source_rate = source_interval > 0.0f ? 1.0f / source_interval : 0.0f;
     stats.loop_rate = loop_interval > 0.0f ? 1.0f / loop_interval : 0.0f;
     stats.refresh_rate = config.refresh_rate;
@@ -174,7 +160,7 @@ LsfgPacerStats LsfgPacer::Stats() const {
     return stats;
 }
 
-void LsfgPacer::Reset() {
+void Pacer::Reset() {
     last_frame.reset();
     last_source_sample.reset();
     last_source_frames = 0;
@@ -190,4 +176,4 @@ void LsfgPacer::Reset() {
     limit = 0;
 }
 
-}
+} // namespace framegen

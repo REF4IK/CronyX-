@@ -1,0 +1,33 @@
+#version 450
+// L0 luma -> L1 (half the flow resolution). One coarse level for the pyramid:
+// the coarse search runs here so a fast camera pan fits inside the block
+// budget, then the fine search refines the upsampled result at L0.
+// Box 2x2 average, result stays in flow-scale luma. Runs every source frame
+// (like luma) so the next frame always has a valid previous L1 image.
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uLumaL0;
+layout(set = 0, binding = 4, r16f) uniform image2D uTarget;
+
+layout(push_constant) uniform Push {
+    vec4 dims;   // srcW, srcH (L0), dstW, dstH (L1)
+} pc;
+
+void main() {
+    ivec2 d = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 dst = ivec2(pc.dims.zw);
+    if (d.x >= dst.x || d.y >= dst.y) return;
+
+    ivec2 src = ivec2(pc.dims.xy);
+    ivec2 b = d * 2;
+    float sum = 0.0;
+    int n = 0;
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 2; ++i) {
+            ivec2 p = min(b + ivec2(i, j), src - ivec2(1));
+            sum += texelFetch(uLumaL0, p, 0).r;
+            ++n;
+        }
+    }
+    imageStore(uTarget, d, vec4(sum / float(n), 0.0, 0.0, 0.0));
+}

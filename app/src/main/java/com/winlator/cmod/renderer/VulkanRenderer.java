@@ -115,9 +115,12 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
     private native boolean nativeHasEffects(long handle);
     private native boolean nativeLsfgSupported(long handle);
     private native String nativeLsfgCapsReason(long handle);
+    private native void nativeSetFrameGenEngine(long handle, int kind);
+    private native boolean nativeFrameGenSupported(long handle, int kind);
+    private native String nativeFrameGenSupportReason(long handle, int kind);
     private native void nativeSetFrameGenArmed(long handle, boolean armed, int multiplier);
     private native void nativeSetLsfgCachePath(long handle, String path);
-    private native void nativeSetFrameGenTuning(long handle, float flowScale, float refreshHz);
+    private native void nativeSetFrameGenTuning(long handle, float flowScale, float refreshHz, int quality);
     private native void nativeSetFrameGenTargetRate(long handle, int targetRate);
     private native float[] nativeFrameGenStats(long handle);
 
@@ -155,7 +158,8 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
                     nativeSetFilterMode(nativeHandle, pendingFilterMode);
                     nativeSetSwapRB(nativeHandle, pendingSwapRB);
                     if (pendingLsfgCachePath != null) nativeSetLsfgCachePath(nativeHandle, pendingLsfgCachePath);
-                    nativeSetFrameGenTuning(nativeHandle, pendingFgFlowScale, pendingFgRefreshHz);
+                    nativeSetFrameGenEngine(nativeHandle, pendingFgEngineKind);
+                    nativeSetFrameGenTuning(nativeHandle, pendingFgFlowScale, pendingFgRefreshHz, pendingFgQuality);
                     nativeSetFrameGenTargetRate(nativeHandle, pendingFgTargetRate);
                     if (pendingFgArmed) nativeSetFrameGenArmed(nativeHandle, true, pendingFgMultiplier);
                     updateTransform();
@@ -791,6 +795,38 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
         return false;
     }
 
+    // Frame-gen engines. Off is always available; the other two are gated by
+    // their own device caps (CronyFG needs storage images, LSFG needs 1.3+VMM).
+    public static final int FG_ENGINE_OFF     = 0;
+    public static final int FG_ENGINE_CRONYFG = 1;
+    public static final int FG_ENGINE_LSFG    = 2;
+
+    /** Selects the engine; takes effect immediately and is replayed on init. */
+    public void setFrameGenEngine(int kind) {
+        pendingFgEngineKind = kind;
+        synchronized (lock) {
+            if (nativeHandle != 0) nativeSetFrameGenEngine(nativeHandle, kind);
+        }
+    }
+
+    public boolean isFrameGenSupported(int kind) {
+        synchronized (lock) {
+            if (nativeHandle != 0) return nativeFrameGenSupported(nativeHandle, kind);
+        }
+        return false;
+    }
+
+    /** Human-readable verdict for the selected engine. */
+    public String getFrameGenSupportReason(int kind) {
+        synchronized (lock) {
+            if (nativeHandle != 0) {
+                String r = nativeFrameGenSupportReason(nativeHandle, kind);
+                if (r != null) return r;
+            }
+        }
+        return "renderer not started";
+    }
+
     /**
      * Arm or disarm native LSFG frame generation. Changing this recreates the
      * swapchain (TRANSFER_DST usage + deeper image queue).
@@ -819,7 +855,8 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
     /**
      * Live native frame-gen telemetry, or null when the renderer is down:
      * {generations trusted, generations planned, real fps, presented fps,
-     * thermal status (-1 = no signal), GPU ms per generated frame (-1)}.
+     * thermal status (-1 = no signal), GPU ms per generated frame (-1),
+     * CronyFG flow short side in px (0 for LSFG)}.
      */
     public float[] getFrameGenStats() {
         synchronized (lock) {
@@ -828,12 +865,13 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
         return null;
     }
 
-    /** Flow scale (0.25-1.0) and the panel's real refresh rate. */
-    public void setFrameGenTuning(float flowScale, float refreshHz) {
+    /** Flow scale (0.25-1.0), the panel's real refresh rate, and the CronyFG quality preset (0..5). */
+    public void setFrameGenTuning(float flowScale, float refreshHz, int quality) {
         pendingFgFlowScale = flowScale;
         pendingFgRefreshHz = refreshHz;
+        pendingFgQuality = quality;
         synchronized (lock) {
-            if (nativeHandle != 0) nativeSetFrameGenTuning(nativeHandle, flowScale, refreshHz);
+            if (nativeHandle != 0) nativeSetFrameGenTuning(nativeHandle, flowScale, refreshHz, quality);
         }
     }
 
@@ -887,7 +925,9 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
     private boolean pendingSwapRB         = false;
     private boolean pendingFgArmed        = false;
     private int     pendingFgMultiplier   = 2;
+    private int     pendingFgEngineKind   = FG_ENGINE_LSFG;
     private float   pendingFgFlowScale    = 0.8f;
+    private int     pendingFgQuality      = 2;
     private float   pendingFgRefreshHz    = 0f;
     private int     pendingFgTargetRate   = 0;
     private String  pendingLsfgCachePath  = null;

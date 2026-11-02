@@ -1,0 +1,22 @@
+#version 450
+// Composite RGB -> luma at the flow resolution. Runs every source frame so the
+// next frame always has a valid "previous luma", even when generation is idle.
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uSource;
+layout(set = 0, binding = 4, r16f) uniform image2D uTarget;
+
+layout(push_constant) uniform Push {
+    vec4 dims;   // srcW, srcH, dstW, dstH
+} pc;
+
+void main() {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 dst = ivec2(pc.dims.zw);
+    if (p.x >= dst.x || p.y >= dst.y) return;
+
+    vec2 uv = (vec2(p) + 0.5) / vec2(dst);
+    vec3 c = texture(uSource, uv).rgb;
+    float y = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    imageStore(uTarget, p, vec4(y, 0.0, 0.0, 0.0));
+}

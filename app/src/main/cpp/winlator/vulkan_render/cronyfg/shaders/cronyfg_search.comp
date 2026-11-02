@@ -1,0 +1,99 @@
+#version 450
+// Block matching, one invocation per 8x8 block. Used for BOTH pyramid levels;
+// the level is selected entirely through push constants:
+//   coarse — 8x8 blocks over the L1 (half) luma, temporal seed from the
+//            previous frame's refined flow, a wide 3-step search, output scaled
+//            to flow pixels so the fine pass can upsample it directly;
+//   fine   — 8x8 blocks over the L0 luma, seed = upsampled coarse flow, a tight
+//            search, output feeds the (unchanged) refine pass.
+// Motion vectors are always stored in flow (L0) pixels; `pixelScale` converts
+// them to the current level's luma pixels for the previous-frame sample.
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uLumaCurr;
+layout(set = 0, binding = 1) uniform sampler2D uLumaPrev;
+layout(set = 0, binding = 2) uniform sampler2D uFlowSeed;   // prev refined (coarse) / coarse (fine)
+layout(set = 0, binding = 4, rgba16f) uniform image2D uFlowOut;
+
+layout(push_constant) uniform Push {
+    vec4 dims;    // lumaW, lumaH, blocksX, blocksY   (this level)
+    vec4 geom;    // pixelScale, firstStep, minStep, useNeighbors
+    vec4 flags;   // x = hasHistory
+} pc;
+
+const int BLOCK = 8;
+const float MAX_MV = 64.0;
+
+// mv is in flow pixels; convert to this level's luma pixels for the sample.
+float blockSad(ivec2 block, vec2 mv) {
+    ivec2 base = block * BLOCK;
+    vec2 mvLuma = mv / pc.geom.x;
+    vec2 lumaSize = pc.dims.xy;
+    float sad = 0.0;
+    for (int y = 0; y < BLOCK; ++y) {
+        for (int x = 0; x < BLOCK; ++x) {
+            ivec2 p = base + ivec2(x, y);
+            float a = texelFetch(uLumaCurr, p, 0).r;
+            vec2 q = (vec2(p) + 0.5 + mvLuma) / lumaSize;
+            float b = texture(uLumaPrev, q).r;
+            sad += abs(a - b);
+        }
+    }
+    return sad / float(BLOCK * BLOCK);
+}
+
+// Seeds and outputs are in flow pixels; the normalized uv lets one sampling
+// path serve either seed grid (refined at L0 blocks, or coarse at L1 blocks).
+vec2 fetchSeed(ivec2 block, ivec2 blocks) {
+    vec2 uv = (vec2(block) + 0.5) / vec2(blocks);
+    return texture(uFlowSeed, uv).xy;
+}
+
+void main() {
+    ivec2 block = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 blocks = ivec2(pc.dims.zw);
+    if (block.x >= blocks.x || block.y >= blocks.y) return;
+
+    vec2 cand[6];
+    int n = 0;
+    cand[n++] = vec2(0.0);
+    if (pc.flags.x > 0.5) {
+        cand[n++] = clamp(fetchSeed(block, blocks), vec2(-MAX_MV), vec2(MAX_MV));
+        if (pc.geom.w > 0.5) {
+            cand[n++] = clamp(fetchSeed(block + ivec2(-1, 0), blocks), vec2(-MAX_MV), vec2(MAX_MV));
+            cand[n++] = clamp(fetchSeed(block + ivec2(1, 0), blocks), vec2(-MAX_MV), vec2(MAX_MV));
+            cand[n++] = clamp(fetchSeed(block + ivec2(0, -1), blocks), vec2(-MAX_MV), vec2(MAX_MV));
+            cand[n++] = clamp(fetchSeed(block + ivec2(0, 1), blocks), vec2(-MAX_MV), vec2(MAX_MV));
+        }
+    }
+
+    float bestCost = 1e9;
+    vec2 best = vec2(0.0);
+    for (int i = 0; i < n; ++i) {
+        float c = blockSad(block, cand[i]);
+        if (c < bestCost) { bestCost = c; best = cand[i]; }
+    }
+
+    // Static areas (HUD, skybox) already match perfectly: skip the search.
+    if (bestCost < 0.001) {
+        imageStore(uFlowOut, block, vec4(best, bestCost, 1.0));
+        return;
+    }
+
+    int firstStep = int(pc.geom.y);
+    int minStep = int(pc.geom.z);
+    for (int step = firstStep; step >= minStep; step >>= 1) {
+        vec2 center = best;
+        for (int dy = -1; dy <= 1; ++dy) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                if (dx == 0 && dy == 0) continue;
+                vec2 mv = clamp(center + vec2(float(dx * step), float(dy * step)),
+                                vec2(-MAX_MV), vec2(MAX_MV));
+                float c = blockSad(block, mv);
+                if (c < bestCost) { bestCost = c; best = mv; }
+            }
+        }
+    }
+
+    imageStore(uFlowOut, block, vec4(best, bestCost, 1.0));
+}

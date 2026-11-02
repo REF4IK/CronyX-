@@ -1,0 +1,109 @@
+#version 450
+// Flow cleanup: componentwise 3x3 median, parabolic subpixel refinement and a
+// confidence value that the synthesis pass uses to fall back to the nearest
+// real frame instead of blending a wrong vector.
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D uFlowIn;
+layout(set = 0, binding = 1) uniform sampler2D uLumaCurr;
+layout(set = 0, binding = 2) uniform sampler2D uLumaPrev;
+layout(set = 0, binding = 3) uniform sampler2D uFlowFwd;   // prev->curr field, round-trip test
+layout(set = 0, binding = 4, rgba16f) uniform image2D uFlowOut;
+
+layout(push_constant) uniform Push {
+    vec4 dims;   // flowW, flowH, blocksX, blocksY
+    vec4 tune;   // x = costScale, y = agreeScale, z = rtLoPx, w = rtHiPx
+    vec4 tune2;  // x = rtPenalty
+} pc;
+
+const int BLOCK = 8;
+
+float sadAt(ivec2 block, vec2 mv, vec2 flowSize) {
+    ivec2 base = block * BLOCK;
+    float sad = 0.0;
+    for (int y = 0; y < BLOCK; ++y) {
+        for (int x = 0; x < BLOCK; ++x) {
+            ivec2 p = base + ivec2(x, y);
+            float a = texelFetch(uLumaCurr, p, 0).r;
+            float b = texture(uLumaPrev, (vec2(p) + 0.5 + mv) / flowSize).r;
+            sad += abs(a - b);
+        }
+    }
+    return sad / float(BLOCK * BLOCK);
+}
+
+float median9(float v[9]) {
+    for (int i = 1; i < 9; ++i) {
+        float key = v[i];
+        int j = i - 1;
+        while (j >= 0 && v[j] > key) {
+            v[j + 1] = v[j];
+            --j;
+        }
+        v[j + 1] = key;
+    }
+    return v[4];
+}
+
+void main() {
+    ivec2 block = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 blocks = ivec2(pc.dims.zw);
+    if (block.x >= blocks.x || block.y >= blocks.y) return;
+
+    vec2 flowSize = pc.dims.xy;
+
+    float xs[9];
+    float ys[9];
+    int k = 0;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            ivec2 b = clamp(block + ivec2(dx, dy), ivec2(0), blocks - 1);
+            vec2 v = texelFetch(uFlowIn, b, 0).xy;
+            xs[k] = v.x;
+            ys[k] = v.y;
+            ++k;
+        }
+    }
+    vec2 med = vec2(median9(xs), median9(ys));
+
+    float s0 = sadAt(block, med, flowSize);
+    float sxm = sadAt(block, med + vec2(-1.0, 0.0), flowSize);
+    float sxp = sadAt(block, med + vec2(1.0, 0.0), flowSize);
+    float sym = sadAt(block, med + vec2(0.0, -1.0), flowSize);
+    float syp = sadAt(block, med + vec2(0.0, 1.0), flowSize);
+
+    float denx = 2.0 * s0 - sxm - sxp;
+    float deny = 2.0 * s0 - sym - syp;
+    // Parabola vertex: x* = (s(+1) - s(-1)) / (2 * (2*s0 - s(-1) - s(+1))).
+    float dx = abs(denx) > 1.0e-5 ? clamp(0.5 * (sxp - sxm) / denx, -0.5, 0.5) : 0.0;
+    float dy = abs(deny) > 1.0e-5 ? clamp(0.5 * (syp - sym) / deny, -0.5, 0.5) : 0.0;
+    vec2 refined = med + vec2(dx, dy);
+
+    vec4 raw = texelFetch(uFlowIn, block, 0);
+    float cost = raw.z;
+    float agree = length(raw.xy - med) / (1.0 + length(med));
+    // Пороги доверия приходят из push (пресет качества): costScale/agreeScale
+    // нормализуют стоимость и согласие, rtLo/rtHi — это round-trip-пороги уже в
+    // flow-пикселях, пересчитанные на CPU от flowShort (потому и масштабируются).
+    float conf = clamp(1.0 - cost * pc.tune.x, 0.0, 1.0) * clamp(1.0 - agree * pc.tune.y, 0.0, 1.0);
+
+    // Forward/backward round-trip consistency (the occlusion mask). `refined`
+    // maps this curr block into the prev frame; sampling the forward field there
+    // should map back. A large residual means the match is not reversible (a
+    // disocclusion), so drop confidence and let interp fall back to the nearest
+    // real frame. This tests the vectors, not the colors, so fast motion that is
+    // correctly tracked is not punished the way a pixel-diff gate would.
+    {
+        vec2 p = (vec2(block) + 0.5) * float(BLOCK);   // curr block center, flow px
+        vec2 pPrev = p + refined;                        // backward landing, flow px
+        vec2 uvFwd = pPrev / flowSize;
+        bool inFwd = all(greaterThanEqual(uvFwd, vec2(0.0))) &&
+                     all(lessThanEqual(uvFwd, vec2(1.0)));
+        vec2 fwd = texture(uFlowFwd, clamp(uvFwd, vec2(0.0), vec2(1.0))).xy;
+        float err = length(refined + fwd);               // round-trip residual, flow px
+        float occ = inFwd ? smoothstep(pc.tune.z, pc.tune.w, err) : 1.0;
+        conf *= 1.0 - pc.tune2.x * occ;
+    }
+
+    imageStore(uFlowOut, block, vec4(refined, cost, conf));
+}

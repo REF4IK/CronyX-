@@ -98,8 +98,7 @@ set(EFFECT_SHADERS
 
 # Effect vertex shader
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/effect_vert.h
-    COMMAND ${GLSLANG_VALIDATOR} -V --vn effect_vert_code
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/effect_vert.h    COMMAND ${GLSLANG_VALIDATOR} -V --vn effect_vert_code
             -x -o ${CMAKE_CURRENT_BINARY_DIR}/effect_vert.h
             ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/effect.vert
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/effect.vert
@@ -118,6 +117,19 @@ foreach(EFFECT ${EFFECT_SHADERS})
     list(APPEND EFFECT_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${EFFECT}_frag.h)
 endforeach()
 
+# CronyFG compute shaders
+foreach(CRONYFG_SHADER cronyfg_luma cronyfg_downsample cronyfg_search cronyfg_refine cronyfg_interp)
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${CRONYFG_SHADER}_comp.h
+        COMMAND ${GLSLANG_VALIDATOR} -V --vn ${CRONYFG_SHADER}_comp_code
+                -x -o ${CMAKE_CURRENT_BINARY_DIR}/${CRONYFG_SHADER}_comp.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/cronyfg/shaders/${CRONYFG_SHADER}.comp
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/winlator/vulkan_render/cronyfg/shaders/${CRONYFG_SHADER}.comp
+        COMMENT "Compiling ${CRONYFG_SHADER}.comp -> ${CRONYFG_SHADER}_comp.h"
+    )
+    list(APPEND CRONYFG_HEADERS ${CMAKE_CURRENT_BINARY_DIR}/${CRONYFG_SHADER}_comp.h)
+endforeach()
+
 # Vulkan renderer shared library
 # + lsfg-native: host-side LSFG frame generation (Lossless Scaling compute
 # chain, ported from Bannerlator feat/lsfg-native-compositor). Runs inside
@@ -126,6 +138,9 @@ add_library(vulkan_renderer SHARED
         winlator/vulkan_render/vulkan_jni.cpp
         winlator/vulkan_render/VulkanRendererContext.cpp
         winlator/vulkan_render/VulkanRendererScanout.cpp
+        winlator/vulkan_render/framegen/framegen_pacer.cpp
+        winlator/vulkan_render/cronyfg/cronyfg_chain.cpp
+        winlator/vulkan_render/cronyfg/cronyfg_engine.cpp
         winlator/vulkan_render/lsfg/lsfg_probe.cpp
         winlator/vulkan_render/lsfg/lsfg_dll.cpp
         winlator/vulkan_render/lsfg/lsfg_dxbc.cpp
@@ -139,7 +154,6 @@ add_library(vulkan_renderer SHARED
         winlator/vulkan_render/lsfg/lsfg_delta.cpp
         winlator/vulkan_render/lsfg/lsfg_generate.cpp
         winlator/vulkan_render/lsfg/lsfg_chain.cpp
-        winlator/vulkan_render/lsfg/lsfg_pacer.cpp
         winlator/vulkan_render/lsfg/lsfg_engine.cpp
         winlator/vulkan_render/lsfg/lsfg_governor.cpp
         winlator/vulkan_render/lsfg/lsfg_jni.cpp
@@ -147,6 +161,12 @@ add_library(vulkan_renderer SHARED
         ${CMAKE_CURRENT_BINARY_DIR}/window_vert.h
         ${CMAKE_CURRENT_BINARY_DIR}/window_frag.h
         ${CMAKE_CURRENT_BINARY_DIR}/effect_vert.h
+        ${CMAKE_CURRENT_BINARY_DIR}/cronyfg_luma_comp.h
+        ${CMAKE_CURRENT_BINARY_DIR}/cronyfg_downsample_comp.h
+        ${CMAKE_CURRENT_BINARY_DIR}/cronyfg_search_comp.h
+        ${CMAKE_CURRENT_BINARY_DIR}/cronyfg_refine_comp.h
+        ${CMAKE_CURRENT_BINARY_DIR}/cronyfg_interp_comp.h
+        ${CRONYFG_HEADERS}
         ${EFFECT_HEADERS}
 )
 

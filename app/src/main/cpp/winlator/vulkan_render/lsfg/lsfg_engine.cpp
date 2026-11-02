@@ -119,7 +119,7 @@ bool Engine::init(VkDevice device, VkPhysicalDevice physicalDevice, const std::s
 
 void Engine::configure(uint32_t multiplier, uint32_t targetRate, float flowScale,
                        float refreshRate) {
-    LsfgPacerConfig config = pacer_.Config();
+    LsfgPacerConfig config = pacer_.GetConfig();
     config.multiplier   = multiplier;
     config.target_rate  = targetRate;
     config.refresh_rate = refreshRate;
@@ -128,7 +128,7 @@ void Engine::configure(uint32_t multiplier, uint32_t targetRate, float flowScale
 }
 
 void Engine::setRefreshRate(float refreshRate) {
-    LsfgPacerConfig config = pacer_.Config();
+    LsfgPacerConfig config = pacer_.GetConfig();
     if (config.refresh_rate == refreshRate) return;
     config.refresh_rate = refreshRate;
     pacer_.SetConfig(config);
@@ -197,14 +197,14 @@ bool Engine::prepare(uint32_t width, uint32_t height, VkFormat format) {
 uint32_t Engine::plan(uint32_t capacity, uint64_t sourceFrames) {
     if (unavailable_ || !chain_) return 0;
 
-    plan_ = pacer_.Plan(std::min<size_t>(capacity, kMaxGenerations), sourceFrames);
+    plan_ = pacer_.PlanFor(std::min<size_t>(capacity, kMaxGenerations), sourceFrames);
 
     // The pacer says how many frames FIT in the panel's budget. The governor
     // says how many this device can actually afford right now - on a handheld
     // the chain competes with the game for one GPU, so an extra generation has
     // to prove it improves total output without collapsing the real frame rate.
     if (governorEnabled_) {
-        const LsfgPacerStats s = pacer_.Stats();
+        const LsfgPacerStats s = pacer_.GetStats();
         governor_.configure((uint32_t)std::min<size_t>(pacer_.MaxGenerations(), kMaxGenerations));
         // presentedRate_, NOT the pacer's loop rate. The pacer samples its loop
         // once per SOURCE frame, so its "loop rate" is the guest rate by
@@ -219,7 +219,7 @@ uint32_t Engine::plan(uint32_t capacity, uint64_t sourceFrames) {
     generating_ = warm_ && warmStreak_ >= kRecurrenceFrames && plan_.generations > 0;
 
     if ((planCalls_++ % kTelemetryInterval) == 0) {
-        const LsfgPacerStats stats = pacer_.Stats();
+        const LsfgPacerStats stats = pacer_.GetStats();
         const float wanted = stats.source_rate * (float)(plan_.generations + 1);
         LSFG_LOGI("presented=%.1f fps (measured at the swapchain)", (double)presentedRate_);
         LSFG_LOGI("pace gen=%zu max=%zu cap=%u guest=%.1f loop=%.1f refresh=%.1f target=%.0f "
@@ -274,7 +274,7 @@ void Engine::generateInto(VkCommandBuffer cmd, uint32_t generation, uint32_t tar
                                targetImage, VkExtent2D{width, height});
 }
 
-float Engine::sourceRate() const { return pacer_.Stats().source_rate; }
+float Engine::sourceRate() const { return pacer_.GetStats().source_rate; }
 
 void Engine::forgetTargets() {
     if (chain_) chain_->ForgetTargets();

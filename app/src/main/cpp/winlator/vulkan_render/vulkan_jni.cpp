@@ -280,6 +280,29 @@ Java_com_winlator_cmod_renderer_VulkanRenderer_nativeLsfgCapsReason(JNIEnv* env,
     return env->NewStringUTF(r->lsfgCaps().reason);
 }
 
+// --- Engine selection: 0 off, 1 cronyfg, 2 lsfg-native ---
+extern "C" JNIEXPORT void JNICALL
+Java_com_winlator_cmod_renderer_VulkanRenderer_nativeSetFrameGenEngine(
+        JNIEnv*, jobject, jlong handle, jint kind) {
+    auto* r = reinterpret_cast<VulkanRendererContext*>(handle);
+    if (r) r->setFrameGenEngine((int)kind);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_winlator_cmod_renderer_VulkanRenderer_nativeFrameGenSupported(
+        JNIEnv*, jobject, jlong handle, jint kind) {
+    auto* r = reinterpret_cast<VulkanRendererContext*>(handle);
+    return (jboolean)(r && r->frameGenSupported((int)kind));
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_winlator_cmod_renderer_VulkanRenderer_nativeFrameGenSupportReason(
+        JNIEnv* env, jobject, jlong handle, jint kind) {
+    auto* r = reinterpret_cast<VulkanRendererContext*>(handle);
+    if (!r) return nullptr;
+    return env->NewStringUTF(r->frameGenSupportReason((int)kind));
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_winlator_cmod_renderer_VulkanRenderer_nativeSetFrameGenArmed(
         JNIEnv*, jobject, jlong handle, jboolean armed, jint multiplier) {
@@ -300,9 +323,9 @@ Java_com_winlator_cmod_renderer_VulkanRenderer_nativeSetLsfgCachePath(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_winlator_cmod_renderer_VulkanRenderer_nativeSetFrameGenTuning(
-        JNIEnv*, jobject, jlong handle, jfloat flowScale, jfloat refreshHz) {
+        JNIEnv*, jobject, jlong handle, jfloat flowScale, jfloat refreshHz, jint quality) {
     auto* r = reinterpret_cast<VulkanRendererContext*>(handle);
-    if (r) r->setFrameGenTuning((float)flowScale, (float)refreshHz);
+    if (r) r->setFrameGenTuning((float)flowScale, (float)refreshHz, (int)quality);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -312,14 +335,14 @@ Java_com_winlator_cmod_renderer_VulkanRenderer_nativeSetFrameGenTargetRate(
     if (r) r->setFrameGenTargetRate((uint32_t)(targetRate > 0 ? targetRate : 0));
 }
 
-// Live telemetry: {accepted, planned, sourceFps, presentedFps, thermal, chainMsPerGen}
+// Live telemetry: {accepted, planned, sourceFps, presentedFps, thermal, chainMsPerGen, flowShort}
 extern "C" JNIEXPORT jfloatArray JNICALL
 Java_com_winlator_cmod_renderer_VulkanRenderer_nativeFrameGenStats(
         JNIEnv* env, jobject, jlong handle) {
-    float stats[6] = {0.f, 0.f, 0.f, 0.f, -1.f, -1.f};
+    float stats[7] = {0.f, 0.f, 0.f, 0.f, -1.f, -1.f, 0.f};
     auto* r = reinterpret_cast<VulkanRendererContext*>(handle);
     if (r) r->frameGenStats(stats);
-    jfloatArray arr = env->NewFloatArray(6);
-    if (arr) env->SetFloatArrayRegion(arr, 0, 6, stats);
+    jfloatArray arr = env->NewFloatArray(7);
+    if (arr) env->SetFloatArrayRegion(arr, 0, 7, stats);
     return arr;
 }

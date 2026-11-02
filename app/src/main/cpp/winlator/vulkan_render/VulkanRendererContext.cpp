@@ -79,6 +79,7 @@ VulkanRendererContext::~VulkanRendererContext() {
     for (size_t i = MAX_FRAMES_IN_FLIGHT; i < imgAvailSems.size(); i++)
         vk_.DestroySemaphore(device, imgAvailSems[i], nullptr);
     lsfgEngine_.reset();
+    cronyfgEngine_.reset();
     destroyFgQueryPool();
     vk_.DestroyCommandPool(device, cmdPool, nullptr);
     vk_.DestroyRenderPass(device, renderPass, nullptr);
@@ -290,34 +291,41 @@ void VulkanRendererContext::createLogicalDevice() {
     VkDeviceCreateInfo ci{}; ci.sType=VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     ci.pQueueCreateInfos=&qi; ci.queueCreateInfoCount=1;
     ci.enabledExtensionCount=(uint32_t)extList.size(); ci.ppEnabledExtensionNames=extList.data();
-    // --- Native LSFG: enable the three features its shaders need. Gated:
-    // on a device failing any gate this block is inert and vkCreateDevice is
-    // called exactly as before (with retry-without on rejection).
+    // --- Frame generation features. LSFG needs Vulkan 1.3 + the memory model;
+    // CronyFG only needs storage-image formats, which Vulkan 1.1 drivers
+    // already expose. Enable whatever the device offers, independently, so a
+    // device that cannot run LSFG can still run CronyFG.
     lsfgCaps_ = lsfg::Caps{};
     lsfgCaps_.features = lsfg::queryFeatures(vk_, physicalDevice);
+    cronyfgCaps_ = cronyfg::Caps{};
 
-    VkPhysicalDeviceVulkan12Features lsfgV12{};
-    VkPhysicalDeviceFeatures2        lsfgF2{};
-    if (lsfgCaps_.features.deviceGatesPass()) {
-        lsfgV12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-        lsfgV12.vulkanMemoryModel = VK_TRUE;
-        lsfgV12.vulkanMemoryModelDeviceScope =
-            lsfgCaps_.features.vulkanMemoryModelDeviceScope ? VK_TRUE : VK_FALSE;
-
-        lsfgF2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-        lsfgF2.pNext = &lsfgV12;
-        lsfgF2.features.shaderStorageImageWriteWithoutFormat = VK_TRUE;
-        lsfgF2.features.shaderStorageImageExtendedFormats    = VK_TRUE;
-
-        ci.pNext = &lsfgF2;
-        lsfgCaps_.featuresEnabled = true;
+    VkPhysicalDeviceVulkan12Features fgV12{};
+    VkPhysicalDeviceFeatures2        fgF2{};
+    const bool wantStorage =
+        lsfgCaps_.features.storageImageWriteWithoutFormat ||
+        lsfgCaps_.features.storageImageExtendedFormats;
+    if (lsfgCaps_.features.deviceGatesPass() || wantStorage) {
+        fgF2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        fgF2.features.shaderStorageImageWriteWithoutFormat =
+            lsfgCaps_.features.storageImageWriteWithoutFormat ? VK_TRUE : VK_FALSE;
+        fgF2.features.shaderStorageImageExtendedFormats =
+            lsfgCaps_.features.storageImageExtendedFormats ? VK_TRUE : VK_FALSE;
+        if (lsfgCaps_.features.deviceGatesPass()) {
+            fgV12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+            fgV12.vulkanMemoryModel = VK_TRUE;
+            fgV12.vulkanMemoryModelDeviceScope =
+                lsfgCaps_.features.vulkanMemoryModelDeviceScope ? VK_TRUE : VK_FALSE;
+            fgF2.pNext = &fgV12;
+            lsfgCaps_.featuresEnabled = true;
+        }
+        ci.pNext = &fgF2;
     }
 
     if (vk_.CreateDevice(physicalDevice,&ci,nullptr,&device)!=VK_SUCCESS) {
         // A driver that rejects the feature chain must not cost the whole
         // renderer: retry once without it.
-        if (lsfgCaps_.featuresEnabled) {
-            RLOG_E("createLogicalDevice: CreateDevice failed WITH LSFG features; retrying without");
+        if (ci.pNext != nullptr) {
+            RLOG_E("createLogicalDevice: CreateDevice failed WITH frame-gen features; retrying without");
             ci.pNext = nullptr;
             lsfgCaps_.featuresEnabled = false;
             if (vk_.CreateDevice(physicalDevice,&ci,nullptr,&device)!=VK_SUCCESS) throw std::runtime_error("device");
@@ -354,6 +362,27 @@ void VulkanRendererContext::createSwapchain() {
     RLOG("lsfg-native: %s (features enabled=%d, storage-on-fmt=%d)",
          lsfgCaps_.reason, (int)lsfgCaps_.featuresEnabled,
          (int)lsfgCaps_.storageOnSwapchainFormat);
+
+    // CronyFG writes RGBA16F/R16F storage images and samples the composite
+    // format, so it needs storage support for both the composite and the
+    // extended (16-bit) formats.
+    cronyfgCaps_ = cronyfg::Caps{};
+    cronyfgCaps_.ok = lsfgCaps_.features.queried &&
+                      lsfgCaps_.features.storageImageExtendedFormats &&
+                      lsfgCaps_.storageOnSwapchainFormat;
+    if (cronyfgCaps_.ok) {
+        snprintf(cronyfgCaps_.reason, sizeof(cronyfgCaps_.reason), "ready");
+    } else if (!lsfgCaps_.features.queried) {
+        snprintf(cronyfgCaps_.reason, sizeof(cronyfgCaps_.reason),
+                 "device features not queryable");
+    } else if (!lsfgCaps_.features.storageImageExtendedFormats) {
+        snprintf(cronyfgCaps_.reason, sizeof(cronyfgCaps_.reason),
+                 "driver lacks shaderStorageImageExtendedFormats");
+    } else {
+        snprintf(cronyfgCaps_.reason, sizeof(cronyfgCaps_.reason),
+                 "composite format is not storage-capable");
+    }
+    RLOG("cronyfg: %s", cronyfgCaps_.reason);
 
     uint32_t imgCount=caps.minImageCount+1;
     // Frame gen presents several images per source frame, so the queue needs
@@ -1235,9 +1264,11 @@ ok=true;}catch(...){}
     // --- Frame gen: decide whether THIS frame composites off-swapchain. The
     // targets are created lazily on the first armed frame and torn down when it
     // disarms, so a session that never turns frame gen on never allocates them.
-    if (fgArmed_.load(std::memory_order_relaxed) && lsfgCaps_.supported() && !scanoutActive.load()) {
+    if (fgArmed_.load(std::memory_order_relaxed) && fgEngineUsable() && !scanoutActive.load()) {
         const int mult = fgMultiplier_.load(std::memory_order_relaxed);
-        const uint32_t want = (uint32_t)std::min(std::max(mult, 2), 4) + 1u;
+        // The engine reads the real frame BEFORE the current one straight out
+        // of the ring, so it must survive the whole source frame: presents + 1.
+        const uint32_t want = (uint32_t)std::min(std::max(mult, 2), 4) + 2u;
         compositeArmed = ensureCompositeTargets(swapchainExt.width, swapchainExt.height, want);
         if (compositeArmed) createCursorOverlayRenderPass();
         if (compositeArmed && !compositeTargets.empty())
@@ -1248,27 +1279,69 @@ ok=true;}catch(...){}
         compositeArmed = false;
         vk_.DeviceWaitIdle(device);
         destroyCompositeTargets();
+        // The next arm gets a fresh ring: drop luma/flow history too so it
+        // cannot be matched against frames from before the pause.
+        if (cronyfgEngine_) cronyfgEngine_->reset();
+    } else if (fgArmed_.load(std::memory_order_relaxed)) {
+        // Armed but nothing can be generated. Say why once in a while instead
+        // of silently doing nothing: a wrong engine or a failed gate is
+        // otherwise indistinguishable from "the setting did not apply".
+        if ((fgAcquireFailLog_++ % 120u) == 0u) {
+            RLOG_E("frame gen armed but dormant: engine=%d usable=%d scanout=%d composite=%d (%s)",
+                   fgEngineKind_.load(std::memory_order_relaxed),
+                   (int)fgEngineUsable(), (int)scanoutActive.load(), (int)compositeArmed,
+                   frameGenSupportReason(fgEngineKind_.load(std::memory_order_relaxed)));
+        }
     }
 
     // --- Frame gen: decide how many frames to synthesise for this source
     // frame, BEFORE acquiring, since that sets how many images we need.
     fgPlan_ = FrameGenPlan{};
-    if (lsfgEngine_ && fgConfigDirty_.exchange(false, std::memory_order_relaxed)) {
-        lsfgEngine_->configure(
-            (uint32_t)std::max(fgMultiplier_.load(std::memory_order_relaxed), 2),
-            fgTargetRate_.load(std::memory_order_relaxed),
-            fgFlowScale_.load(std::memory_order_relaxed),
-            fgRefreshHz_.load(std::memory_order_relaxed));
-    }
-    if (compositeActive() && ensureLsfgEngine() &&
-        lsfgEngine_->prepare(swapchainExt.width, swapchainExt.height, swapchainFmt)) {
-        lsfgEngine_->setPresentedRate(fgPresentedRate_);
-        if (containerWidth > 0 && containerHeight > 0)
-            lsfgEngine_->setGuestExtent((uint32_t)containerWidth, (uint32_t)containerHeight);
+    const int engineKind = fgEngineKind_.load(std::memory_order_relaxed);
+    const bool fgConfigChanged = fgConfigDirty_.exchange(false, std::memory_order_relaxed);
+    if (compositeActive()) {
         const uint32_t capacity = (uint32_t)std::min<size_t>(
             kMaxPresentsPerFrame - 1,
             compositeTargets.empty() ? 0 : compositeTargets.size() - 1);
-        fgPlan_.generations = lsfgEngine_->plan(capacity, ++fgSourceFrames_);
+
+        if (engineKind == kFgEngineCronyfg) {
+            if (ensureCronyfgEngine() &&
+                cronyfgEngine_->prepare(swapchainExt.width, swapchainExt.height,
+                                        swapchainFmt, (uint32_t)compositeTargets.size())) {
+                if (fgConfigChanged) {
+                    // Пресет качества CronyFG (0..5) вместо ползунка: таблица
+                    // задаёт и разрешение потока, и tuning-пороги разом. LSFG
+                    // по-прежнему использует fgFlowScale_ (ползунок) ниже.
+                    const int q = std::clamp(
+                        fgQuality_.load(std::memory_order_relaxed), 0,
+                        (int)cronyfg::kCronyfgPresetCount - 1);
+                    const cronyfg::QualityPreset& pr = cronyfg::kCronyfgPresets[q];
+                    cronyfgEngine_->configure(
+                        (uint32_t)std::max(fgMultiplier_.load(std::memory_order_relaxed), 2),
+                        fgTargetRate_.load(std::memory_order_relaxed),
+                        pr.flowShort,
+                        fgRefreshHz_.load(std::memory_order_relaxed),
+                        (uint32_t)q);
+                }
+                cronyfgEngine_->setPresentedRate(fgPresentedRate_);
+                fgPlan_.generations = cronyfgEngine_->plan(capacity, ++fgSourceFrames_);
+            }
+        } else if (engineKind == kFgEngineLsfg) {
+            if (ensureLsfgEngine() &&
+                lsfgEngine_->prepare(swapchainExt.width, swapchainExt.height, swapchainFmt)) {
+                if (fgConfigChanged) {
+                    lsfgEngine_->configure(
+                        (uint32_t)std::max(fgMultiplier_.load(std::memory_order_relaxed), 2),
+                        fgTargetRate_.load(std::memory_order_relaxed),
+                        fgFlowScale_.load(std::memory_order_relaxed),
+                        fgRefreshHz_.load(std::memory_order_relaxed));
+                }
+                lsfgEngine_->setPresentedRate(fgPresentedRate_);
+                if (containerWidth > 0 && containerHeight > 0)
+                    lsfgEngine_->setGuestExtent((uint32_t)containerWidth, (uint32_t)containerHeight);
+                fgPlan_.generations = lsfgEngine_->plan(capacity, ++fgSourceFrames_);
+            }
+        }
     }
     fgPlan_.presents = fgPlan_.generations + 1;
 
@@ -2167,6 +2240,55 @@ bool VulkanRendererContext::ensureLsfgEngine() {
     return true;
 }
 
+bool VulkanRendererContext::ensureCronyfgEngine() {
+    if (cronyfgEngine_) return cronyfgEngine_->valid();
+    if (!fgEngineUsable()) return false;
+    auto engine = std::make_unique<cronyfg::Engine>();
+    if (!engine->init(vk_, device, physicalDevice)) {
+        RLOG_E("cronyfg: engine init failed");
+        return false;
+    }
+    cronyfgEngine_ = std::move(engine);
+    fgConfigDirty_.store(true, std::memory_order_relaxed);
+    RLOG("cronyfg: engine ready");
+    return true;
+}
+
+bool VulkanRendererContext::fgEngineUsable() const {
+    switch (fgEngineKind_.load(std::memory_order_relaxed)) {
+        case kFgEngineCronyfg: return cronyfgCaps_.ok;
+        case kFgEngineLsfg:    return lsfgCaps_.supported();
+        default:               return false;
+    }
+}
+
+void VulkanRendererContext::setFrameGenEngine(int kind) {
+    if (kind != kFgEngineOff && kind != kFgEngineCronyfg && kind != kFgEngineLsfg)
+        kind = kFgEngineOff;
+    const int prev = fgEngineKind_.exchange(kind, std::memory_order_relaxed);
+    if (prev == kind) return;
+    // Coming back to CronyFG after LSFG/idle: its luma history is stale, and
+    // plan() must not generate before one fresh frame has been captured.
+    if (kind == kFgEngineCronyfg && cronyfgEngine_) cronyfgEngine_->reset();
+    fgConfigDirty_.store(true, std::memory_order_relaxed);
+    RLOG("frame gen engine %d -> %d", prev, kind);
+    // Switching does not free the other engine: arming/disarming drives the
+    // swapchain recreation, and tearing down shaders from the UI thread while
+    // the render thread might still reference them is not worth the RAM here.
+}
+
+bool VulkanRendererContext::frameGenSupported(int kind) const {
+    if (kind == kFgEngineCronyfg) return cronyfgCaps_.ok;
+    if (kind == kFgEngineLsfg) return lsfgCaps_.supported();
+    return true;   // "off" is always available
+}
+
+const char* VulkanRendererContext::frameGenSupportReason(int kind) const {
+    if (kind == kFgEngineCronyfg) return cronyfgCaps_.reason;
+    if (kind == kFgEngineLsfg) return lsfgCaps_.reason;
+    return "off";
+}
+
 void VulkanRendererContext::ensureFgQueryPool() {
     if (fgQueryPool_ != VK_NULL_HANDLE || !fgTimestampsOk_ || !vk_.CreateQueryPool) return;
     VkQueryPoolCreateInfo qi{}; qi.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -2204,18 +2326,28 @@ void VulkanRendererContext::readFgQueryResult() {
 }
 
 void VulkanRendererContext::recordFrameGenProcess(VkCommandBuffer cb) {
-    if (!compositeActive() || !lsfgEngine_ || compositeTargets.empty()) return;
-    const CompositeTarget& src = compositeTargets[compositeIndex];
+    if (!compositeActive() || compositeTargets.empty()) return;
+    const uint32_t slots = (uint32_t)compositeTargets.size();
+    const uint32_t prevIdx = (compositeIndex + slots - 1) % slots;
     ensureFgQueryPool();
     if (fgQueryPool_ != VK_NULL_HANDLE && fgPlan_.generations > 0) {
         vk_.CmdResetQueryPool(cb, fgQueryPool_, currentFrame * 2, 2);
         vk_.CmdWriteTimestamp(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, fgQueryPool_, currentFrame * 2);
     }
-    lsfgEngine_->process(cb, src.img, compositeW, compositeH, fgPlan_.generations);
+    if (fgEngineKind_.load(std::memory_order_relaxed) == kFgEngineCronyfg && cronyfgEngine_) {
+        // prev stays untouched for the whole source frame (ring >= mult+2).
+        cronyfgEngine_->process(cb, compositeIndex,
+                                compositeTargets[prevIdx].view,
+                                compositeTargets[compositeIndex].view,
+                                compositeW, compositeH, fgPlan_.generations);
+    } else if (lsfgEngine_) {
+        lsfgEngine_->process(cb, compositeTargets[compositeIndex].img,
+                             compositeW, compositeH, fgPlan_.generations);
+    }
 }
 
 void VulkanRendererContext::recordFrameGenGeneration(VkCommandBuffer cb, uint32_t g) {
-    if (!compositeActive() || !lsfgEngine_ || compositeTargets.empty()) return;
+    if (!compositeActive() || compositeTargets.empty()) return;
     if (g >= fgPlan_.generations) return;
     const uint32_t w = compositeW, h = compositeH;
     {
@@ -2223,7 +2355,14 @@ void VulkanRendererContext::recordFrameGenGeneration(VkCommandBuffer cb, uint32_
         const CompositeTarget& dst = compositeTargets[slot];
         if (dst.img == VK_NULL_HANDLE || dst.storageView == VK_NULL_HANDLE) return;
 
-        lsfgEngine_->generateInto(cb, g, g, dst.img, dst.storageView, w, h);
+        if (fgEngineKind_.load(std::memory_order_relaxed) == kFgEngineCronyfg && cronyfgEngine_) {
+            cronyfgEngine_->generateInto(cb, g, fgPlan_.generations,
+                                         dst.img, dst.storageView, w, h);
+        } else if (lsfgEngine_) {
+            lsfgEngine_->generateInto(cb, g, g, dst.img, dst.storageView, w, h);
+        } else {
+            return;
+        }
 
         if (fgQueryPool_ != VK_NULL_HANDLE && g + 1 == fgPlan_.generations) {
             vk_.CmdWriteTimestamp(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, fgQueryPool_, currentFrame * 2 + 1);
@@ -2290,9 +2429,11 @@ void VulkanRendererContext::setLsfgCachePath(const char* path) {
     lsfgEngine_.reset();
 }
 
-void VulkanRendererContext::setFrameGenTuning(float flowScale, float refreshHz) {
+void VulkanRendererContext::setFrameGenTuning(float flowScale, float refreshHz, int quality) {
     fgFlowScale_.store(flowScale, std::memory_order_relaxed);
     if (refreshHz > 1.0f) fgRefreshHz_.store(refreshHz, std::memory_order_relaxed);
+    fgQuality_.store(std::clamp(quality, 0, (int)cronyfg::kCronyfgPresetCount - 1),
+                     std::memory_order_relaxed);
     fgConfigDirty_.store(true, std::memory_order_relaxed);
 }
 
@@ -2381,14 +2522,22 @@ void VulkanRendererContext::recordCursorOverlay(VkCommandBuffer cb, uint32_t img
     vk_.CmdEndRenderPass(cb);
 }
 
-void VulkanRendererContext::frameGenStats(float out[6]) const {
+void VulkanRendererContext::frameGenStats(float out[7]) const {
     out[0] = out[1] = out[2] = 0.0f;
     out[4] = -1.0f;
+    out[6] = 0.0f;
     out[3] = fgPresentedRate_;
     out[5] = fgChainMsPerGen_;
+    out[1] = (float)fgPlan_.generations;
+    if (fgEngineKind_.load(std::memory_order_relaxed) == kFgEngineCronyfg) {
+        if (!cronyfgEngine_) return;
+        out[0] = (float)fgPlan_.generations;
+        out[2] = cronyfgEngine_->sourceRate();
+        out[6] = (float)cronyfgEngine_->flowShort();   // effective flow short side
+        return;
+    }
     if (!lsfgEngine_) return;
     out[0] = (float)lsfgEngine_->acceptedGenerations();
-    out[1] = (float)fgPlan_.generations;
     out[2] = lsfgEngine_->sourceRate();
     out[4] = (float)lsfgEngine_->thermalStatus();
 }
@@ -2431,7 +2580,7 @@ void VulkanRendererContext::setFrameGenArmed(bool armed, int multiplier) {
 
 bool VulkanRendererContext::compositeActive() const {
     if (!fgArmed_.load(std::memory_order_relaxed)) return false;
-    if (!lsfgCaps_.supported()) return false;
+    if (!fgEngineUsable()) return false;
     if (scanoutActive.load()) return false;   // direct scanout bypasses the compositor entirely
     return compositeArmed;
 }
@@ -2476,6 +2625,23 @@ void VulkanRendererContext::copyCompositeToSwapchain(VkCommandBuffer cb, uint32_
         t.img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         swapchainImages[imgIdx], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         1, &region);
+
+    // Put the ring image back in GENERAL: CronyFG samples the previous real
+    // frame from it on the next source frame (its own copy path already does
+    // the same for generated slots).
+    VkImageMemoryBarrier ringBack{};
+    ringBack.sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    ringBack.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    ringBack.newLayout=VK_IMAGE_LAYOUT_GENERAL;
+    ringBack.srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+    ringBack.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+    ringBack.image=t.img;
+    ringBack.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
+    ringBack.srcAccessMask=VK_ACCESS_TRANSFER_READ_BIT;
+    ringBack.dstAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    vk_.CmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT|VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        0, 0,nullptr, 0,nullptr, 1,&ringBack);
 
     if (cursorDrawnPerPresent() && cursorOverlay_.draw) {
         recordCursorOverlay(cb, imgIdx);
