@@ -572,6 +572,7 @@ void Chain::interp(VkCommandBuffer cmd, VkImage targetImage, VkImageView prev, V
     push.params[0] = t;
     push.tune2[0] = quality_.gamutStrength;
     push.tune2[1] = quality_.confFloor;
+    push.tune2[2] = quality_.sharpen;
 
     VkDescriptorSet set =
         interpSets_[frameParity_ * kGenerationsPerParity + (generation % kGenerationsPerParity)];

@@ -16,7 +16,7 @@ layout(set = 0, binding = 4, rgba8) uniform image2D uTarget;
 layout(push_constant) uniform Push {
     vec4 dims;     // dstW, dstH, flowW, flowH
     vec4 params;   // x = t
-    vec4 tune2;    // x = gamutStrength, y = confFloor
+    vec4 tune2;    // x = gamutStrength, y = confFloor, z = sharpen
 } pc;
 
 void main() {
@@ -59,6 +59,16 @@ void main() {
         vec3 n4 = texture(uCurr, clamp(c + vec2(0.0,  e.y), vec2(0.0), vec2(1.0))).rgb;
         vec3 mn = min(min(min(curr, n1), min(n2, n3)), n4);
         vec3 mx = max(max(max(curr, n1), max(n2, n3)), n4);
+        // «Ultra»: линейное усреднение двух репроецированных кадров размывает
+        // деталь — на 3x/4x почти весь экран синтетический, отсюда «мыло».
+        // Возвращаем микроконтраст, подмешивая высокочастотную составляющую
+        // РЕАЛЬНОГО текущего кадра (её крест-соседей уже берём для гаммы — ноль
+        // доп. выборок, нагрузку не поднимаем). Призрака эта деталь не добавляет,
+        // т.к. взята из настоящего кадра, а не из среднего двух.
+        vec3 detail = curr - (n1 + n2 + n3 + n4) * 0.25;
+        blended += pc.tune2.z * detail;
+        // Гамут-зажим ПОСЛЕ резкости: поднимает чёткость, но не даёт усилить ghost
+        // за пределы реально видимых вокруг цветов.
         blended = mix(blended, clamp(blended, mn, mx), pc.tune2.x);
     }
 
