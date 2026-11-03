@@ -124,21 +124,10 @@ uint32_t Engine::plan(uint32_t capacity, uint64_t sourceFrames) {
     framegen::Plan p =
         pacer_.PlanFor(std::min<size_t>(capacity, kMaxGenerations), sourceFrames);
 
-    // "Fixed" multiplier ignores the panel budget, same as the shared pacer.
-    // Cap it to the number of presents the panel can actually show per source
-    // frame, floor(refresh/source). Using ceil here over-promised: 3x of a 50 fps
-    // source on a 120 Hz panel queues 150 presents the panel drops, so every
-    // third frame was late and the motion looked smeared. Never queue more than
-    // refresh: extra presents add latency and drops, not smoothness.
-    if (targetRate_ == 0 && refreshRate_ > 0.0f) {
-        const float source = pacer_.GetStats().source_rate;
-        if (source > 0.0f) {
-            const float perFrame = refreshRate_ / source + 1.0e-3f;   // presents that fit
-            const size_t maxPresents = perFrame < 1.0f ? 1u : (size_t)perFrame;
-            const size_t maxGen = maxPresents >= 2u ? maxPresents - 1u : 0u;
-            p.generations = std::min(p.generations, maxGen);
-        }
-    }
+    // Без крышки бюджета панели: фиксированный множитель всегда вставляет ровно
+    // multiplier-1 кадров на каждый реальный (контент уже ограничен размером
+    // ринга `capacity`). Динамика по измеряемому fps убрана намеренно — она резко
+    // реагировала на транзиентные просадки и «подтормаживала» генерацию на лаге.
 
     warm_ = p.warm && frameCount_ + 1 >= kRequiredFrames;
     warmStreak_ = warm_ ? warmStreak_ + 1 : 0;
