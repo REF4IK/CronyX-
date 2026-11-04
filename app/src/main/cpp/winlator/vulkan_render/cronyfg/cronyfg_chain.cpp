@@ -32,7 +32,7 @@ struct LumaPush {
 struct SearchPush {
     float dims[4];   // lumaW, lumaH, blocksX, blocksY   (this level)
     float geom[4];   // pixelScale, firstStep, minStep, useNeighbors
-    float flags[4];  // x = hasHistory
+    float flags[4];  // x = hasHistory, y = sadStride (coarse 2, fine 1)
 };
 struct RefinePush {
     float dims[4];    // flowW, flowH, blocksX, blocksY
@@ -42,7 +42,7 @@ struct RefinePush {
 struct InterpPush {
     float dims[4];    // dstW, dstH, flowW, flowH
     float params[4];  // x = t
-    float tune2[4];   // x = gamutStrength, y = confFloor
+    float tune2[4];   // x = gamutStrength, y = confFloor, z = sharpen, w = confGamma
 };
 
 } // namespace
@@ -453,6 +453,7 @@ void Chain::searchCoarse(VkCommandBuffer cmd, uint32_t parity, bool hasHistory) 
     push.geom[2] = 2.0f;    // min step, flow px
     push.geom[3] = 1.0f;    // use spatial neighbours
     push.flags[0] = hasHistory ? 1.0f : 0.0f;
+    push.flags[1] = 2.0f;   // coarse: прорежённая SAD (4x4) — MV доводит fine-поиск
 
     const Image& curr = lumaHalf_[parity & 1u];
     const Image& prev = lumaHalf_[(parity & 1u) ^ 1u];
@@ -475,8 +476,9 @@ void Chain::searchFine(VkCommandBuffer cmd, uint32_t parity) {
     push.geom[0] = 1.0f;    // L0: 1 luma px = 1 flow px
     push.geom[1] = 2.0f;    // first step, flow px
     push.geom[2] = 1.0f;    // min step, flow px
-    push.geom[3] = 0.0f;    // seed is already dense: no spatial neighbours
+    push.geom[3] = 1.0f;    // spatial neighbours: helps propagate corrections
     push.flags[0] = 1.0f;   // coarse flow always exists for this frame
+    push.flags[1] = 1.0f;   // fine: полная SAD 8x8 (точный MV)
 
     const Image& curr = luma_[parity & 1u];
     const Image& prev = luma_[(parity & 1u) ^ 1u];
@@ -500,6 +502,7 @@ void Chain::searchFwd(VkCommandBuffer cmd, uint32_t parity) {
     push.geom[2] = 2.0f;    // min step, flow px
     push.geom[3] = 1.0f;    // (ignored: no history seed on the first frame)
     push.flags[0] = 0.0f;   // fresh search: zero candidate + TSS, no temporal seed
+    push.flags[1] = 2.0f;   // forward coarse: та же прорежённая SAD
 
     // Swap the roles: index blocks on the PREV frame, match into the CURR frame,
     // so the stored vectors point prev -> curr. refine samples this at the
@@ -570,9 +573,15 @@ void Chain::interp(VkCommandBuffer cmd, VkImage targetImage, VkImageView prev, V
     push.dims[2] = (float)flowW_;
     push.dims[3] = (float)flowH_;
     push.params[0] = t;
+    // Multi-scale/selective warping: включается пресетом (msSel>0.5, presets 3/4/5),
+    // применяется в шейдере только на быстрых пикселях. params.y=enable, z=scale, w=beta.
+    push.params[1] = quality_.msSel;
+    push.params[2] = 0.75f;   // msScale — альтернативный масштаб величины потока
+    push.params[3] = 25.0f;   // msBeta — резкость sigmoid-выбора по gamut-penalty
     push.tune2[0] = quality_.gamutStrength;
     push.tune2[1] = quality_.confFloor;
     push.tune2[2] = quality_.sharpen;
+    push.tune2[3] = quality_.confGamma;
 
     VkDescriptorSet set =
         interpSets_[frameParity_ * kGenerationsPerParity + (generation % kGenerationsPerParity)];
