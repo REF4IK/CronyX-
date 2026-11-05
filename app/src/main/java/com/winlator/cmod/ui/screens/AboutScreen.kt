@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSurface
+
 import com.winlator.cmod.ui.components.GlassSectionHeader
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.winlator.cmod.ui.components.glassCardFill
@@ -50,12 +52,7 @@ fun AboutScreen() {
     fun SectionCard(title: String, content: AnnotatedString) {
         // Референс: название секции стоит НАД карточкой, а не внутри неё.
         GlassSectionHeader(title = title)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-            shape = RoundedCornerShape(GlassTokens.CardRadius),
-            border = glassCardBorder(),
-        ) {
+        GlassSurface(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 ClickableText(
                     text = content,
@@ -78,12 +75,7 @@ fun AboutScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Header
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-            shape = RoundedCornerShape(GlassTokens.CardRadius),
-            border = glassCardBorder(),
-        ) {
+        GlassSurface(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

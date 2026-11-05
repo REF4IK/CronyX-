@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSurface
+
 import androidx.compose.foundation.shape.CircleShape
 
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -198,11 +200,8 @@ private fun DriverCard(
     onExport: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    Card(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-        shape = RoundedCornerShape(GlassTokens.CardRadius),
-        border = glassCardBorder(),
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(16.dp),

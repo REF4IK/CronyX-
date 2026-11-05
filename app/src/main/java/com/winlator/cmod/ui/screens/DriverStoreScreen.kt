@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSurface
+
 import androidx.compose.ui.graphics.Color
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
@@ -283,11 +285,8 @@ fun DriverStoreScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             items(grouped.keys.toList(), key = { it }) { repoName ->
-                                Card(
-                                    Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable { selectedRepo = repoName },
-                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                                    shape = RoundedCornerShape(GlassTokens.CardRadius),
-                                    border = glassCardBorder(),
+                                GlassSurface(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable { selectedRepo = repoName },
                                 ) {
                                     Row(
                                         Modifier.fillMaxWidth().padding(16.dp),
@@ -440,11 +439,8 @@ private fun DriverDownloadCard(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val hasDescription = driver.description != null && driver.description.isNotEmpty()
-    Card(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-        shape = RoundedCornerShape(GlassTokens.CardRadius),
-        border = glassCardBorder(),
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

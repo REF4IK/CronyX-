@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSurface
+
 import com.winlator.cmod.ui.components.glassBadgeFill
 import com.winlator.cmod.ui.components.glassAccent
 import com.winlator.cmod.ui.components.glassIsDark
@@ -1742,12 +1744,7 @@ fun SteamInfoDialog(
                             }
                         }
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                            shape = RoundedCornerShape(GlassTokens.CardRadius),
-                            border = glassCardBorder(),
-                        ) {
+                        GlassSurface(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(6.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -1845,11 +1842,8 @@ fun SteamInfoDialog(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 if (info.reviewScoreDesc.isNotEmpty() || info.totalReviews > 0) {
-                                    Card(
+                                    GlassSurface(
                                         modifier = Modifier.weight(1.2f).fillMaxHeight(),
-                                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                                        shape = RoundedCornerShape(GlassTokens.CardRadius),
-                                        border = glassCardBorder(),
                                     ) {
                                         Column(
                                             modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1904,11 +1898,8 @@ fun SteamInfoDialog(
                                     }
                                 }
 
-                                Card(
+                                GlassSurface(
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
-                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                                    shape = RoundedCornerShape(GlassTokens.CardRadius),
-                                    border = glassCardBorder(),
                                 ) {
                                     Column(
                                         modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1948,11 +1939,8 @@ fun SteamInfoDialog(
                                 }
 
                                 if (info.metacriticScore > 0) {
-                                    Card(
+                                    GlassSurface(
                                         modifier = Modifier.weight(0.8f).fillMaxHeight(),
-                                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                                        shape = RoundedCornerShape(GlassTokens.CardRadius),
-                                        border = glassCardBorder(),
                                     ) {
                                         Column(
                                             modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1988,12 +1976,7 @@ fun SteamInfoDialog(
                                 }
                             }
 
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                                shape = RoundedCornerShape(GlassTokens.CardRadius),
-                                border = glassCardBorder(),
-                            ) {
+                            GlassSurface(modifier = Modifier.fillMaxWidth()) {
                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (info.releaseDate.isNotEmpty()) {
                                         MetadataRow(label = if (isRussian) "Дата релиза" else "Release Date", value = info.releaseDate)
@@ -2140,11 +2123,9 @@ fun SteamInfoDialog(
                                                         info.minRequirements.replace("<[^>]*>".toRegex(), "").trim()
                                                     }
                                                 }
-                                                Card(
+                                                GlassSurface(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                                                     shape = RoundedCornerShape(8.dp),
-                                                    border = glassCardBorder(),
                                                 ) {
                                                     Column(modifier = Modifier.padding(12.dp)) {
                                                         Text(
@@ -2171,11 +2152,9 @@ fun SteamInfoDialog(
                                                         info.recRequirements.replace("<[^>]*>".toRegex(), "").trim()
                                                     }
                                                 }
-                                                Card(
+                                                GlassSurface(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                                                     shape = RoundedCornerShape(8.dp),
-                                                    border = glassCardBorder(),
                                                 ) {
                                                     Column(modifier = Modifier.padding(12.dp)) {
                                                         Text(
