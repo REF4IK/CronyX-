@@ -270,7 +270,7 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             if (readout.isNotEmpty()) {
                 Box(
                     Modifier.fillMaxWidth().clip(GameCardShape)
-                        .background(glassBadgeFill()).padding(10.dp)
+                        .background(Color.Black.copy(alpha = 0.34f)).padding(10.dp)
                 ) {
                     Text(readout, color = GameOverlayColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -725,7 +725,7 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                             val globalIdx = coreSpeeds.chunked(4).indexOf(row) * 4 + k
                             Box(
                                 Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                    .background(glassBadgeFill()).padding(horizontal = 6.dp, vertical = 6.dp)
+                                    .background(Color.Black.copy(alpha = 0.34f)).padding(horizontal = 6.dp, vertical = 6.dp)
                             ) {
                                 Column {
                                     Text("C${globalIdx + 1}", color = glassDescColor(), fontSize = 9.sp)
@@ -748,7 +748,7 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                         var showMenu by remember(p.pid) { mutableStateOf(false) }
                         Box(
                             Modifier.fillMaxWidth().clip(GameCardShape)
-                                .background(glassBadgeFill())
+                                .background(Color.Black.copy(alpha = 0.34f))
                                 .clickable { showMenu = true }
                                 .padding(horizontal = 10.dp, vertical = 8.dp)
                         ) {
@@ -860,7 +860,7 @@ fun XPanelActiveWindows(activity: XServerDisplayActivity, onDismiss: () -> Unit)
                     val title = w.name.ifEmpty { w.parent?.name ?: "" }
                     Box(
                         Modifier.fillMaxWidth().clip(GameCardShape)
-                            .background(glassBadgeFill())
+                            .background(Color.Black.copy(alpha = 0.34f))
                             .clickable {
                                 activity.winHandler.bringToFront(w.className, w.handle)
                                 onDismiss()
