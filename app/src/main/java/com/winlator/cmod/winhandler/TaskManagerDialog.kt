@@ -112,8 +112,10 @@ class TaskManagerDialog(private val activity: XServerDisplayActivity) : ContentD
 
             val composeView = ComposeView(activity).apply {
                 setContent {
-                    val isDark = ContentDialog.shouldUseDarkDialog(activity)
-                    com.winlator.cmod.ui.theme.WinlatorTheme(darkTheme = isDark) {
+                    // Диспетчер задач открывается поверх игрового кадра, поэтому он
+                    // всегда тёмный: в светлой теме приложения стекло здесь было
+                    // почти невидимым, а светлый текст — нечитаемым.
+                    com.winlator.cmod.ui.theme.WinlatorTheme(forceDark = true) {
                         TaskManagerContent()
                     }
                 }

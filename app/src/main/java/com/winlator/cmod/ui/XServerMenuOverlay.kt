@@ -3,6 +3,9 @@ package com.winlator.cmod.ui
 import android.view.View
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassBorder
+import com.winlator.cmod.ui.components.glassFillBrush
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,8 +41,10 @@ class XServerMenuController(private val activity: XServerDisplayActivity) {
 
     init {
         composeOverlay.setContent {
-            val isDark = com.winlator.cmod.contentdialog.ContentDialog.shouldUseDarkDialog(activity)
-            com.winlator.cmod.ui.theme.WinlatorTheme(darkTheme = isDark) {
+            // Оверлей всегда тёмный: поверх игрового кадра светлое стекло нечитаемо,
+            // а glass-токены выбирают ветку по яркости фона темы, поэтому внутри
+            // WinlatorTheme(darkTheme = true) они сами становятся тёмными.
+            com.winlator.cmod.ui.theme.WinlatorTheme(forceDark = true) {
                 if (isMenuVisible) {
                     XServerMenuOverlay(
                         activity = activity,
@@ -168,13 +173,16 @@ fun XServerMenuOverlay(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
-            // Rail: иконка + подпись под ней
+            // Rail: иконка + подпись под ней. Прозрачное стекло: тёмная база держит
+            // читаемость поверх кадра, градиент и бордер дают сам эффект стекла.
             Box(
                 modifier = Modifier
                     .width(96.dp)
                     .fillMaxHeight(0.94f)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(GameOverlayColors.RailBg)
+                    .clip(RoundedCornerShape(GlassTokens.CardRadius))
+                    .background(Color.Black.copy(alpha = 0.80f))
+                    .background(glassFillBrush())
+                    .border(glassBorder(), RoundedCornerShape(GlassTokens.CardRadius))
                     .clickable(enabled = false) {}
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.TopCenter
@@ -212,8 +220,10 @@ fun XServerMenuOverlay(
                     modifier = Modifier
                         .width(panelWidth)
                         .fillMaxHeight(0.94f)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(GameOverlayColors.PanelBg)
+                        .clip(RoundedCornerShape(GlassTokens.CardRadius))
+                        .background(Color.Black.copy(alpha = 0.74f))
+                        .background(glassFillBrush())
+                        .border(glassBorder(), RoundedCornerShape(GlassTokens.CardRadius))
                         .clickable(enabled = false) {}
                 ) {
                     val closePanel = { selectedId = null }

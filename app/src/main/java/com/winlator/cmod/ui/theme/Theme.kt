@@ -633,6 +633,10 @@ fun SharedPreferences.observeFloat(key: String, defaultValue: Float): State<Floa
 @Composable
 fun WinlatorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    // Переопределяет настройку режима темы. Без него `darkTheme = true` ничего
+    // не делает, если в приложении выбран режим «светлая»: isDarkFromMode
+    // возвращает false независимо от переданного флага.
+    forceDark: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -655,7 +659,7 @@ fun WinlatorTheme(
     val uiWallpaper by prefs.observeString(ThemePrefs.UI_WALLPAPER, "")
     val surfaceAlpha by prefs.observeInt("ui_wallpaper_surface_alpha", 60)
 
-    val effectiveDark = ThemePrefs.isDarkFromMode(themeMode, darkTheme)
+    val effectiveDark = forceDark || ThemePrefs.isDarkFromMode(themeMode, darkTheme)
 
     val colorScheme = if (dynamicEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

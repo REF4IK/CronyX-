@@ -1,7 +1,14 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassValueColor
 import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -70,7 +77,7 @@ fun GamePanelShell(
 fun GameSectionTitle(text: String) {
     Text(
         text = text,
-        color = GameOverlayColors.TextPrimary,
+        color = glassTitleColor(),
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         modifier = Modifier.padding(vertical = 6.dp)
@@ -88,21 +95,15 @@ fun GameSliderRow(
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = GameOverlayColors.TextPrimary, fontSize = 13.sp)
-            Text(valueText, color = GameOverlayColors.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(label, color = glassTitleColor(), fontSize = 13.sp)
+            Text(valueText, color = glassValueColor(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
             steps = steps,
-            colors = SliderDefaults.colors(
-                activeTrackColor = GameOverlayColors.Accent,
-                inactiveTrackColor = GameOverlayColors.Track,
-                thumbColor = GameOverlayColors.Accent,
-                activeTickColor = Color.Transparent,
-                inactiveTickColor = Color.Transparent
-            ),
+            colors = glassSliderColors(),
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -124,21 +125,11 @@ fun GameSwitchRow(
     ) {
         Text(
             label,
-            color = GameOverlayColors.TextPrimary,
+            color = glassTitleColor(),
             fontSize = 13.sp,
             modifier = Modifier.weight(1f)
         )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = GameOverlayColors.Accent,
-                checkedThumbColor = Color.Black,
-                uncheckedTrackColor = GameOverlayColors.Track,
-                uncheckedThumbColor = Color.White
-            ),
-            modifier = Modifier.height(30.dp)
-        )
+        GlassSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -156,22 +147,9 @@ fun GameCheckRow(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Переключатель вместо чекбокса, но в палитре самого оверлея: у него своя
-        // система цветов, стеклянные токены сюда не подходят.
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.Black,
-                checkedTrackColor = GameOverlayColors.Accent,
-                uncheckedThumbColor = GameOverlayColors.TextSecondary,
-                uncheckedTrackColor = Color.Transparent,
-                uncheckedBorderColor = GameOverlayColors.TextSecondary,
-            ),
-            modifier = Modifier.size(34.dp)
-        )
+        GlassSwitch(checked = checked, onCheckedChange = onCheckedChange)
         Spacer(Modifier.width(6.dp))
-        Text(label, color = GameOverlayColors.TextPrimary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(label, color = glassTitleColor(), fontSize = 13.sp, modifier = Modifier.weight(1f))
     }
 }
 
@@ -197,7 +175,7 @@ fun GameChipGroup(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (selected) GameOverlayColors.Accent else GameOverlayColors.CardBg)
+                            .background(if (selected) glassAccent() else glassBadgeFill())
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
@@ -207,7 +185,7 @@ fun GameChipGroup(
                     ) {
                         Text(
                             opt,
-                            color = if (selected) Color.Black else GameOverlayColors.TextPrimary,
+                            color = if (selected) Color.Black else glassTitleColor(),
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 12.sp,
                             maxLines = 1
@@ -226,15 +204,18 @@ fun GameRing(
     centerBottom: String,
     progress: Float,
     size: Dp = 92.dp,
-    ringColor: Color = GameOverlayColors.Accent
+    ringColor: Color = glassAccent()
 ) {
+    // Трек кольца готовим до Canvas: внутри DrawScope композируемые функции
+    // недоступны, поэтому цвет снимаем в локальную переменную.
+    val trackColor = glassBadgeFill()
     Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = 7.dp.toPx()
             val arcTopLeft = androidx.compose.ui.geometry.Offset(stroke / 2, stroke / 2)
             val arcSize = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke)
             drawArc(
-                color = Color(0xFF4A4A4A),
+                color = trackColor,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -253,8 +234,8 @@ fun GameRing(
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(centerTop, color = GameOverlayColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
-            Text(centerBottom, color = GameOverlayColors.TextSecondary, fontSize = 10.sp, maxLines = 1)
+            Text(centerTop, color = glassTitleColor(), fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
+            Text(centerBottom, color = glassDescColor(), fontSize = 10.sp, maxLines = 1)
         }
     }
 }
@@ -271,8 +252,8 @@ fun GameFooterOkCancel(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextButton(onClick = onCancel) {
-            Text(cancelText, color = GameOverlayColors.TextSecondary, fontWeight = FontWeight.Medium)
+        GlassPill(onClick = onCancel) {
+            Text(cancelText, color = glassDescColor(), fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.width(8.dp))
         GlassSolidPill(
@@ -310,10 +291,10 @@ fun GameRailItem(
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(if (selected) GameOverlayColors.Accent else Color.Transparent),
+                .background(if (selected) glassAccent() else Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
-            val tint = if (selected) Color.Black else GameOverlayColors.TextPrimary
+            val tint = if (selected) Color.Black else glassTitleColor()
             if (customIcon != null) {
                 customIcon(tint)
             } else {
@@ -338,7 +319,7 @@ fun GameRailItem(
         Spacer(Modifier.height(3.dp))
         Text(
             text = label,
-            color = if (selected) GameOverlayColors.Accent else GameOverlayColors.TextSecondary,
+            color = if (selected) glassAccent() else glassDescColor(),
             fontSize = 9.sp,
             lineHeight = 11.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,

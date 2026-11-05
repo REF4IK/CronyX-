@@ -1,5 +1,10 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassTitleColor
+
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.ui.components.GlassFieldShape
@@ -165,7 +170,7 @@ fun XPanelInput(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 )
                 Text(
                     stringResource(R.string.accent_color),
-                    color = GameOverlayColors.TextPrimary,
+                    color = glassTitleColor(),
                     fontSize = 13.sp,
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                 )
@@ -193,7 +198,7 @@ fun XPanelInput(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 if (styleCode == VisualStyle.GAMEHUB.code) {
                     Text(
                         "Glass рисует собственные цвета — акцент на него не влияет",
-                        color = GameOverlayColors.TextSecondary,
+                        color = glassDescColor(),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(top = 4.dp)
                     )
@@ -265,7 +270,7 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             if (readout.isNotEmpty()) {
                 Box(
                     Modifier.fillMaxWidth().clip(GameCardShape)
-                        .background(GameOverlayColors.CardBg).padding(10.dp)
+                        .background(glassBadgeFill()).padding(10.dp)
                 ) {
                     Text(readout, color = GameOverlayColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -278,7 +283,7 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 onSelect = { engine = if (it == 0) "cronyfg" else "lsfg-native" }
             )
             if (engine == "lsfg-native" && !lsfgDllAvailable) {
-                Text(stringResource(R.string.lsfg_not_in_library), color = GameOverlayColors.TextSecondary, fontSize = 11.sp)
+                Text(stringResource(R.string.lsfg_not_in_library), color = glassDescColor(), fontSize = 11.sp)
             }
             Spacer(Modifier.height(4.dp))
             GameSectionTitle(stringResource(R.string.lsfg_target))
@@ -295,7 +300,7 @@ fun XPanelFrameGen(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 onSelect = { multiplier = multVals[it]; targetRate = 0 }
             )
             if (targetRate != 0) {
-                Text(stringResource(R.string.lsfg_mult_fixed_note), color = GameOverlayColors.TextSecondary, fontSize = 11.sp)
+                Text(stringResource(R.string.lsfg_mult_fixed_note), color = glassDescColor(), fontSize = 11.sp)
             }
             if (engine == "cronyfg") {
                 // CronyFG: пресеты качества вместо крутилки. Каждый задаёт и
@@ -436,7 +441,7 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
         footer = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = { resetSettings() }) {
-                    Text(stringResource(R.string.reset), color = GameOverlayColors.Danger)
+                    Text(stringResource(R.string.reset), color = MaterialTheme.colorScheme.error)
                 }
                 GameFooterOkCancel(onCancel = onDismiss, onOk = { applyVulkanEffects(); onDismiss() })
             }
@@ -479,7 +484,7 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                         selectedProfile = ""; resetSettings()
                     }
                 }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Filled.Delete, null, tint = GameOverlayColors.Danger, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 }
             }
             GameSectionTitle("FX / Shaders")
@@ -710,7 +715,7 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             }
             Text(
                 "Temp: $cpuTemp · Bat: ${if (batteryLevel != -1) "$batteryLevel%" else "N/A"} ${if (batteryTemp != -1f) String.format(Locale.ENGLISH, "%.1fC", batteryTemp) else ""} · ${StringUtils.formatBytes(usedMem, false)}/${StringUtils.formatBytes(totalMem)}",
-                color = GameOverlayColors.TextSecondary, fontSize = 11.sp, modifier = Modifier.padding(vertical = 6.dp)
+                color = glassDescColor(), fontSize = 11.sp, modifier = Modifier.padding(vertical = 6.dp)
             )
             GameSectionTitle("Cores")
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -720,10 +725,10 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                             val globalIdx = coreSpeeds.chunked(4).indexOf(row) * 4 + k
                             Box(
                                 Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                    .background(GameOverlayColors.CardBg).padding(horizontal = 6.dp, vertical = 6.dp)
+                                    .background(glassBadgeFill()).padding(horizontal = 6.dp, vertical = 6.dp)
                             ) {
                                 Column {
-                                    Text("C${globalIdx + 1}", color = GameOverlayColors.TextSecondary, fontSize = 9.sp)
+                                    Text("C${globalIdx + 1}", color = glassDescColor(), fontSize = 9.sp)
                                     Text(String.format(Locale.ENGLISH, "%.1fG", s), color = GameOverlayColors.Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
@@ -735,7 +740,7 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             GameSectionTitle("${stringResource(R.string.processes)} (${processes.size})")
             if (processes.isEmpty()) {
                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.no_items_to_display), color = GameOverlayColors.TextSecondary, fontSize = 12.sp)
+                    Text(stringResource(R.string.no_items_to_display), color = glassDescColor(), fontSize = 12.sp)
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -743,7 +748,7 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                         var showMenu by remember(p.pid) { mutableStateOf(false) }
                         Box(
                             Modifier.fillMaxWidth().clip(GameCardShape)
-                                .background(GameOverlayColors.CardBg)
+                                .background(glassBadgeFill())
                                 .clickable { showMenu = true }
                                 .padding(horizontal = 10.dp, vertical = 8.dp)
                         ) {
@@ -756,12 +761,12 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                                 Column(Modifier.weight(1f)) {
                                     Text(
                                         (p.name ?: "?") + if (p.wow64Process) " *32" else "",
-                                        color = GameOverlayColors.TextPrimary, fontSize = 12.sp,
+                                        color = glassTitleColor(), fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium, maxLines = 1
                                     )
                                     Text(
                                         "PID ${p.pid} · ${p.formattedMemoryUsage ?: "0 B"}",
-                                        color = GameOverlayColors.TextSecondary, fontSize = 10.sp, maxLines = 1
+                                        color = glassDescColor(), fontSize = 10.sp, maxLines = 1
                                     )
                                 }
                                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -847,7 +852,7 @@ fun XPanelActiveWindows(activity: XServerDisplayActivity, onDismiss: () -> Unit)
     ) {
         if (windows.isEmpty()) {
             Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.no_items_to_display), color = GameOverlayColors.TextSecondary)
+                Text(stringResource(R.string.no_items_to_display), color = glassDescColor())
             }
         } else {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -855,7 +860,7 @@ fun XPanelActiveWindows(activity: XServerDisplayActivity, onDismiss: () -> Unit)
                     val title = w.name.ifEmpty { w.parent?.name ?: "" }
                     Box(
                         Modifier.fillMaxWidth().clip(GameCardShape)
-                            .background(GameOverlayColors.CardBg)
+                            .background(glassBadgeFill())
                             .clickable {
                                 activity.winHandler.bringToFront(w.className, w.handle)
                                 onDismiss()
@@ -879,8 +884,8 @@ fun XPanelActiveWindows(activity: XServerDisplayActivity, onDismiss: () -> Unit)
                                 }
                             }
                             Spacer(Modifier.height(6.dp))
-                            Text(title.ifEmpty { w.className ?: "?" }, color = GameOverlayColors.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            Text(w.className ?: "", color = GameOverlayColors.TextSecondary, fontSize = 11.sp, maxLines = 1)
+                            Text(title.ifEmpty { w.className ?: "?" }, color = glassTitleColor(), fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text(w.className ?: "", color = glassDescColor(), fontSize = 11.sp, maxLines = 1)
                         }
                     }
                 }
@@ -921,7 +926,7 @@ fun XPanelWinetricks(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
     GamePanelShell(
         footer = {
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Hide Winetricks", color = GameOverlayColors.TextSecondary)
+                Text("Hide Winetricks", color = glassDescColor())
             }
         }
     ) {
@@ -933,13 +938,13 @@ fun XPanelWinetricks(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             OutlinedTextField(
                 value = verb,
                 onValueChange = { verb = it },
-                placeholder = { Text("Enter Winetricks verb...", color = GameOverlayColors.TextSecondary) },
+                placeholder = { Text("Enter Winetricks verb...", color = glassDescColor()) },
                 singleLine = true,
-                textStyle = LocalTextStyle.current.copy(color = GameOverlayColors.TextPrimary),
+                textStyle = LocalTextStyle.current.copy(color = glassTitleColor()),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = GameOverlayColors.Accent,
                     unfocusedBorderColor = GameOverlayColors.Track,
-                    cursorColor = GameOverlayColors.Accent
+                    cursorColor = glassAccent()
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -963,14 +968,14 @@ fun XPanelWinetricks(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 if (output.isEmpty()) {
                     Text(
                         "Output...",
-                        color = GameOverlayColors.TextSecondary, fontSize = 11.sp,
+                        color = glassDescColor(), fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 } else {
                     SelectionContainer {
                         Text(
                             text = output,
-                            color = GameOverlayColors.TextPrimary, fontSize = 11.sp,
+                            color = glassTitleColor(), fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1038,7 +1043,7 @@ fun XPanelLogs(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                     Icon(
                         if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
                         if (paused) "Resume" else "Pause",
-                        tint = GameOverlayColors.Accent
+                        tint = glassAccent()
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -1058,7 +1063,7 @@ fun XPanelLogs(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         stringResource(R.string.no_items_to_display),
-                        color = GameOverlayColors.TextSecondary, fontSize = 12.sp
+                        color = glassDescColor(), fontSize = 12.sp
                     )
                 }
             } else {
@@ -1072,7 +1077,7 @@ fun XPanelLogs(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                             val line = lines[idx]
                             Text(
                                 text = line,
-                                color = GameOverlayColors.TextPrimary, fontSize = 11.sp,
+                                color = glassTitleColor(), fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
                                 maxLines = 1,
                                 modifier = Modifier
