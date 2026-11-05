@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -36,7 +37,19 @@ import com.winlator.cmod.container.Shortcut
 import com.winlator.cmod.core.AppUtils
 import com.winlator.cmod.core.FileUtils
 import com.winlator.cmod.ui.navigation.Screen
+import com.winlator.cmod.ui.components.GlassSheetContent
 import com.winlator.cmod.ui.components.UpdateCheckDialog
+import com.winlator.cmod.ui.components.glassDividerColor
+import com.winlator.cmod.ui.components.glassIsDark
+import com.winlator.cmod.ui.components.glassFillBrush
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassValueColor
+import com.winlator.cmod.ui.components.glassAccent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import com.winlator.cmod.ui.screens.*
 import com.winlator.cmod.ui.theme.observeFloat
 import com.winlator.cmod.ui.theme.observeInt
@@ -262,7 +275,7 @@ fun WinlatorApp(
             }
         }
     }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    var showMoreSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val appContainerManager = remember(context) { ContainerManager(context) }
 
@@ -294,10 +307,10 @@ fun WinlatorApp(
     // 1) открыт Driver Store → закрыть его
     // 2) открыт Adrenotools → закрыть его
     // 3) открыт GPU-экран → закрыть его
-    // 4) открыт drawer → закрыть его
+    // 4) открыт лист «Ещё» → закрыть его
     // 5) не на главном экране → вернуться на Containers (главный)
     // 6) иначе → стандартное поведение (выход/сворачивание приложения)
-    BackHandler(enabled = showContainerEdit || showInstalledComponents || showDriverStore || showAdrenotools || showGPUPerformance || showImportGame || showShortcutSettings || drawerState.isOpen || currentScreen != Screen.Containers) {
+    BackHandler(enabled = showContainerEdit || showInstalledComponents || showDriverStore || showAdrenotools || showGPUPerformance || showImportGame || showShortcutSettings || currentScreen != Screen.Containers) {
         when {
             showContainerEdit -> { showContainerEdit = false; containersRefreshKey++ }
             showInstalledComponents -> showInstalledComponents = false
@@ -306,7 +319,6 @@ fun WinlatorApp(
             showGPUPerformance -> showGPUPerformance = false
             showImportGame -> { showImportGame = false; containersRefreshKey++ }
             showShortcutSettings -> { showShortcutSettings = false }
-            drawerState.isOpen -> scope.launch { drawerState.close() }
             currentScreen == Screen.IconManager -> currentScreen = Screen.InputControls
             currentScreen == Screen.GamepadTest -> currentScreen = Screen.InputControls
             currentScreen == Screen.BigPicture -> currentScreen = Screen.Shortcuts
@@ -317,70 +329,7 @@ fun WinlatorApp(
     if (isInstalling) {
         InstallerScreen(progress = installProgress, isFinished = installProgress >= 100)
     } else {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                modifier = Modifier.width(300.dp),
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.logowi),
-                        contentDescription = "Logo",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .padding(top = 16.dp, bottom = 8.dp)
-                    )
-                    // Navigation items
-                    drawerItems.forEach { item ->
-                        NavigationDrawerItem(
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = stringResource(item.labelResId),
-                                    tint = if (currentScreen == item.screen) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = stringResource(item.labelResId),
-                                )
-                            },
-                            selected = currentScreen == item.screen,
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.primary,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            onClick = {
-                                // Сначала закрываем drawer, потом меняем экран —
-                                // иначе анимация перехода протекает невидимо под drawer'ом
-                                scope.launch {
-                                    drawerState.close()
-                                    currentScreen = item.screen
-                                }
-                                 when (item.screen) {
-                                     Screen.Steam -> onOpenSteam()
-                                     Screen.FileManager -> fileManagerContainerId = -1
-                                     else -> { }
-                                 }
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-        },
-    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 containerColor = Color.Transparent,
@@ -395,15 +344,6 @@ fun WinlatorApp(
                             // Статус-бар скрыт в MainActivity — не добавляем под него отступ,
                             // иначе меню «прыгает» вниз при возврате из контейнера
                             windowInsets = WindowInsets(0, 0, 0, 0),
-                            navigationIcon = {
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                                    }
-                                }) {
-                                    Icon(Icons.Filled.Menu, contentDescription = "Menu")
-                                }
-                            },
                             actions = {
                                 if (currentScreen == Screen.Shortcuts) {
                                     IconButton(onClick = { currentScreen = Screen.BigPicture }) {
@@ -437,10 +377,28 @@ fun WinlatorApp(
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
+                                containerColor = Color.Transparent,
                                 titleContentColor = MaterialTheme.colorScheme.onSurface,
                             ),
                         )
+                    }
+                },
+                bottomBar = {
+                    // Big Picture — фулскрин со своим фокус-деревом; панель ломает его.
+                    // При скрытом topBar (Steam info) она тоже не нужна.
+                    if (currentScreen != Screen.BigPicture && !hideTopBarBySteamInfo) {
+                    GlassBottomNavBar(
+                        currentScreen = currentScreen,
+                        onSelect = { screen ->
+                            currentScreen = screen
+                            when (screen) {
+                                Screen.Steam -> onOpenSteam()
+                                Screen.FileManager -> fileManagerContainerId = -1
+                                else -> { }
+                            }
+                        },
+                        onMore = { showMoreSheet = true },
+                    )
                     }
                 },
             ) { padding ->
@@ -449,6 +407,20 @@ fun WinlatorApp(
                         .fillMaxSize()
                         .padding(if (hideTopBarBySteamInfo) PaddingValues(0.dp) else padding),
                 ) {
+                    if (showMoreSheet) {
+                        GlassMoreSheet(
+                            onSelect = { screen ->
+                                showMoreSheet = false
+                                currentScreen = screen
+                                when (screen) {
+                                    Screen.Steam -> onOpenSteam()
+                                    Screen.FileManager -> fileManagerContainerId = -1
+                                    else -> { }
+                                }
+                            },
+                            onDismiss = { showMoreSheet = false },
+                        )
+                    }
                     AnimatedContent(
                         targetState = currentScreen,
                         transitionSpec = { screenTransition(transitionAnim, animDurationMs) },
@@ -728,3 +700,191 @@ private fun OverlayBackdrop(
     }
 }
 
+
+
+/**
+ * Нижняя навигация в стиле GameHub: основные разделы + «Ещё».
+ * Состав берётся из drawerItems, поэтому новый пункт меню появляется
+ * в панели или в sheet автоматически.
+ */
+@Composable
+private fun GlassBottomNavBar(
+    currentScreen: Screen,
+    onSelect: (Screen) -> Unit,
+    onMore: () -> Unit,
+) {
+    val primaryScreens = listOf(Screen.Shortcuts, Screen.Containers, Screen.InputControls, Screen.MyProfile)
+    val primary = primaryScreens.mapNotNull { ps -> drawerItems.firstOrNull { it.screen == ps } }
+    val moreCount = drawerItems.size - primary.size
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Без учёта инсета панель залезает под системный нав-бар и нижние
+            // табы перестают нажиматься.
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .background(glassFillBrush()),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(glassDividerColor())
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(66.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            primary.forEach { item ->
+                NavTab(
+                    labelResId = item.labelResId,
+                    icon = item.icon,
+                    selected = currentScreen == item.screen,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSelect(item.screen) },
+                )
+            }
+            if (moreCount > 0) {
+                NavTab(
+                    labelResId = R.string.more_menu,
+                    icon = Icons.Filled.GridOn,
+                    selected = showMoreSheetSelected(currentScreen, primary),
+                    modifier = Modifier.weight(1f),
+                    onClick = onMore,
+                )
+            }
+        }
+    }
+}
+
+/** Пункт выбран, если он относится к основным, но не показан в панели. */
+private fun showMoreSheetSelected(currentScreen: Screen, primary: List<DrawerItem>): Boolean =
+    primary.none { it.screen == currentScreen } &&
+        drawerItems.any { it.screen == currentScreen }
+
+@Composable
+private fun NavTab(
+    labelResId: Int,
+    icon: ImageVector,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val tint = if (selected) glassAccent() else glassValueColor().copy(alpha = 0.7f)
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 44.dp, height = 26.dp)
+                .background(
+                    if (selected) glassAccent().copy(alpha = 0.16f) else Color.Transparent,
+                    CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(3.dp))
+        Text(
+            text = stringResource(labelResId),
+            fontSize = 11.sp,
+            maxLines = 1,
+            color = tint,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/**
+ * Стеклянный sheet «Ещё меню»: сетка круглых иконок, 4 в ряд —
+ * как в референсе GameHub.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlassMoreSheet(
+    onSelect: (Screen) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val primaryScreens = listOf(Screen.Shortcuts, Screen.Containers, Screen.InputControls, Screen.MyProfile)
+    val secondary = drawerItems.filterNot { it.screen in primaryScreens }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.Transparent,
+        dragHandle = null,
+    ) {
+        GlassSheetContent {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.more_menu),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = glassTitleColor(),
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Filled.Close, contentDescription = null, tint = glassValueColor())
+                }
+            }
+
+            secondary.chunked(4).forEach { rowItems ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowItems.forEach { item ->
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(62.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (glassIsDark()) Color.White.copy(alpha = 0.08f)
+                                        else Color.Black.copy(alpha = 0.05f),
+                                    )
+                                    .clickable { onSelect(item.screen) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = stringResource(item.labelResId),
+                                    tint = glassValueColor(),
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = stringResource(item.labelResId),
+                                fontSize = 12.sp,
+                                maxLines = 2,
+                                textAlign = TextAlign.Center,
+                                color = glassTitleColor(),
+                            )
+                        }
+                    }
+                    repeat(4 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                }
+                Spacer(Modifier.height(18.dp))
+            }
+        }
+    }
+}

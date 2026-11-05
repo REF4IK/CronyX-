@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.CircleShape
+import com.winlator.cmod.ui.components.glassBadgeFill
 import android.graphics.Bitmap
 import android.os.Environment
 import androidx.activity.compose.BackHandler
@@ -93,7 +95,7 @@ fun FileBrowserScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
@@ -206,8 +208,8 @@ private fun FileEntryTile(
         Box(
             modifier = Modifier
                 .size(72.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .clip(CircleShape)
+                .background(glassBadgeFill()),
             contentAlignment = Alignment.Center,
         ) {
             if (entry.file.isDirectory) {

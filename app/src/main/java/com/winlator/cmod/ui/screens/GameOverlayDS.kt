@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.GlassSwitch
 import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -269,14 +271,9 @@ fun GameFooterOkCancel(
             Text(cancelText, color = GameOverlayColors.TextSecondary, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.width(8.dp))
-        Button(
+        GlassSolidPill(
             onClick = onOk,
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = GameOverlayColors.Accent,
-                contentColor = Color.Black
-            ),
-            contentPadding = PaddingValues(horizontal = 26.dp, vertical = 10.dp)
+            contentPadding = PaddingValues(horizontal = 26.dp, vertical = 10.dp),
         ) {
             Text(okText, fontWeight = FontWeight.Bold)
         }

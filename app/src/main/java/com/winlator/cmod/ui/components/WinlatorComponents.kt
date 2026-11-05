@@ -1,5 +1,10 @@
 package com.winlator.cmod.ui.components
 
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.GlassSolidPill
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,28 +17,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Карточка-контейнер для группировки настроек (Material3).
+ * Карточка-контейнер для группировки настроек.
+ * Рендерится стеклянной панелью (GlassSurface); разделители между строками
+ * рисуют сами строки, пока находятся внутри группы (LocalGlassGrouped).
  */
 @Composable
 fun SettingsGroupCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-        content = content,
-    )
+    GlassSurface(modifier = modifier.fillMaxWidth(), content = content)
 }
 
 /**
- * Заголовок секции с иконкой.
+ * Заголовок секции. По стилю GameHub стоит над карточкой, крупный bold.
  */
 @Composable
 fun SectionHeader(
@@ -41,26 +41,20 @@ fun SectionHeader(
     icon: ImageVector? = null,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
+    GlassSectionHeader(
+        title = title,
+        modifier = modifier,
+        action = if (icon != null) {
+            {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = glassAccent(),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        } else null,
+    )
 }
 
 /**
@@ -75,39 +69,14 @@ fun SettingsRowSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle.isNotEmpty()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
+    GlassSwitchRow(
+        title = title,
+        desc = subtitle,
+        icon = icon,
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -121,48 +90,17 @@ fun SettingsRowClick(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    value: String = "",
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-            modifier = Modifier.size(24.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle.isNotEmpty()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-        )
-    }
+    GlassRow(
+        title = title,
+        desc = subtitle,
+        value = value,
+        icon = icon,
+        enabled = enabled,
+        onClick = onClick,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -174,39 +112,21 @@ fun SettingsRowInfo(
     title: String,
     subtitle: String = "",
     modifier: Modifier = Modifier,
+    value: String = "",
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp),
-        )
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (subtitle.isNotEmpty()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
+    GlassRow(
+        title = title,
+        desc = subtitle,
+        value = value,
+        icon = icon,
+        onClick = null,
+        showChevron = false,
+        modifier = modifier,
+    )
 }
 
 /**
- * Простая карточка-контейнер с заголовком.
+ * Карточка с заголовком секции сверху.
  */
 @Composable
 fun SectionCard(
@@ -224,7 +144,7 @@ fun SectionCard(
 }
 
 /**
- * Кнопка действия с иконкой (FAB style).
+ * Кнопка действия с иконкой. Акцентная — со стеклянным свечением.
  */
 @Composable
 fun ActionButton(
@@ -235,13 +155,9 @@ fun ActionButton(
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
 ) {
-    Button(
+    GlassSolidPill(
         onClick = onClick,
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
-        ),
     ) {
         Icon(
             imageVector = icon,
@@ -249,6 +165,44 @@ fun ActionButton(
             modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text = text)
+        Text(text = text, fontWeight = FontWeight.Medium)
+    }
+}
+
+/**
+ * Строка-переход в стиле хаба «РС-движок»: только название и шеврон,
+ * без иконки и описания.
+ */
+@Composable
+fun GlassNavRow(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .glassGroupDivider()
+            .padding(
+                horizontal = GlassTokens.RowPaddingH,
+                vertical = GlassTokens.RowPaddingV + 2.dp,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            fontSize = GlassTokens.TitleSize,
+            fontWeight = FontWeight.Medium,
+            color = glassTitleColor(),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = glassChevronColor(),
+        )
     }
 }

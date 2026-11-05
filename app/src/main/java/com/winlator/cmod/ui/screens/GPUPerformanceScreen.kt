@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.ui.graphics.Color
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassCardBorder
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -133,7 +141,7 @@ fun GPUPerformanceScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
@@ -150,7 +158,9 @@ fun GPUPerformanceScreen(
             // Информация о GPU
             Card(
                 Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                border = glassCardBorder(),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,7 +177,9 @@ fun GPUPerformanceScreen(
             // Выбор режима производительности
             Card(
                 Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                border = glassCardBorder(),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.gpu_performance_mode_label), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -189,19 +201,19 @@ fun GPUPerformanceScreen(
 
             // Кнопки Apply / Restore
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
+                GlassSolidPill(
                     onClick = { applyPerformanceMode() },
                     enabled = applyEnabled,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.apply))
                 }
-                OutlinedButton(
+                GlassPill(
                     onClick = { restoreOriginalSettings() },
                     enabled = restoreEnabled,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))

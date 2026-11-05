@@ -1,5 +1,12 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.GlassSolidPill
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -260,17 +267,14 @@ fun GamepadTestScreen(onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Device Info Card
+        GlassSectionHeader(title = "Gamepad Info")
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            border = glassCardBorder(),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Gamepad Info",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(text = deviceInfo, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -311,7 +315,12 @@ fun GamepadTestScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Card(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Card(
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                border = glassCardBorder(),
+            ) {
                 Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "Left Trigger (LT)", style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -322,7 +331,12 @@ fun GamepadTestScreen(onBack: () -> Unit) {
                     )
                 }
             }
-            Card(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+            Card(
+                modifier = Modifier.weight(1f).padding(start = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                border = glassCardBorder(),
+            ) {
                 Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "Right Trigger (RT)", style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -336,14 +350,14 @@ fun GamepadTestScreen(onBack: () -> Unit) {
         }
 
         // Pressed Buttons Display
-        Card(modifier = Modifier.fillMaxWidth()) {
+        GlassSectionHeader(title = "Pressed Buttons")
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            border = glassCardBorder(),
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Pressed Buttons",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = if (pressedButtons.isEmpty()) "None" else pressedButtons.joinToString(", "),
                     style = MaterialTheme.typography.bodyLarge,
@@ -354,7 +368,12 @@ fun GamepadTestScreen(onBack: () -> Unit) {
         }
 
         // Vibration Testing Card
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            border = glassCardBorder(),
+        ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -367,7 +386,7 @@ fun GamepadTestScreen(onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = vibrationStatus, color = vibrationStatusColor, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(
+                GlassSolidPill(
                     onClick = {},
                     enabled = vibrationSupported,
                     modifier = Modifier
@@ -383,7 +402,7 @@ fun GamepadTestScreen(onBack: () -> Unit) {
                                     }
                                 }
                             )
-                        }
+                        },
                 ) {
                     Text("Hold to Test Vibration")
                 }

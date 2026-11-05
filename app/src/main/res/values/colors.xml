@@ -7,8 +7,8 @@
     <color name="m3_ref_palette_neutral6">#ff141218</color>
     <color name="abc_search_url_text_selected">@android:color/black</color>
     <color name="accent">@color/md_theme_light_secondary</color>
-    <color name="accent_material_dark">#ff4db6ac</color>
-    <color name="accent_material_light">#ff26a69a</color>
+    <color name="accent_material_dark">#ff2e9bf0</color>
+    <color name="accent_material_light">#ff1877d1</color>
     <color name="androidx_core_ripple_material_light">#33000000</color>
     <color name="androidx_core_secondary_text_default_material_light">#99000000</color>
     <color name="background_floating_material_dark">@color/m3_ref_palette_neutral20</color>

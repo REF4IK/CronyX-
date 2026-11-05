@@ -1,5 +1,14 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -129,12 +138,16 @@ fun EditPresetDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
             modifier = Modifier
                 .fillMaxWidth(0.96f)
                 .fillMaxHeight(0.95f),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            // tonalElevation подмешивал primary-тонировку: на surface
+            // #121215 это давало сине-зелёную панель вместо стекла
+            color = glassCardFill(),
+            contentColor = glassTitleColor(),
+            tonalElevation = 0.dp,
+            border = glassCardBorder(),
         ) {
             Column(
                 modifier = Modifier
@@ -160,7 +173,9 @@ fun EditPresetDialog(
                     singleLine = true,
                     enabled = !readonly,
                     modifier = Modifier.fillMaxWidth()
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -196,11 +211,10 @@ fun EditPresetDialog(
                             }
 
                             Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                modifier = Modifier.fillMaxWidth(),
+                                border = glassCardBorder(),
                             ) {
                                 Column(
                                     modifier = Modifier
@@ -250,7 +264,7 @@ fun EditPresetDialog(
                                                     style = MaterialTheme.typography.bodyMedium
                                                 )
                                                 Spacer(modifier = Modifier.weight(1f))
-                                                Switch(
+                                                GlassSwitch(
                                                     checked = currentValue == "1",
                                                     onCheckedChange = { checked ->
                                                         currentValues[variable.name] = if (checked) "1" else "0"
@@ -267,16 +281,17 @@ fun EditPresetDialog(
                                                 enabled = !readonly,
                                                 modifier = Modifier.fillMaxWidth(),
                                                 textStyle = MaterialTheme.typography.bodyMedium
-                                            )
+                                            ,
+                                                shape = GlassFieldShape,
+                                                colors = glassFieldColors())
                                         }
                                         else -> {
                                             var expanded by remember { mutableStateOf(false) }
                                             Box(modifier = Modifier.fillMaxWidth()) {
-                                                OutlinedButton(
+                                                GlassPill(
                                                     onClick = { expanded = true },
                                                     enabled = !readonly,
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    shape = RoundedCornerShape(8.dp)
                                                 ) {
                                                     Text(
                                                         text = currentValue,
@@ -323,7 +338,7 @@ fun EditPresetDialog(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
+                    GlassSolidPill(
                         onClick = {
                             val finalName = nameState.trim().replace("[,|]+".toRegex(), "")
                             if (finalName.isNotEmpty()) {
@@ -339,7 +354,7 @@ fun EditPresetDialog(
                                 onConfirm()
                             }
                         },
-                        enabled = !readonly && nameState.trim().isNotEmpty()
+                        enabled = !readonly && nameState.trim().isNotEmpty(),
                     ) {
                         Text(stringResource(R.string.ok))
                     }

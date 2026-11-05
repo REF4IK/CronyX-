@@ -1,5 +1,17 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.glassAccent
+import androidx.compose.ui.graphics.Color
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
@@ -184,36 +196,40 @@ fun MyProfileScreen() {
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        // промежуток между блоками — как в остальных списках
+        verticalArrangement = Arrangement.spacedBy(GlassTokens.ListGap),
     ) {
         when {
             justCreated != null -> {
                 val data = justCreated!!
                 SectionCard(title = stringResource(R.string.profile_created_title, data.username)) {
                     Text(stringResource(R.string.profile_recovery_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                    Surface(color = glassBadgeFill(),
+                shape = RoundedCornerShape(GlassTokens.InnerRadius),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                         Text(data.recoveryKey, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(12.dp))
                     }
                     Text(stringResource(R.string.profile_recovery_warn), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = {
+                        GlassPill(
+                            onClick = {
                             clipboard.setText(AnnotatedString(data.recoveryKey))
                             Toast.makeText(context, context.getString(R.string.profile_key_copied), Toast.LENGTH_SHORT).show()
-                        }) {
+                        },
+                        ) {
                             Icon(Icons.Filled.ContentCopy, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.profile_copy))
                         }
                         Spacer(Modifier.weight(1f))
-                        Button(onClick = {
+                        GlassSolidPill(
+                            onClick = {
                             justCreated = null
                             account = AccountManager.current(context)
-                        }) { Text(stringResource(R.string.profile_saved_it)) }
+                        },
+                        ) { Text(stringResource(R.string.profile_saved_it)) }
                     }
                 }
             }
@@ -241,14 +257,17 @@ fun MyProfileScreen() {
                             ) { Text(stringResource(R.string.profile_change_picture), style = MaterialTheme.typography.labelMedium) }
                         }
                     }
-                    OutlinedButton(
+                    GlassPill(
                         onClick = { revealRecovery = !revealRecovery },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(if (revealRecovery) R.string.profile_hide_key else R.string.profile_show_key)) }
                     if (revealRecovery) {
                         val key = AccountManager.recoveryKey(context)
                         if (key != null) {
-                            Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
+                            Surface(color = glassBadgeFill(),
+                shape = RoundedCornerShape(GlassTokens.InnerRadius),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                                 Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Text(key, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                                     IconButton(onClick = {
@@ -261,7 +280,7 @@ fun MyProfileScreen() {
                             Text(stringResource(R.string.profile_no_key), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    OutlinedButton(
+                    GlassPill(
                         onClick = {
                             AccountManager.logout(context)
                             account = null
@@ -273,7 +292,10 @@ fun MyProfileScreen() {
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.profile_logout)) }
                     if (account!!.admin) {
-                        OutlinedButton(onClick = { showUsers = true }, modifier = Modifier.fillMaxWidth()) {
+                        GlassPill(
+                            onClick = { showUsers = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
                             Icon(Icons.Filled.Group, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.profile_admin_users), fontSize = 13.sp)
@@ -281,7 +303,7 @@ fun MyProfileScreen() {
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (deleteMyArmed) {
-                            Button(
+                            GlassSolidPill(
                                 onClick = {
                                     deleteMyArmed = false
                                     busy = true
@@ -300,11 +322,10 @@ fun MyProfileScreen() {
                                         }
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                                 modifier = Modifier.weight(1f),
                             ) { Text(stringResource(R.string.profile_delete_confirm), fontSize = 12.sp) }
                         } else {
-                            OutlinedButton(
+                            GlassPill(
                                 onClick = { deleteMyArmed = true },
                                 modifier = Modifier.weight(1f),
                             ) { Text(stringResource(R.string.profile_delete_me), fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
@@ -338,14 +359,20 @@ fun MyProfileScreen() {
             showReset -> {
                 SectionCard(title = stringResource(R.string.profile_reset_title)) {
                     Text(stringResource(R.string.profile_reset_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedTextField(value = username, onValueChange = { username = it; error = null }, label = { Text(stringResource(R.string.profile_username)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = recoveryKeyInput, onValueChange = { recoveryKeyInput = it; error = null }, label = { Text(stringResource(R.string.profile_recovery_key)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = newPassword, onValueChange = { newPassword = it; error = null }, label = { Text(stringResource(R.string.profile_new_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), enabled = !busy, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = username, onValueChange = { username = it; error = null }, label = { Text(stringResource(R.string.profile_username)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
+                    OutlinedTextField(value = recoveryKeyInput, onValueChange = { recoveryKeyInput = it; error = null }, label = { Text(stringResource(R.string.profile_recovery_key)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
+                    OutlinedTextField(value = newPassword, onValueChange = { newPassword = it; error = null }, label = { Text(stringResource(R.string.profile_new_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = { showReset = false; error = null }, enabled = !busy) { Text(stringResource(R.string.cancel)) }
                         Spacer(Modifier.weight(1f))
-                        Button(
+                        GlassSolidPill(
                             enabled = !busy && username.isNotBlank() && recoveryKeyInput.isNotBlank() && newPassword.isNotBlank(),
                             onClick = { doReset() },
                         ) { if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.profile_reset_action)) }
@@ -354,17 +381,26 @@ fun MyProfileScreen() {
             }
             else -> {
                 SectionCard(title = stringResource(R.string.my_profile)) {
-                    TabRow(selectedTabIndex = tab) {
+                    TabRow(
+                        selectedTabIndex = tab,
+                        containerColor = Color.Transparent,
+                        contentColor = glassAccent(),
+                        divider = { },
+                    ) {
                         Tab(selected = tab == 0, onClick = { tab = 0; error = null }, text = { Text(stringResource(R.string.profile_tab_create)) })
                         Tab(selected = tab == 1, onClick = { tab = 1; error = null }, text = { Text(stringResource(R.string.profile_tab_login)) })
                     }
-                    OutlinedTextField(value = username, onValueChange = { username = it; error = null }, label = { Text(stringResource(R.string.profile_username)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = password, onValueChange = { password = it; error = null }, label = { Text(stringResource(R.string.profile_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), enabled = !busy, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = username, onValueChange = { username = it; error = null }, label = { Text(stringResource(R.string.profile_username)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
+                    OutlinedTextField(value = password, onValueChange = { password = it; error = null }, label = { Text(stringResource(R.string.profile_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     if (tab == 0) {
                         Text(stringResource(R.string.profile_throwaway_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                    Button(
+                    GlassSolidPill(
                         enabled = !busy && username.isNotBlank() && password.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { if (tab == 0) doCreate() else doLogin() },
@@ -389,8 +425,9 @@ fun MyProfileScreen() {
 private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

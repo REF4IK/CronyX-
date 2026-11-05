@@ -1,5 +1,8 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassTokens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,12 +35,12 @@ fun XServerMenuDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(0.85f).fillMaxHeight(0.9f).padding(8.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth(0.85f).fillMaxHeight(0.9f).padding(8.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                border = glassCardBorder(),
+            ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header
                 Surface(

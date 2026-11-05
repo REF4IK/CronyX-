@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassChevron
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassGroupDivider
+import com.winlator.cmod.ui.components.glassTitleColor
 import android.content.Intent
 import android.content.SharedPreferences
 import com.winlator.cmod.core.MmkvPreferences
@@ -209,7 +217,8 @@ fun SettingsScreen(
     // ---- UI ----
     Box(Modifier.fillMaxSize()) {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 2. Общие
@@ -418,13 +427,19 @@ fun SettingsScreen(
                 )
                 SettingsDivider()
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { soundFontLauncher.launch(arrayOf("*/*")) }, Modifier.weight(1f)) { Text("Установить") }
-                    OutlinedButton(onClick = {
+                    GlassPill(
+                        onClick = { soundFontLauncher.launch(arrayOf("*/*")) },
+                        Modifier.weight(1f),
+                    ) { Text("Установить") }
+                    GlassPill(
+                        onClick = {
                         try {
                             val removed = com.winlator.cmod.midi.MidiManager.removeSF2File(ctx, "Default")
                             toast(if (removed) com.winlator.cmod.R.string.sound_font_removed_success else com.winlator.cmod.R.string.sound_font_removed_failed)
                         } catch (e: Exception) { toast(com.winlator.cmod.R.string.remove_error) }
-                    }, Modifier.weight(1f)) { Text("Удалить") }
+                    },
+                        Modifier.weight(1f),
+                    ) { Text("Удалить") }
                 }
             }
 
@@ -615,7 +630,8 @@ fun SettingsScreen(
                         onValueChange = { cursorSpeedSlider = it.toInt() },
                         valueRange = 10f..200f,
                         steps = 18
-                    )
+                    ,
+                        colors = glassSliderColors())
                 }
             },
             confirmButton = {
@@ -700,21 +716,18 @@ fun SettingsScreen(
 @Composable
 private fun SectionHeader(title: String, icon: ImageVector) {
     Row(
-        Modifier.padding(top = 12.dp, bottom = 4.dp),
+        Modifier.padding(top = 18.dp, bottom = 10.dp, start = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
-        Text(title, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(title, color = glassTitleColor(), fontSize = GlassTokens.SectionSize, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    GlassSurface(modifier = Modifier.fillMaxWidth()) {
         Column(content = content)
     }
 }
@@ -722,7 +735,7 @@ private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun SettingsClickRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
@@ -731,39 +744,41 @@ private fun SettingsClickRow(icon: ImageVector, title: String, subtitle: String,
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        GlassChevron()
     }
 }
 
 @Composable
 private fun SettingsCheckRow(icon: ImageVector, title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        GlassSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
 @Composable
 private fun SettingsButtonRow(icon: ImageVector, title: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV + 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Icon(Icons.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        GlassChevron()
     }
 }
 
 @Composable
 private fun SettingsDivider() {
-    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+    // Разделитель рисует сама строка внутри GlassSurface (glassGroupDivider),
+    // явная линия здесь дублировалась бы.
+    Spacer(Modifier.height(0.dp))
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassFieldShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

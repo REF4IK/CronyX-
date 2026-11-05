@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassPill
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -289,7 +297,9 @@ fun RegistryEditorTab(
                     label = { Text(stringResource(R.string.registry_search)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
                 Spacer(Modifier.width(6.dp))
                 FilledIconButton(onClick = { runSearch() }) {
                     Icon(Icons.Filled.Search, contentDescription = "Search")
@@ -328,7 +338,9 @@ fun RegistryEditorTab(
                                     currentPath = keyPath
                                     refreshKey++
                                 },
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
+                            border = glassCardBorder(),
                         ) {
                             Row(
                                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -354,7 +366,9 @@ fun RegistryEditorTab(
                     Card(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)
                             .clickable { enterRoot(root) },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
+                        border = glassCardBorder(),
                     ) {
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
@@ -388,12 +402,18 @@ fun RegistryEditorTab(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = { hive = HIVE_USER; importLauncher.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) {
+                    GlassPill(
+                        onClick = { hive = HIVE_USER; importLauncher.launch(arrayOf("*/*")) },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.FileOpen, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.registry_import), maxLines = 1)
                     }
-                    OutlinedButton(onClick = { exportLauncher.launch("registry_export.reg") }, modifier = Modifier.weight(1f)) {
+                    GlassPill(
+                        onClick = { exportLauncher.launch("registry_export.reg") },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.FileDownload, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.registry_export), maxLines = 1)
@@ -450,12 +470,18 @@ fun RegistryEditorTab(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = { showAddKeyDialog = true }, modifier = Modifier.weight(1f)) {
+                    GlassPill(
+                        onClick = { showAddKeyDialog = true },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.CreateNewFolder, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.registry_add_key), maxLines = 1)
                     }
-                    OutlinedButton(onClick = { addingValue = true }, modifier = Modifier.weight(1f)) {
+                    GlassPill(
+                        onClick = { addingValue = true },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.registry_add_value), maxLines = 1)
@@ -465,18 +491,27 @@ fun RegistryEditorTab(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = { importLauncher.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) {
+                    GlassPill(
+                        onClick = { importLauncher.launch(arrayOf("*/*")) },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.FileOpen, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.registry_import), maxLines = 1)
                     }
-                    OutlinedButton(onClick = { exportLauncher.launch("registry_export.reg") }, modifier = Modifier.weight(1f)) {
+                    GlassPill(
+                        onClick = { exportLauncher.launch("registry_export.reg") },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.FileDownload, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.registry_export), maxLines = 1)
                     }
                     if (hive == HIVE_SYSTEM) {
-                        OutlinedButton(onClick = { showSpoofDialog = true }, modifier = Modifier.weight(1f)) {
+                        GlassPill(
+                            onClick = { showSpoofDialog = true },
+                            modifier = Modifier.weight(1f),
+                        ) {
                             Icon(Icons.Filled.Memory, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(stringResource(R.string.registry_cpu_spoof), maxLines = 1)
@@ -571,7 +606,9 @@ fun RegistryEditorTab(
                                     onClick = { editingValue = value },
                                     onLongClick = { copyToClipboard("${value.name ?: "(Default)"} = ${value.value}") }
                                 ),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
+                            border = glassCardBorder(),
                         ) {
                             Row(
                                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -629,7 +666,9 @@ fun RegistryEditorTab(
                         onValueChange = { keyName = it },
                         label = { Text(stringResource(R.string.registry_key_name)) },
                         singleLine = true
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {
@@ -671,10 +710,15 @@ fun RegistryEditorTab(
                         label = { Text(stringResource(R.string.registry_value_name)) },
                         singleLine = true,
                         enabled = existing == null
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     var typeExpanded by remember { mutableStateOf(false) }
                     Box {
-                        OutlinedButton(onClick = { typeExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        GlassPill(
+                            onClick = { typeExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
                             Text(stringResource(R.string.registry_type) + ": $valueType", modifier = Modifier.weight(1f))
                             Icon(Icons.Filled.ArrowDropDown, null)
                         }
@@ -693,7 +737,9 @@ fun RegistryEditorTab(
                         label = { Text(stringResource(R.string.registry_value)) },
                         singleLine = valueType != "Hex",
                         textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace)
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {
@@ -774,13 +820,17 @@ fun RegistryEditorTab(
                         onValueChange = { spoofIdentifier = it; spoofPresetName = "" },
                         label = { Text("Identifier") },
                         singleLine = true
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     OutlinedTextField(
                         value = spoofVendor,
                         onValueChange = { spoofVendor = it; spoofPresetName = "" },
                         label = { Text("VendorIdentifier") },
                         singleLine = true
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = spoofMhz,
@@ -789,14 +839,18 @@ fun RegistryEditorTab(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                         OutlinedTextField(
                             value = spoofFeatureSet,
                             onValueChange = { spoofFeatureSet = it.filter { c -> c.isDigit() || c in "abcdefABCDEF" }; spoofPresetName = "" },
                             label = { Text("FeatureSet (hex)") },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                     }
                 }
             },

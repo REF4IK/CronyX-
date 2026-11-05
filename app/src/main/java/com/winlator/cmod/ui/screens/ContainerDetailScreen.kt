@@ -1,5 +1,8 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassSolidPill
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -66,11 +69,11 @@ fun ContainerDetailScreen(
 
         // Переменные окружения
         SectionCard(title = "Переменные окружения", icon = Icons.Filled.Code) {
-            Surface(
-                modifier = Modifier.padding(16.dp),
+            Surface(modifier = Modifier.padding(16.dp),
                 shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 1.dp,
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                border = glassCardBorder(),
             ) {
                 Text(
                     text = container.envVars.ifEmpty { "—" },
@@ -85,7 +88,7 @@ fun ContainerDetailScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Кнопка назад
-        Button(
+        GlassSolidPill(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth(),
         ) {

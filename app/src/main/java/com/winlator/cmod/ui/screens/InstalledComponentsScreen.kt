@@ -1,5 +1,6 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.ui.graphics.Color
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -165,7 +166,7 @@ fun InstalledComponentsScreen(onBack: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )

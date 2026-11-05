@@ -1,5 +1,12 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassFieldShape
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -278,11 +285,11 @@ fun CommunityConfigsScreen(onBack: () -> Unit = {}, contextShortcut: com.winlato
     }
 
     Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Surface(
-            modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
@@ -422,11 +429,12 @@ private fun CatalogPanel(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
-            )
+)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                 shape = RoundedCornerShape(10.dp),
+                border = glassCardBorder(),
             ) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -466,8 +474,9 @@ private fun CatalogPanel(
                     Card(
                         onClick = { onGameClick(g) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                         shape = RoundedCornerShape(10.dp),
+                        border = glassCardBorder(),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
@@ -542,7 +551,7 @@ private fun DevicePanel(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
-            )
+)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = favOnly,
@@ -594,8 +603,9 @@ private fun DevicePanel(
                         Card(
                             onClick = { onEntryClick(entry) },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                             shape = RoundedCornerShape(10.dp),
+                            border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -715,11 +725,11 @@ private fun ConfigDetailDialog(
     val dateStr = if (config.exportedAt > 0) SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(config.exportedAt)) else ""
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Surface(
-            modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -737,8 +747,9 @@ private fun ConfigDetailDialog(
                     // Provenance card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                         shape = RoundedCornerShape(10.dp),
+                        border = glassCardBorder(),
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -784,8 +795,9 @@ private fun ConfigDetailDialog(
                     // Settings card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                         shape = RoundedCornerShape(10.dp),
+                        border = glassCardBorder(),
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -850,8 +862,9 @@ private fun ConfigDetailDialog(
                     // Social card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                         shape = RoundedCornerShape(10.dp),
+                        border = glassCardBorder(),
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -891,6 +904,7 @@ private fun ConfigDetailDialog(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)),
                             shape = RoundedCornerShape(10.dp),
+                            border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -899,7 +913,7 @@ private fun ConfigDetailDialog(
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     if (adminConfirmDelete) {
-                                        Button(
+                                        GlassSolidPill(
                                             onClick = {
                                                 adminBusy = true
                                                 val kind = if (entry.bundleUrl.isNotEmpty()) "bundle" else "config"
@@ -919,18 +933,17 @@ private fun ConfigDetailDialog(
                                                 }
                                             },
                                             enabled = !adminBusy,
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                         ) { Text(stringResource(R.string.admin_delete_confirm), fontSize = 12.sp) }
                                         TextButton(onClick = { adminConfirmDelete = false }, enabled = !adminBusy) { Text(stringResource(R.string.cancel), fontSize = 12.sp) }
                                     } else {
-                                        OutlinedButton(
+                                        GlassPill(
                                             onClick = { adminConfirmDelete = true },
                                             enabled = !adminBusy,
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                         ) { Text(stringResource(R.string.admin_delete_config), fontSize = 12.sp) }
                                     }
-                                    OutlinedButton(
+                                    GlassPill(
                                         onClick = {
                                             adminBusy = true
                                             scope.launch(Dispatchers.IO) {
@@ -953,9 +966,9 @@ private fun ConfigDetailDialog(
                                         modifier = Modifier.fillMaxWidth(),
                                         maxLines = 3,
                                         shape = RoundedCornerShape(10.dp),
-                                    )
+)
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Button(
+                                        GlassSolidPill(
                                             onClick = {
                                                 adminBusy = true
                                                 val kind = if (entry.bundleUrl.isNotEmpty()) "bundle" else "config"
@@ -974,7 +987,7 @@ private fun ConfigDetailDialog(
                                         TextButton(onClick = { descEditing = false }, enabled = !adminBusy) { Text(stringResource(R.string.cancel), fontSize = 12.sp) }
                                     }
                                 } else {
-                                    OutlinedButton(
+                                    GlassPill(
                                         onClick = { descEdit = descState; descEditing = true },
                                         enabled = !adminBusy,
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
@@ -988,8 +1001,9 @@ private fun ConfigDetailDialog(
                     if (!entry.sha.isNullOrBlank()) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                             shape = RoundedCornerShape(10.dp),
+                            border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1004,10 +1018,10 @@ private fun ConfigDetailDialog(
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                         for (i in 0 until commentList.length()) {
                                             val c = commentList.optJSONObject(i) ?: continue
-                                            Surface(
-                                                color = MaterialTheme.colorScheme.surface,
-                                                shape = RoundedCornerShape(8.dp),
-                                            ) {
+                                            Surface(color = glassCardFill(),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                border = glassCardBorder(),
+            ) {
                                                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                         val cAvatar = com.winlator.cmod.community.AccountManager.absUrl(com.winlator.cmod.community.AccountManager.optStr(c, "avatarUrl"))
@@ -1092,7 +1106,7 @@ private fun ConfigDetailDialog(
                                         modifier = Modifier.weight(1f),
                                         maxLines = 3,
                                         shape = RoundedCornerShape(10.dp),
-                                    )
+)
                                     FilledIconButton(
                                         onClick = {
                                             val text = commentText.trim()
@@ -1127,7 +1141,10 @@ private fun ConfigDetailDialog(
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onApply, enabled = config != null) {
+                    GlassSolidPill(
+                        onClick = onApply,
+                        enabled = config != null,
+                    ) {
                         Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.config_apply))

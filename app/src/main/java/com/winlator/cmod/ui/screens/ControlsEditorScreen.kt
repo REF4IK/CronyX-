@@ -1,5 +1,14 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+import com.winlator.cmod.ui.components.GlassSwitch
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color as AndroidColor
@@ -385,15 +394,15 @@ private fun ElementSettingsDialog(
         contentAlignment = Alignment.TopEnd,
     ) {
         // Боковая панель настроек справа (~половина экрана)
-        Surface(
-            modifier = Modifier
+        Surface(modifier = Modifier
                 .width(340.dp)
                 .fillMaxHeight()
                 .clickable(enabled = false, onClick = {}),
-            shape = RectangleShape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
-        ) {
+                shape = RectangleShape,
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                border = glassCardBorder(),
+            ) {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -602,7 +611,9 @@ private fun ElementSettingsDialog(
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        OutlinedButton(onClick = { onOpenBindingPicker(element, index) }) {
+                        GlassPill(
+                            onClick = { onOpenBindingPicker(element, index) },
+                        ) {
                             Text(element.getBindingAt(index).toString())
                         }
                     }
@@ -611,7 +622,7 @@ private fun ElementSettingsDialog(
                 // ---- Toggle switch / Hide border ----
                 if (showButtonExtras) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
+                        GlassSwitch(
                             checked = toggleSwitch,
                             onCheckedChange = { checked ->
                                 mutateWithUndo {
@@ -628,7 +639,7 @@ private fun ElementSettingsDialog(
                         })
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
+                        GlassSwitch(
                             checked = hideBorder,
                             onCheckedChange = { checked ->
                                 mutateWithUndo {
@@ -656,7 +667,9 @@ private fun ElementSettingsDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-                    )
+
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
 
                     // ---- Размер иконки ----
                     SettingsSliderRow(
@@ -687,7 +700,7 @@ private fun ElementSettingsDialog(
                             }
                             if (bmp != null) {
                                 Box(
-                                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                                    modifier = Modifier.size(44.dp).clip(CircleShape).background(glassBadgeFill()),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     androidx.compose.foundation.Image(
@@ -714,7 +727,7 @@ private fun ElementSettingsDialog(
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                             )
                         }
-                        OutlinedButton(
+                        GlassPill(
                             onClick = {
                                 IconPickerDialog(ctx as Activity, customIconManager, iconPackManager, element.getIconId()) { iconId ->
                                     commit { element.setIconId(iconId) }
@@ -741,7 +754,7 @@ private fun SettingsDropdownRow(
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        OutlinedButton(
+        GlassPill(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -779,7 +792,8 @@ private fun SettingsSliderRow(
             valueRange = valueRange,
             steps = steps,
             modifier = Modifier.fillMaxWidth(),
-        )
+        
+            colors = glassSliderColors())
     }
 }
 
@@ -934,10 +948,11 @@ private fun BindingPickerDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxSize(),
+                color = glassCardFill(),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                border = glassCardBorder(),
+            ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(12.dp),
             ) {

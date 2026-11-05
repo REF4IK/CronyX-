@@ -1,5 +1,20 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.winlator.cmod.ui.components.GlassDivider
+import com.winlator.cmod.ui.components.GlassRoundIconButton
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassDividerColor
+import com.winlator.cmod.ui.components.glassTitleColor
 import android.app.Activity
 import android.content.Intent
 import android.os.Environment
@@ -84,10 +99,12 @@ fun ContainersScreen(
                 Text(stringResource(R.string.containers), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(containers, key = { it.id }) { container ->
                     ContainerCard(
@@ -198,48 +215,75 @@ fun ContainerCard(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    GlassSurface(modifier = Modifier.fillMaxWidth()) {
+        // Обложка вместо картинки игры: иконка контейнера на акцентном
+        // градиенте. Нижние блоки повторяют референс: title, meta, разделитель,
+        // ряд круглых иконок-действий.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(92.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(glassAccent().copy(alpha = 0.20f), Color.Transparent),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(R.drawable.icon_container),
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(50.dp),
+                tint = glassAccent(),
             )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = GlassTokens.RowPaddingH, end = GlassTokens.RowPaddingH, bottom = 8.dp),
+        ) {
+            Text(
+                text = container.name,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                color = glassTitleColor(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val wv = container.wineVersion
+            if (!wv.isNullOrEmpty()) {
                 Text(
-                    text = container.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = wv,
+                    fontSize = GlassTokens.DescSize,
+                    color = glassDescColor(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                val wv = container.wineVersion
-                if (!wv.isNullOrEmpty()) {
-                    Text(
-                        text = wv,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
-            FilledTonalIconButton(
+        }
+        GlassDivider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = GlassTokens.RowPaddingH, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GlassRoundIconButton(
+                icon = Icons.Filled.PlayArrow,
+                description = stringResource(R.string.run),
                 onClick = onRun,
-                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            ) { Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(24.dp)) }
+                size = 44.dp,
+            )
+            Spacer(Modifier.width(10.dp))
 
             // Анкор для меню — кнопка ⋮; меню выпадает справа, прижато к правому краю экрана
             Box {
-                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, null) }
+                GlassRoundIconButton(
+                    icon = Icons.Filled.MoreVert,
+                    description = stringResource(R.string.options),
+                    onClick = { menuOpen = true },
+                    size = 44.dp,
+                )
 
                 if (menuOpen) {
                     val density = LocalDensity.current
@@ -250,14 +294,14 @@ fun ContainerCard(
                         onDismissRequest = { menuOpen = false }
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(GlassTokens.InnerRadius),
+                            color = glassCardFill(),
                             modifier = Modifier
                                 .padding(end = 8.dp)
                                 .border(
                                     width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    shape = RoundedCornerShape(14.dp)
+                                    color = glassDividerColor(),
+                                    shape = RoundedCornerShape(GlassTokens.InnerRadius)
                                 )
                         ) {
                             Column(Modifier.width(IntrinsicSize.Max)) {

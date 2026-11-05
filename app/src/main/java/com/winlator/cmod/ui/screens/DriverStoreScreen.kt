@@ -1,5 +1,15 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.ui.graphics.Color
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -213,7 +223,7 @@ fun DriverStoreScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
@@ -253,7 +263,9 @@ fun DriverStoreScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(16.dp))
-                            Button(onClick = { loadDrivers() }) {
+                            GlassSolidPill(
+                                onClick = { loadDrivers() },
+                            ) {
                                 Icon(Icons.Filled.Refresh, null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text(stringResource(R.string.refresh))
@@ -273,7 +285,9 @@ fun DriverStoreScreen(
                             items(grouped.keys.toList(), key = { it }) { repoName ->
                                 Card(
                                     Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable { selectedRepo = repoName },
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                    border = glassCardBorder(),
                                 ) {
                                     Row(
                                         Modifier.fillMaxWidth().padding(16.dp),
@@ -428,10 +442,9 @@ private fun DriverDownloadCard(
     val hasDescription = driver.description != null && driver.description.isNotEmpty()
     Card(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isInstalled) MaterialTheme.colorScheme.secondaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -480,13 +493,20 @@ private fun DriverDownloadCard(
                 Text("$downloadProgress%", style = MaterialTheme.typography.bodySmall)
             } else if (isInstalled) {
                 // Драйвер уже установлен — показываем неактивную кнопку
-                OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth(), enabled = false) {
+                GlassPill(
+                    onClick = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                ) {
                     Icon(Icons.Filled.CheckCircle, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.installed))
                 }
             } else {
-                Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
+                GlassSolidPill(
+                    onClick = onDownload,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Icon(Icons.Filled.CloudDownload, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.downloading_driver))
@@ -531,14 +551,18 @@ private fun AddRepositoryDialog(
                     label = { Text(stringResource(R.string.repository_url)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
                 OutlinedTextField(
                     value = repoName,
                     onValueChange = { repoName = it },
                     label = { Text(stringResource(R.string.repository_name_optional)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
             }
         },
         confirmButton = {

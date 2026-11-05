@@ -1,5 +1,18 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
@@ -403,58 +416,63 @@ fun ContainerEditScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
+                actions = {
+
+                    IconButton(
+                                    onClick = {
+                                        saveContainer(
+                                            ctx = ctx, isEditMode = isEditMode, container = container,
+                                            containerManager = containerManager, contentsManager = contentsManager,
+                                            name = name,
+                                            screenSize = if (isCustomScreen) "${customScreenWidth}x${customScreenHeight}" else (screenSize.split(" ").firstOrNull() ?: screenSize),
+                                            envVars = envVars, graphicsDriver = graphicsDriver, graphicsDriverConfig = graphicsDriverConfig,
+                                            displayRenderer = displayRenderer, sfCompatMode = sfCompatMode,
+                                            dxwrapper = dxwrapper, ddrawrapper = ddrawrapper, dxwrapperConfig = dxwrapperConfig,
+                                            audioDriver = audioDriver, audioDriverConfig = audioDriverConfig, emulator = emulator,
+                                            wincomponents = winComponents, drives = drives, fullscreenStretched = fullscreenStretched,
+                                            useUnixLibs = useUnixLibs,
+                                            cpuList = cpuList, cpuListWoW64 = cpuListWoW64, wow64Mode = wow64Mode,
+                                            startupSelection = startupSelection, box64Version = box64Version, box64Preset = box64Preset,
+                                            fexcoreVersion = fexcoreVersion, fexcorePreset = fexcorePreset, desktopTheme = desktopTheme,
+                                            rcfileId = rcfileId, midiSoundFont = midiSoundFont, lcAll = lcAll,
+                                            primaryController = primaryController, controllerMapping = controllerMapping,
+                                            wineVersion = wineVersion, enableXInput = enableXInput, enableDInput = enableDInput,
+                                            dinputMapperType = dinputMapperType, sdl2Toggle = sdl2Toggle, legacyMode = legacyMode,
+                                            csmt = csmt, gpuNamePos = gpuNamePos, offscreenRenderingMode = offscreenRenderingMode,
+                                            strictShaderMath = strictShaderMath, videoMemorySize = videoMemorySize,
+                                            mouseWarpOverride = mouseWarpOverride, logPixels = logPixels,
+                                            onPreloader = { text -> showPreloader = true; preloaderText = text },
+                                            onPreloaderClose = { showPreloader = false },
+                                            onDone = onBack)
+                                    }) {
+                                    Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
+                                }
+
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    saveContainer(
-                        ctx = ctx, isEditMode = isEditMode, container = container,
-                        containerManager = containerManager, contentsManager = contentsManager,
-                        name = name,
-                        screenSize = if (isCustomScreen) "${customScreenWidth}x${customScreenHeight}" else (screenSize.split(" ").firstOrNull() ?: screenSize),
-                        envVars = envVars, graphicsDriver = graphicsDriver, graphicsDriverConfig = graphicsDriverConfig,
-                        displayRenderer = displayRenderer, sfCompatMode = sfCompatMode,
-                        dxwrapper = dxwrapper, ddrawrapper = ddrawrapper, dxwrapperConfig = dxwrapperConfig,
-                        audioDriver = audioDriver, audioDriverConfig = audioDriverConfig, emulator = emulator,
-                        wincomponents = winComponents, drives = drives, fullscreenStretched = fullscreenStretched,
-                        useUnixLibs = useUnixLibs,
-                        cpuList = cpuList, cpuListWoW64 = cpuListWoW64, wow64Mode = wow64Mode,
-                        startupSelection = startupSelection, box64Version = box64Version, box64Preset = box64Preset,
-                        fexcoreVersion = fexcoreVersion, fexcorePreset = fexcorePreset, desktopTheme = desktopTheme,
-                        rcfileId = rcfileId, midiSoundFont = midiSoundFont, lcAll = lcAll,
-                        primaryController = primaryController, controllerMapping = controllerMapping,
-                        wineVersion = wineVersion, enableXInput = enableXInput, enableDInput = enableDInput,
-                        dinputMapperType = dinputMapperType, sdl2Toggle = sdl2Toggle, legacyMode = legacyMode,
-                        csmt = csmt, gpuNamePos = gpuNamePos, offscreenRenderingMode = offscreenRenderingMode,
-                        strictShaderMath = strictShaderMath, videoMemorySize = videoMemorySize,
-                        mouseWarpOverride = mouseWarpOverride, logPixels = logPixels,
-                        onPreloader = { text -> showPreloader = true; preloaderText = text },
-                        onPreloaderClose = { showPreloader = false },
-                        onDone = onBack,
-                    )
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save), tint = MaterialTheme.colorScheme.onPrimary)
-            }
-        },
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // ---- Верхний блок (вне вкладок) ----
-            SectionCard(title = stringResource(R.string.contents), icon = Icons.Filled.Settings) {
+                        SectionCard(title = stringResource(R.string.general), icon = Icons.Filled.Settings) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
                     label = { Text(stringResource(R.string.name)) },
                     singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
                 ContainerSpinnerRow(
                     label = stringResource(R.string.screen_size),
                     entries = ctx.resources.getStringArray(R.array.screen_size_entries).toList(),
@@ -469,18 +487,36 @@ fun ContainerEditScreen(
                         OutlinedTextField(
                             value = customScreenWidth, onValueChange = { customScreenWidth = it.filter { c -> c.isDigit() } },
                             label = { Text("W") }, singleLine = true, modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                         OutlinedTextField(
                             value = customScreenHeight, onValueChange = { customScreenHeight = it.filter { c -> c.isDigit() } },
                             label = { Text("H") }, singleLine = true, modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                     }
                 }
+                val lcAllEntries = remember { ctx.resources.getStringArray(R.array.some_lc_all).toList() }
+                val lcAllNames = remember { ctx.resources.getStringArray(R.array.some_lc_all_names).toList() }
+                val lcAllDisplayName = remember(lcAll) {
+                    val code = lcAll.replace(".UTF-8", "")
+                    val idx = lcAllEntries.indexOf(code)
+                    if (idx >= 0) lcAllNames[idx] else lcAll
+                }
                 ContainerSpinnerRow(
-                    label = stringResource(R.string.wine_version),
-                    entries = wineVersions, selected = wineVersion, enabled = !isEditMode,
-                    onSelected = { wineVersion = it },
+                    label = stringResource(R.string.locale),
+                    entries = lcAllNames, selected = lcAllDisplayName,
+                    onSelected = { name ->
+                        val idx = lcAllNames.indexOf(name)
+                        if (idx >= 0) lcAll = lcAllEntries[idx] + ".UTF-8"
+                    },
                 )
+                SwitchRow(stringResource(R.string.fullscreen_stretched), fullscreenStretched) { fullscreenStretched = it }
+            }
+
+            SectionCard(title = stringResource(R.string.graphics), icon = Icons.Filled.Image) {
                 ContainerSpinnerRowWithConfigAndDownload(
                     label = stringResource(R.string.graphics_driver),
                     entries = wrapperEntries,
@@ -502,12 +538,6 @@ fun ContainerEditScreen(
                     selected = ddrawrapper,
                     onSelected = { ddrawrapper = it },
                 )
-                ContainerSpinnerRowWithConfig(
-                    label = stringResource(R.string.audio_driver),
-                    entries = ctx.resources.getStringArray(R.array.audio_driver_entries).toList(),
-                    selected = audioDriver, onSelected = { audioDriver = it },
-                    onConfigClick = { showAudioConfigDialog = true },
-                )
                 ContainerSpinnerRow(
                     label = stringResource(R.string.display_renderer),
                     entries = ctx.resources.getStringArray(R.array.displayrenderers_entries).toList(),
@@ -526,6 +556,14 @@ fun ContainerEditScreen(
                         onCheckedChange = { sfCompatMode = it },
                     )
                 }
+            }
+
+            SectionCard(title = stringResource(R.string.compatibility), icon = Icons.Filled.Build) {
+                ContainerSpinnerRow(
+                    label = stringResource(R.string.wine_version),
+                    entries = wineVersions, selected = wineVersion, enabled = !isEditMode,
+                    onSelected = { wineVersion = it },
+                )
                 ContainerSpinnerRow(
                     label = stringResource(R.string.emulator),
                     entries = ctx.resources.getStringArray(R.array.emulator_entries).toList(),
@@ -533,34 +571,40 @@ fun ContainerEditScreen(
                     enabled = isArm64EC,
                     onSelected = { emulator = it.lowercase(Locale.ENGLISH) },
                 )
-                val lcAllEntries = remember { ctx.resources.getStringArray(R.array.some_lc_all).toList() }
-                val lcAllNames = remember { ctx.resources.getStringArray(R.array.some_lc_all_names).toList() }
-                val lcAllDisplayName = remember(lcAll) {
-                    val code = lcAll.replace(".UTF-8", "")
-                    val idx = lcAllEntries.indexOf(code)
-                    if (idx >= 0) lcAllNames[idx] else lcAll
-                }
-                ContainerSpinnerRow(
-                    label = stringResource(R.string.locale),
-                    entries = lcAllNames, selected = lcAllDisplayName,
-                    onSelected = { name ->
-                        val idx = lcAllNames.indexOf(name)
-                        if (idx >= 0) lcAll = lcAllEntries[idx] + ".UTF-8"
-                    },
+                ContainerSpinnerRowWithConfig(
+                    label = stringResource(R.string.audio_driver),
+                    entries = ctx.resources.getStringArray(R.array.audio_driver_entries).toList(),
+                    selected = audioDriver, onSelected = { audioDriver = it },
+                    onConfigClick = { showAudioConfigDialog = true },
                 )
-                SwitchRow(stringResource(R.string.fullscreen_stretched), fullscreenStretched) { fullscreenStretched = it }
             }
 
             // ---- Вкладки ----
+            // Референс: текстовые табы с коротким подчёркиванием, активный —
+            // жирный белый, неактивный — серый. Лента без плотной подложки.
             ScrollableTabRow(
                 selectedTabIndex = currentTab,
                 edgePadding = 0.dp,
+                containerColor = Color.Transparent,
+                // contentColor задаёт и цвет штатного подчёркивания,
+                // и цвет текста неактивных табов (M3 сам берёт от него alpha)
+                contentColor = glassAccent(),
+                divider = { },
             ) {
                 tabs.forEachIndexed { index, (title, _) ->
                     Tab(
                         selected = currentTab == index,
                         onClick = { currentTab = index },
-                        text = { Text(title, maxLines = 1, softWrap = false) }
+                        text = {
+                            Text(
+                                title,
+                                maxLines = 1,
+                                softWrap = false,
+                                fontWeight = if (currentTab == index) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 16.sp,
+                                color = if (currentTab == index) glassTitleColor() else glassDescColor(),
+                            )
+                        },
                     )
                 }
             }
@@ -973,7 +1017,7 @@ private fun WrapperDownloadDialog(
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
+                    GlassPill(
                         onClick = {
                             val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
                                 addCategory(android.content.Intent.CATEGORY_OPENABLE)
@@ -981,7 +1025,7 @@ private fun WrapperDownloadDialog(
                             }
                             filePicker.launch(intent)
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -994,7 +1038,9 @@ private fun WrapperDownloadDialog(
                         val updateAvailable = installed && e.version > (installedVersions[e.id] ?: 0)
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
+                            border = glassCardBorder(),
                         ) {
                             Column(Modifier.padding(12.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -1028,7 +1074,7 @@ private fun WrapperDownloadDialog(
                                 } else if (!updateAvailable && installed) {
                                     // актуальная версия уже стоит — кнопка не нужна
                                 } else {
-                                    Button(
+                                    GlassSolidPill(
                                         enabled = !offline && downloadingId == null,
                                         onClick = {
                                             downloadingId = e.id
@@ -1049,7 +1095,7 @@ private fun WrapperDownloadDialog(
                                                 }
                                             }
                                         },
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth(),
                                     ) { Text(if (updateAvailable) stringResource(R.string.wrapper_update) else stringResource(R.string.wrapper_catalog_download)) }
                                 }
                             }
@@ -1107,7 +1153,9 @@ private fun WrapperDownloadDialog(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.wrapper_import_name_message), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(6.dp))
-                    OutlinedTextField(value = importNameDraft, onValueChange = { importNameDraft = it }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = importNameDraft, onValueChange = { importNameDraft = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {

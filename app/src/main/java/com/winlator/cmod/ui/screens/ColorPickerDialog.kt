@@ -1,5 +1,11 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,8 +56,9 @@ fun ColorPickerDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = MaterialTheme.colorScheme.onSurface),
+            border = glassCardBorder(),
         ) {
             Column(
                 modifier = Modifier
@@ -83,7 +90,9 @@ fun ColorPickerDialog(
                         label = { Text("HEX") },
                         textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
                         modifier = Modifier.weight(1f),
-                    )
+
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
 
                 GradientBar(
@@ -125,10 +134,12 @@ fun ColorPickerDialog(
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         onColorSelected(currentArgb)
                         onDismiss()
-                    }) { Text("OK") }
+                    },
+                    ) { Text("OK") }
                 }
             }
         }

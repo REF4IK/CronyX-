@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassSwitch
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
@@ -60,9 +68,9 @@ fun SpinnerRow(
         Text(text = label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
         Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
+            GlassPill(
                 onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -107,7 +115,7 @@ fun CheckBoxRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        GlassSwitch(checked = checked, onCheckedChange = onCheckedChange)
         Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
@@ -213,7 +221,9 @@ fun ActiveWindowsDialogCompose(
                                         activity.winHandler.bringToFront(window.className, window.handle)
                                         onDismiss()
                                     },
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(8.dp),
+                                border = glassCardBorder(),
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                             ) {
                                 Column(modifier = Modifier.padding(8.dp)) {
                                     Box(
@@ -506,12 +516,12 @@ fun ScreenEffectDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.95f),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.95f),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                border = glassCardBorder(),
+            ) {
             Column(Modifier.fillMaxSize()) {
                 val scrollState = rememberScrollState()
                 Row(Modifier.fillMaxWidth().weight(1f)) {
@@ -527,7 +537,8 @@ fun ScreenEffectDialogCompose(
                                 Text(stringResource(R.string.brightness), style = MaterialTheme.typography.bodySmall)
                                 Text("${brightness.toInt()}", style = MaterialTheme.typography.bodySmall)
                             }
-                            Slider(value = brightness, onValueChange = { brightness = it }, valueRange = -50f..50f)
+                            Slider(value = brightness, onValueChange = { brightness = it }, valueRange = -50f..50f,
+                                colors = glassSliderColors())
                         }
 
                         Column {
@@ -535,7 +546,8 @@ fun ScreenEffectDialogCompose(
                                 Text(stringResource(R.string.contrast), style = MaterialTheme.typography.bodySmall)
                                 Text("${contrast.toInt()}", style = MaterialTheme.typography.bodySmall)
                             }
-                            Slider(value = contrast, onValueChange = { contrast = it }, valueRange = -100f..100f)
+                            Slider(value = contrast, onValueChange = { contrast = it }, valueRange = -100f..100f,
+                                colors = glassSliderColors())
                         }
 
                         Column {
@@ -543,7 +555,8 @@ fun ScreenEffectDialogCompose(
                                 Text(stringResource(R.string.gamma), style = MaterialTheme.typography.bodySmall)
                                 Text(String.format(Locale.US, "%.2f", gamma), style = MaterialTheme.typography.bodySmall)
                             }
-                            Slider(value = gamma, onValueChange = { gamma = it }, valueRange = 0.5f..3.0f)
+                            Slider(value = gamma, onValueChange = { gamma = it }, valueRange = 0.5f..3.0f,
+                                colors = glassSliderColors())
                         }
                     }
 
@@ -558,7 +571,11 @@ fun ScreenEffectDialogCompose(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             var dropdownExpanded by remember { mutableStateOf(false) }
                             Box(modifier = Modifier.weight(1f)) {
-                                OutlinedButton(onClick = { dropdownExpanded = true }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
+                                GlassPill(
+                                    onClick = { dropdownExpanded = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                ) {
                                     Text(selectedProfile.ifEmpty { "-- Default Profile --" }, style = MaterialTheme.typography.bodySmall)
                                 }
                                 DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
@@ -618,10 +635,12 @@ fun ScreenEffectDialogCompose(
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         applyVulkanEffects()
                         onDismiss()
-                    }) { Text(stringResource(R.string.ok)) }
+                    },
+                    ) { Text(stringResource(R.string.ok)) }
                 }
             }
         }
@@ -660,9 +679,10 @@ fun FrameGenerationDialogCompose(
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.92f)
                 .padding(horizontal = 8.dp, vertical = 0.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = MaterialTheme.colorScheme.onSurface),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            border = glassCardBorder(),
         ) {
             Column(
                 modifier = Modifier
@@ -792,7 +812,8 @@ fun FrameGenerationDialogCompose(
                     onValueChange = { flowScale = it },
                     valueRange = 0.25f..1.0f,
                     steps = 14
-                )
+                ,
+                    colors = glassSliderColors())
                 Spacer(Modifier.height(8.dp))
                 } // scrollable content
 
@@ -807,7 +828,7 @@ fun FrameGenerationDialogCompose(
                         Text(stringResource(R.string.cancel), fontWeight = FontWeight.Medium)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(
+                    GlassSolidPill(
                         onClick = {
                             // Off disarms but keeps the saved multiplier preset.
                             if (multiplier > 0) container.setFrameGenMultiplier(multiplier)
@@ -825,7 +846,6 @@ fun FrameGenerationDialogCompose(
                             Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
                             onDismiss()
                         },
-                        shape = RoundedCornerShape(14.dp),
                         contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp),
                     ) { Text(stringResource(R.string.ok), fontWeight = FontWeight.Bold) }
                 }
@@ -912,7 +932,8 @@ fun InputControlsDialogCompose(
                             Text(stringResource(R.string.gyroscope_sensitivity))
                             Text(String.format(Locale.US, "%.1f", gyroSensitivity))
                         }
-                        Slider(value = gyroSensitivity, onValueChange = { gyroSensitivity = it }, valueRange = 0.1f..5.0f)
+                        Slider(value = gyroSensitivity, onValueChange = { gyroSensitivity = it }, valueRange = 0.1f..5.0f,
+                            colors = glassSliderColors())
                     }
                 }
 
@@ -921,7 +942,8 @@ fun InputControlsDialogCompose(
             }
         },
         confirmButton = {
-            Button(onClick = {
+            GlassSolidPill(
+                onClick = {
                 val profileId = if (selectedProfileIdx > 0) profiles[selectedProfileIdx - 1].id else 0
                 activity.applyInputControlsSettings(
                     showTouchscreen,
@@ -934,7 +956,8 @@ fun InputControlsDialogCompose(
                     profileId
                 )
                 onDismiss()
-            }) { Text(stringResource(R.string.ok)) }
+            },
+            ) { Text(stringResource(R.string.ok)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }

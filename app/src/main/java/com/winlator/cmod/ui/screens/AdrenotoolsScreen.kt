@@ -1,5 +1,10 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -190,7 +195,9 @@ private fun DriverCard(
 ) {
     Card(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(16.dp),

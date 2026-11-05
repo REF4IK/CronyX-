@@ -196,6 +196,7 @@
     <string name="color_adjustment">Color Adjustment</string>
     <string name="columns">Columns</string>
     <string name="compatibility">Compatibility</string>
+    <string name="graphics">Graphics</string>
     <string name="configuration">Configuration</string>
     <string name="configure">Configure</string>
     <string name="configure_analog_sticks">Configure Analog Sticks</string>
@@ -1728,6 +1729,8 @@
     <string name="theme_transfer">Theme Transfer</string>
     <string name="export_theme">Export Theme</string>
     <string name="import_theme">Import Theme</string>
+    <string name="theme_gamehub">GameHub Glass</string>
+    <string name="more_menu">More</string>
     <string name="theme_default">Teal Classic</string>
     <string name="theme_midnight">Midnight OLED</string>
     <string name="theme_cyberpunk">Cyberpunk Neon</string>

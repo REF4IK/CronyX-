@@ -1,5 +1,9 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -447,10 +451,9 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 var dd by remember { mutableStateOf(false) }
                 Box(Modifier.weight(1f)) {
-                    OutlinedButton(
+                    GlassPill(
                         onClick = { dd = true },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = GameOverlayColors.TextPrimary)
                     ) { Text(if (selectedProfile.isEmpty()) "-- Default Profile --" else selectedProfile, fontSize = 12.sp, maxLines = 1) }
                     DropdownMenu(expanded = dd, onDismissRequest = { dd = false }) {
                         profileList.forEach { name ->
@@ -500,7 +503,9 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             onDismissRequest = { showAddProfileDialog = false },
             title = { Text(stringResource(R.string.profile)) },
             text = {
-                OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -689,13 +694,11 @@ fun XPanelTaskManager(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
 
     GamePanelShell(
         footer = {
-            Button(
+            GlassSolidPill(
                 onClick = {
                     activity.winHandler.exec("taskmgr.exe")
                 },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GameOverlayColors.Accent, contentColor = Color.Black),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.new_task), fontWeight = FontWeight.Bold) }
         }
     ) {
@@ -941,32 +944,17 @@ fun XPanelWinetricks(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
-            Button(
+            GlassSolidPill(
                 onClick = { activity.composeRunWinetricksStable(verb.trim(), outputSink) },
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GameOverlayColors.Accent,
-                    contentColor = Color.Black
-                ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) { Text("Execute Winetricks", fontWeight = FontWeight.Bold) }
-            Button(
+            GlassSolidPill(
                 onClick = { activity.composeRunWinetricksFolder(outputSink) },
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GameOverlayColors.CardBg,
-                    contentColor = GameOverlayColors.TextPrimary
-                ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) { Text("Open Winetricks Folder") }
-            Button(
+            GlassSolidPill(
                 onClick = { activity.composeRestartWineserver(outputSink) },
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GameOverlayColors.CardBg,
-                    contentColor = GameOverlayColors.TextPrimary
-                ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) { Text("Restart Wineserver") }
             Box(
                 Modifier.fillMaxWidth().height(170.dp).clip(RoundedCornerShape(10.dp))
@@ -1054,14 +1042,9 @@ fun XPanelLogs(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                Button(
+                GlassSolidPill(
                     onClick = onDismiss,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = GameOverlayColors.Accent,
-                        contentColor = Color.Black
-                    ),
-                    contentPadding = PaddingValues(horizontal = 26.dp, vertical = 10.dp)
+                    contentPadding = PaddingValues(horizontal = 26.dp, vertical = 10.dp),
                 ) { Text("OK", fontWeight = FontWeight.Bold) }
             }
         }

@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.CircleShape
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -301,7 +309,9 @@ fun ShortcutSettingsScreen(
                         label = { Text(stringResource(R.string.config_description_hint)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
-                    )
+
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {
@@ -371,151 +381,150 @@ fun ShortcutSettingsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
+                actions = {
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(
+                                        onClick = { showPublishDialog = true }) {
+                                        Icon(Icons.Filled.CloudUpload, contentDescription = stringResource(R.string.publish_config))
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            // Rename if needed (inline, matching old ShortcutSettingsDialog.renameShortcut via reflection)
+                                            val newName = name.trim()
+                                        if (newName.isNotEmpty() && newName != shortcut.name) {
+                                            val parent = shortcut.file.parentFile
+                                            val oldDesktopFile = shortcut.file
+                                            val oldName = shortcut.name
+                                            val newDesktopFile = File(parent, "$newName.desktop")
+
+                                            // Handle Windows case-insensitivity by using a temporary file name if only case changed
+                                            val renamed = if (oldDesktopFile.canonicalPath.equals(newDesktopFile.canonicalPath, ignoreCase = true)) {
+                                                val tempFile = File(parent, "${newName}_temp.desktop")
+                                                oldDesktopFile.renameTo(tempFile) && tempFile.renameTo(newDesktopFile)
+                                            } else {
+                                                !newDesktopFile.isFile && oldDesktopFile.renameTo(newDesktopFile)
+                                            }
+
+                                            if (renamed) {
+                                                // Use reflection to update final fields (same as old Java code)
+                                                try {
+                                                    val fileField = Shortcut::class.java.getDeclaredField("file")
+                                                    fileField.isAccessible = true
+                                                    fileField.set(shortcut, newDesktopFile)
+                                                    val nameField = Shortcut::class.java.getDeclaredField("name")
+                                                    nameField.isAccessible = true
+                                                    nameField.set(shortcut, newName)
+                                                } catch (_: Exception) {}
+                                                // Delete old file if it still exists and path actually changed
+                                                if (oldDesktopFile.exists() && oldDesktopFile.absolutePath != newDesktopFile.absolutePath) {
+                                                    oldDesktopFile.delete()
+                                                }
+                                            }
+
+                                            // Rename link file if exists, using correct oldName variable
+                                            val linkFile = File(parent, "$oldName.lnk")
+                                            if (linkFile.isFile) {
+                                                val newLinkFile = File(parent, "$newName.lnk")
+                                                if (oldName.equals(newName, ignoreCase = true)) {
+                                                    val tempLink = File(parent, "${newName}_temp.lnk")
+                                                    linkFile.renameTo(tempLink) && tempLink.renameTo(newLinkFile)
+                                                } else if (!newLinkFile.isFile) {
+                                                    linkFile.renameTo(newLinkFile)
+                                                }
+                                            }
+                                        }
+
+                                        // Build inputType bitmask (matching old Java save logic)
+                                        var finalInputType = 0
+                                        if (enableXInput) finalInputType = finalInputType or WinHandler.FLAG_INPUT_TYPE_XINPUT.toInt()
+                                        if (enableDInput) finalInputType = finalInputType or WinHandler.FLAG_INPUT_TYPE_DINPUT.toInt()
+                                        finalInputType = finalInputType or (if (dinputMapperStandard) WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt() else WinHandler.FLAG_DINPUT_MAPPER_XINPUT.toInt())
+
+                                        shortcut.putExtra("inputType", finalInputType.toString())
+
+                                        shortcut.putExtra("execArgs", execArgs.ifEmpty { null })
+                                        val finalScreenSize = if (isCustomScreen) "${customScreenWidth}x${customScreenHeight}" else (screenSize.split(" ").firstOrNull() ?: screenSize)
+                                        shortcut.putExtra("screenSize", if (finalScreenSize != container.screenSize) finalScreenSize else null)
+                                        shortcut.putExtra("graphicsDriver", if (graphicsDriver != container.graphicsDriver) graphicsDriver else null)
+                                        shortcut.putExtra("graphicsDriverConfig", if (graphicsDriverConfig != container.graphicsDriverConfig) graphicsDriverConfig else null)
+                                        shortcut.putExtra("dxwrapper", if (dxwrapper != container.dxWrapper) dxwrapper else null)
+                                        shortcut.putExtra("dxwrapperConfig", if (dxwrapperConfig != container.getDXWrapperConfig()) dxwrapperConfig else null)
+                                        shortcut.putExtra("ddrawrapper", if (ddrawrapper != container.dDrawWrapper) ddrawrapper else null)
+                                        shortcut.putExtra("audioDriver", if (audioDriver != container.audioDriver) audioDriver else null)
+                                        shortcut.putExtra("displayRenderer", if (displayRenderer != container.displayRenderer) displayRenderer else null)
+                                        shortcut.putExtra("sfCompatMode", if (sfCompatMode != container.sfCompatMode) (if (sfCompatMode) "1" else "0") else null)
+                                        val emuSave = emulator.lowercase()
+                                        shortcut.putExtra("emulator", if (emuSave != container.emulator.lowercase()) emuSave else null)
+                                        val emu64Save = emulator64.lowercase()
+                                        shortcut.putExtra("emulator64", if (emu64Save != container.emulator.lowercase()) emu64Save else null)
+                                        shortcut.putExtra("midiSoundFont", if (midiSoundFont != container.midiSoundFont) midiSoundFont else null)
+                                        shortcut.putExtra("forceFullscreen", if (forceFullscreen) "1" else null)
+
+                                        // Secondary exec
+                                        if (useSecondaryExec) {
+                                            val secExec = secondaryExec.trim()
+                                            val delay = execDelay.trim()
+                                            shortcut.putExtra("secondaryExec", secExec.ifEmpty { null })
+                                            shortcut.putExtra("execDelay", delay.ifEmpty { null })
+                                        } else {
+                                            shortcut.putExtra("secondaryExec", null)
+                                            shortcut.putExtra("execDelay", null)
+                                        }
+
+                                        shortcut.putExtra("fullscreenStretched", if (fullscreenStretched) "1" else null)
+                                        shortcut.putExtra("useUnixLibs", if (useUnixLibs != container.isUseUnixLibs) (if (useUnixLibs) "1" else "0") else null)
+                                        shortcut.putExtra("disableXinput", if (disableXinput) "1" else null)
+                                        shortcut.putExtra("simTouchScreen", if (touchscreenMode) "1" else "0")
+
+                                        shortcut.putExtra("box64Version", if (box64Version != container.box64Version) box64Version else null)
+                                        val box64PresetSave = box64Preset
+                                        shortcut.putExtra("box64Preset", if (box64PresetSave != container.box64Preset) box64PresetSave else null)
+
+                                        shortcut.putExtra("rcfileId", if (rcfileId.toIntOrNull() != container.getRCFileId()) rcfileId else null)
+
+                                        shortcut.putExtra("fexcoreVersion", if (fexcoreVersion != container.getFEXCoreVersion()) fexcoreVersion else null)
+                                        shortcut.putExtra("fexcorePreset", if (fexcorePreset != container.getFEXCorePreset()) fexcorePreset else null)
+
+                                        val startupIdx = startupSelection.toIntOrNull() ?: 0
+                                        shortcut.putExtra("startupSelection", if (startupIdx.toByte() != container.startupSelection) startupSelection else null)
+
+                                        val profileList = inputControlsManager.getProfiles(true) ?: arrayListOf<ControlsProfile>()
+                                        val controlsProfileInt = controlsProfileId.toIntOrNull() ?: 0
+                                        shortcut.putExtra("controlsProfile", if (controlsProfileInt > 0) controlsProfileId else null)
+
+                                        shortcut.putExtra("sharpnessEffect", sharpnessEffect)
+                                        shortcut.putExtra("sharpnessLevel", sharpnessLevel)
+                                        shortcut.putExtra("sharpnessDenoise", sharpnessDenoise)
+
+                                        shortcut.putExtra("cpuList", if (cpuList != container.getCPUList(true)) cpuList else null)
+                                        shortcut.putExtra("cpuListWoW64", if (cpuListWoW64 != container.getCPUListWoW64(true)) cpuListWoW64 else null)
+                                        shortcut.putExtra("wincomponents", if (winComponents != container.winComponents) winComponents else null)
+                                        shortcut.putExtra("envVars", envVars.ifEmpty { null })
+                                        shortcut.putExtra("lc_all", if (lcAll != container.getLC_ALL()) lcAll else null)
+
+                                        shortcut.saveData()
+                                        AppUtils.showToast(ctx, R.string.saved)
+                                        onBack()
+                                    }) {
+                                    Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
+                                        }
+                                    }
+
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
-        },
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallFloatingActionButton(
-                    onClick = { showPublishDialog = true },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                ) {
-                    Icon(Icons.Filled.CloudUpload, contentDescription = stringResource(R.string.publish_config), tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                }
-                FloatingActionButton(
-                    onClick = {
-                        // Rename if needed (inline, matching old ShortcutSettingsDialog.renameShortcut via reflection)
-                        val newName = name.trim()
-                    if (newName.isNotEmpty() && newName != shortcut.name) {
-                        val parent = shortcut.file.parentFile
-                        val oldDesktopFile = shortcut.file
-                        val oldName = shortcut.name
-                        val newDesktopFile = File(parent, "$newName.desktop")
-
-                        // Handle Windows case-insensitivity by using a temporary file name if only case changed
-                        val renamed = if (oldDesktopFile.canonicalPath.equals(newDesktopFile.canonicalPath, ignoreCase = true)) {
-                            val tempFile = File(parent, "${newName}_temp.desktop")
-                            oldDesktopFile.renameTo(tempFile) && tempFile.renameTo(newDesktopFile)
-                        } else {
-                            !newDesktopFile.isFile && oldDesktopFile.renameTo(newDesktopFile)
-                        }
-
-                        if (renamed) {
-                            // Use reflection to update final fields (same as old Java code)
-                            try {
-                                val fileField = Shortcut::class.java.getDeclaredField("file")
-                                fileField.isAccessible = true
-                                fileField.set(shortcut, newDesktopFile)
-                                val nameField = Shortcut::class.java.getDeclaredField("name")
-                                nameField.isAccessible = true
-                                nameField.set(shortcut, newName)
-                            } catch (_: Exception) {}
-                            // Delete old file if it still exists and path actually changed
-                            if (oldDesktopFile.exists() && oldDesktopFile.absolutePath != newDesktopFile.absolutePath) {
-                                oldDesktopFile.delete()
-                            }
-                        }
-
-                        // Rename link file if exists, using correct oldName variable
-                        val linkFile = File(parent, "$oldName.lnk")
-                        if (linkFile.isFile) {
-                            val newLinkFile = File(parent, "$newName.lnk")
-                            if (oldName.equals(newName, ignoreCase = true)) {
-                                val tempLink = File(parent, "${newName}_temp.lnk")
-                                linkFile.renameTo(tempLink) && tempLink.renameTo(newLinkFile)
-                            } else if (!newLinkFile.isFile) {
-                                linkFile.renameTo(newLinkFile)
-                            }
-                        }
-                    }
-
-                    // Build inputType bitmask (matching old Java save logic)
-                    var finalInputType = 0
-                    if (enableXInput) finalInputType = finalInputType or WinHandler.FLAG_INPUT_TYPE_XINPUT.toInt()
-                    if (enableDInput) finalInputType = finalInputType or WinHandler.FLAG_INPUT_TYPE_DINPUT.toInt()
-                    finalInputType = finalInputType or (if (dinputMapperStandard) WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt() else WinHandler.FLAG_DINPUT_MAPPER_XINPUT.toInt())
-
-                    shortcut.putExtra("inputType", finalInputType.toString())
-
-                    shortcut.putExtra("execArgs", execArgs.ifEmpty { null })
-                    val finalScreenSize = if (isCustomScreen) "${customScreenWidth}x${customScreenHeight}" else (screenSize.split(" ").firstOrNull() ?: screenSize)
-                    shortcut.putExtra("screenSize", if (finalScreenSize != container.screenSize) finalScreenSize else null)
-                    shortcut.putExtra("graphicsDriver", if (graphicsDriver != container.graphicsDriver) graphicsDriver else null)
-                    shortcut.putExtra("graphicsDriverConfig", if (graphicsDriverConfig != container.graphicsDriverConfig) graphicsDriverConfig else null)
-                    shortcut.putExtra("dxwrapper", if (dxwrapper != container.dxWrapper) dxwrapper else null)
-                    shortcut.putExtra("dxwrapperConfig", if (dxwrapperConfig != container.getDXWrapperConfig()) dxwrapperConfig else null)
-                    shortcut.putExtra("ddrawrapper", if (ddrawrapper != container.dDrawWrapper) ddrawrapper else null)
-                    shortcut.putExtra("audioDriver", if (audioDriver != container.audioDriver) audioDriver else null)
-                    shortcut.putExtra("displayRenderer", if (displayRenderer != container.displayRenderer) displayRenderer else null)
-                    shortcut.putExtra("sfCompatMode", if (sfCompatMode != container.sfCompatMode) (if (sfCompatMode) "1" else "0") else null)
-                    val emuSave = emulator.lowercase()
-                    shortcut.putExtra("emulator", if (emuSave != container.emulator.lowercase()) emuSave else null)
-                    val emu64Save = emulator64.lowercase()
-                    shortcut.putExtra("emulator64", if (emu64Save != container.emulator.lowercase()) emu64Save else null)
-                    shortcut.putExtra("midiSoundFont", if (midiSoundFont != container.midiSoundFont) midiSoundFont else null)
-                    shortcut.putExtra("forceFullscreen", if (forceFullscreen) "1" else null)
-
-                    // Secondary exec
-                    if (useSecondaryExec) {
-                        val secExec = secondaryExec.trim()
-                        val delay = execDelay.trim()
-                        shortcut.putExtra("secondaryExec", secExec.ifEmpty { null })
-                        shortcut.putExtra("execDelay", delay.ifEmpty { null })
-                    } else {
-                        shortcut.putExtra("secondaryExec", null)
-                        shortcut.putExtra("execDelay", null)
-                    }
-
-                    shortcut.putExtra("fullscreenStretched", if (fullscreenStretched) "1" else null)
-                    shortcut.putExtra("useUnixLibs", if (useUnixLibs != container.isUseUnixLibs) (if (useUnixLibs) "1" else "0") else null)
-                    shortcut.putExtra("disableXinput", if (disableXinput) "1" else null)
-                    shortcut.putExtra("simTouchScreen", if (touchscreenMode) "1" else "0")
-
-                    shortcut.putExtra("box64Version", if (box64Version != container.box64Version) box64Version else null)
-                    val box64PresetSave = box64Preset
-                    shortcut.putExtra("box64Preset", if (box64PresetSave != container.box64Preset) box64PresetSave else null)
-
-                    shortcut.putExtra("rcfileId", if (rcfileId.toIntOrNull() != container.getRCFileId()) rcfileId else null)
-
-                    shortcut.putExtra("fexcoreVersion", if (fexcoreVersion != container.getFEXCoreVersion()) fexcoreVersion else null)
-                    shortcut.putExtra("fexcorePreset", if (fexcorePreset != container.getFEXCorePreset()) fexcorePreset else null)
-
-                    val startupIdx = startupSelection.toIntOrNull() ?: 0
-                    shortcut.putExtra("startupSelection", if (startupIdx.toByte() != container.startupSelection) startupSelection else null)
-
-                    val profileList = inputControlsManager.getProfiles(true) ?: arrayListOf<ControlsProfile>()
-                    val controlsProfileInt = controlsProfileId.toIntOrNull() ?: 0
-                    shortcut.putExtra("controlsProfile", if (controlsProfileInt > 0) controlsProfileId else null)
-
-                    shortcut.putExtra("sharpnessEffect", sharpnessEffect)
-                    shortcut.putExtra("sharpnessLevel", sharpnessLevel)
-                    shortcut.putExtra("sharpnessDenoise", sharpnessDenoise)
-
-                    shortcut.putExtra("cpuList", if (cpuList != container.getCPUList(true)) cpuList else null)
-                    shortcut.putExtra("cpuListWoW64", if (cpuListWoW64 != container.getCPUListWoW64(true)) cpuListWoW64 else null)
-                    shortcut.putExtra("wincomponents", if (winComponents != container.winComponents) winComponents else null)
-                    shortcut.putExtra("envVars", envVars.ifEmpty { null })
-                    shortcut.putExtra("lc_all", if (lcAll != container.getLC_ALL()) lcAll else null)
-
-                    shortcut.saveData()
-                    AppUtils.showToast(ctx, R.string.saved)
-                    onBack()
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save), tint = MaterialTheme.colorScheme.onPrimary)
-                    }
-                }
         },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // ---- Верхний блок: Contents ----
@@ -526,7 +535,9 @@ fun ShortcutSettingsScreen(
                     label = { Text(stringResource(R.string.name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                )
+
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
 
                 // Custom Icon row
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
@@ -534,7 +545,7 @@ fun ShortcutSettingsScreen(
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(
-                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.size(48.dp).clip(CircleShape).background(glassBadgeFill()),
                             contentAlignment = Alignment.Center,
                         ) {
                             val displayIcon = customIcon ?: shortcut.displayIcon
@@ -544,12 +555,16 @@ fun ShortcutSettingsScreen(
                                 Icon(Icons.Filled.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
                             }
                         }
-                        OutlinedButton(onClick = { iconPickerLauncher.launch("image/*") }) { Text(stringResource(R.string.select_icon)) }
+                        GlassPill(
+                            onClick = { iconPickerLauncher.launch("image/*") },
+                        ) { Text(stringResource(R.string.select_icon)) }
                         if (customIcon != null || shortcut.getExtra("customIconPath").isNotEmpty()) {
-                            OutlinedButton(onClick = {
+                            GlassPill(
+                                onClick = {
                                 customIcon = null
                                 shortcut.removeCustomIcon()
-                            }) { Text(stringResource(R.string.remove_icon)) }
+                            },
+                            ) { Text(stringResource(R.string.remove_icon)) }
                         }
                     }
                 }
@@ -575,14 +590,18 @@ fun ShortcutSettingsScreen(
                             label = { Text("W") },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                         OutlinedTextField(
                             value = customScreenHeight,
                             onValueChange = { customScreenHeight = it.filter { c -> c.isDigit() } },
                             label = { Text("H") },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                     }
                 }
 
@@ -694,7 +713,13 @@ fun ShortcutSettingsScreen(
                 stringResource(R.string.advanced)
             )
 
-            TabRow(selectedTabIndex = currentTab, modifier = Modifier.fillMaxWidth()) {
+            TabRow(
+                selectedTabIndex = currentTab,
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = Color.Transparent,
+                contentColor = glassAccent(),
+                divider = { },
+            ) {
                 tabTitles.forEachIndexed { index, title ->
                     Tab(
                         selected = currentTab == index,
@@ -930,14 +955,18 @@ fun ShortcutSettingsScreen(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                                     singleLine = true,
                                     label = { Text(stringResource(R.string.enter_secondary_exec_path)) }
-                                )
+                                ,
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                                 OutlinedTextField(
                                     value = execDelay,
                                     onValueChange = { execDelay = it.filter { c -> c.isDigit() } },
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                                     singleLine = true,
                                     label = { Text(stringResource(R.string.enter_delay_seconds)) }
-                                )
+                                ,
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                             }
                         }
 
@@ -968,7 +997,9 @@ fun ShortcutSettingsScreen(
                                             Icon(Icons.Filled.Menu, "Arguments helper")
                                         }
                                     }
-                                )
+                                ,
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                                 DropdownMenu(expanded = showArgsMenu, onDismissRequest = { showArgsMenu = false }) {
                                     extraArgsItems.forEach { arg ->
                                         DropdownMenuItem(
@@ -1005,7 +1036,8 @@ fun ShortcutSettingsScreen(
                                     value = sharpnessLevel.toFloatOrNull() ?: 100f,
                                     valueRange = 0f..100f,
                                     onValueChange = { sharpnessLevel = it.toInt().toString() }
-                                )
+                                ,
+                                    colors = glassSliderColors())
                             }
                             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1016,7 +1048,8 @@ fun ShortcutSettingsScreen(
                                     value = sharpnessDenoise.toFloatOrNull() ?: 100f,
                                     valueRange = 0f..100f,
                                     onValueChange = { sharpnessDenoise = it.toInt().toString() }
-                                )
+                                ,
+                                    colors = glassSliderColors())
                             }
                         }
 

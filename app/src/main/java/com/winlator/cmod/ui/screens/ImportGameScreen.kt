@@ -1,5 +1,12 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Environment
@@ -115,7 +122,7 @@ fun ImportGameScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
+                        containerColor = Color.Transparent,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                 )
@@ -165,7 +172,9 @@ fun ImportGameScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     supportingText = { Text("${name.length}/60") },
-                )
+
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
 
                 // Описание (опционально)
                 OutlinedTextField(
@@ -174,13 +183,17 @@ fun ImportGameScreen(
                     label = { Text(stringResource(R.string.description_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                )
+
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
 
                 // Путь к exe
                 Text(stringResource(R.string.path_to_launch_file), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                    border = glassCardBorder(),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -202,7 +215,9 @@ fun ImportGameScreen(
                 Text(stringResource(R.string.container), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { showContainerPicker = true },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                    border = glassCardBorder(),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -219,10 +234,11 @@ fun ImportGameScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.cancel)) }
                     Spacer(Modifier.width(12.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         if (name.isEmpty()) {
                             AppUtils.showToast(ctx, R.string.name_and_exe_required)
-                            return@Button
+                            return@GlassSolidPill
                         }
                         try {
                             val absolutePath = exePath
@@ -299,7 +315,8 @@ fun ImportGameScreen(
                         } catch (e: Exception) {
                             AppUtils.showToast(ctx, "Error: ${e.message}")
                         }
-                    }) {
+                    },
+                    ) {
                         Text(stringResource(R.string.ok))
                     }
                 }

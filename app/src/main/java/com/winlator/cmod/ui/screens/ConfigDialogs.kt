@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+import com.winlator.cmod.ui.components.GlassSwitch
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -82,11 +90,11 @@ fun AudioDriverConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth().padding(8.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -142,10 +150,12 @@ fun AudioDriverConfigDialogCompose(
                         Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         val newConfig = "performanceMode=$performanceMode,volume=${volume / 100.0f},latencyMillis=${latencyValues[latencyIndex]}"
                         onConfirm(newConfig)
-                    }) {
+                    },
+                    ) {
                         Text(stringResource(R.string.ok))
                     }
                 }
@@ -284,11 +294,11 @@ fun GraphicsDriverConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(8.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(8.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -330,7 +340,9 @@ fun GraphicsDriverConfigDialogCompose(
                             onValueChange = { gpuCustomName = it },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                        )
+
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                         Spacer(Modifier.height(4.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(Modifier.weight(1f)) {
@@ -341,7 +353,9 @@ fun GraphicsDriverConfigDialogCompose(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     placeholder = { Text("10DE") },
-                                )
+
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                             }
                             Column(Modifier.weight(1f)) {
                                 Text("Vendor ID", style = MaterialTheme.typography.bodySmall)
@@ -351,7 +365,9 @@ fun GraphicsDriverConfigDialogCompose(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     placeholder = { Text("13C2") },
-                                )
+
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                             }
                         }
                     }
@@ -409,7 +425,7 @@ fun GraphicsDriverConfigDialogCompose(
                 }
 
                 // Download button (реальное скачивание Turnip/драйверов через Compose-диалоги)
-                Button(
+                GlassSolidPill(
                     onClick = {
                         isLoadingRemote = true
                         val resolver = DriverResolver(context)
@@ -636,12 +652,12 @@ fun GraphicsDriverConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 6.dp,
-                            modifier = Modifier.padding(24.dp).fillMaxWidth()
-                        ) {
+                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                border = glassCardBorder(),
+            ) {
                             Column(
                                 modifier = Modifier.padding(24.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -670,12 +686,12 @@ fun GraphicsDriverConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 6.dp,
-                            modifier = Modifier.padding(24.dp).fillMaxWidth()
-                        ) {
+                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                border = glassCardBorder(),
+            ) {
                             Row(
                                 modifier = Modifier.padding(24.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -773,7 +789,8 @@ fun GraphicsDriverConfigDialogCompose(
                         Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         val newConfig = buildString {
                             append("version=$selectedVersion")
                             append(";vulkanVersion=$vulkanVersion")
@@ -798,7 +815,8 @@ fun GraphicsDriverConfigDialogCompose(
                         // Turbo Mode — применяется сразу через adrenotools
                         GPUInformation.setTurboMode(enableTurbo)
                         onConfirm(newConfig)
-                    }) {
+                    },
+                    ) {
                         Text(stringResource(R.string.ok))
                     }
                 }
@@ -876,11 +894,11 @@ fun VKD3DConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth().padding(8.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -928,7 +946,7 @@ fun VKD3DConfigDialogCompose(
                 )
 
                 // Download VKD3D button
-                Button(
+                GlassSolidPill(
                     onClick = {
                         isLoadingRemote = true
                         coroutineScope.launch(Dispatchers.IO) {
@@ -1116,12 +1134,12 @@ fun VKD3DConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 6.dp,
-                            modifier = Modifier.padding(24.dp).fillMaxWidth()
-                        ) {
+                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                border = glassCardBorder(),
+            ) {
                             Row(
                                 modifier = Modifier.padding(24.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1148,7 +1166,8 @@ fun VKD3DConfigDialogCompose(
                         Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         // Сохраняем только vkd3dVersion и vkd3dLevel, остальные ключи не трогаем
                         val oldConfig = parseKeyValueSet(initialConfig)
                         val newConfig = buildString {
@@ -1167,7 +1186,8 @@ fun VKD3DConfigDialogCompose(
                             append(",vkd3dLevel=$featureLevel")
                         }
                         onConfirm(newConfig)
-                    }) {
+                    },
+                    ) {
                         Text(stringResource(R.string.ok))
                     }
                 }
@@ -1271,11 +1291,11 @@ fun DXVKConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.95f).padding(4.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.95f).padding(4.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()),
@@ -1294,7 +1314,7 @@ fun DXVKConfigDialogCompose(
                     selectedIndex = versions.indexOfFirst { it.equals(version, ignoreCase = true) || it.startsWith(version) }.coerceAtLeast(0),
                     onSelected = { version = versions[it] },
                 )
-                Button(
+                GlassSolidPill(
                     onClick = {
                         isLoadingRemote = true
                         coroutineScope.launch(Dispatchers.IO) {
@@ -1484,12 +1504,12 @@ fun DXVKConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 6.dp,
-                            modifier = Modifier.padding(24.dp).fillMaxWidth()
-                        ) {
+                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                border = glassCardBorder(),
+            ) {
                             Row(
                                 modifier = Modifier.padding(24.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1673,7 +1693,8 @@ fun DXVKConfigDialogCompose(
                     Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         val newConfig = buildString {
                             append("version=$version")
                             append(",framerate=$framerate")
@@ -1701,7 +1722,8 @@ fun DXVKConfigDialogCompose(
                             append(",relaxedBarriers=$relaxedBarriers")
                         }
                         onConfirm(newConfig)
-                    }) {
+                    },
+                    ) {
                         Text(stringResource(R.string.ok))
                     }
                 }
@@ -1729,7 +1751,9 @@ fun ConfigSpinnerRow(
             readOnly = true,
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) },
-        )
+
+            shape = GlassFieldShape,
+            colors = glassFieldColors())
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -1756,7 +1780,8 @@ fun ConfigSeekBar(
         value = value.toFloat(),
         onValueChange = { onValueChange(it.toInt()) },
         valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
-    )
+    
+        colors = glassSliderColors())
 }
 
 @Composable
@@ -1770,7 +1795,7 @@ fun ConfigSwitchRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        GlassSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -1836,7 +1861,9 @@ fun ExtensionsDropdownRow(
                     Icon(Icons.Filled.ArrowDropDown, null)
                 }
             },
-        )
+
+            shape = GlassFieldShape,
+            colors = glassFieldColors())
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -1858,7 +1885,7 @@ fun ExtensionsDropdownRow(
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(
+                                GlassSwitch(
                                     checked = isChecked,
                                     onCheckedChange = { checked ->
                                         val newSet = blacklistSet.toMutableSet()
@@ -1993,11 +2020,11 @@ fun ContentDownloadDialogCompose(
             onDismissRequest = onDismiss,
             properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
         ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
-                modifier = Modifier.padding(24.dp).fillMaxWidth()
+            Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                border = glassCardBorder(),
             ) {
                 Row(
                     modifier = Modifier.padding(24.dp),
@@ -2143,11 +2170,11 @@ fun ContentDownloadDialogCompose(
             onDismissRequest = {},
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
         ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
-                modifier = Modifier.padding(24.dp).fillMaxWidth()
+            Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                tonalElevation = 0.dp,
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                border = glassCardBorder(),
             ) {
                 Row(
                     modifier = Modifier.padding(24.dp),

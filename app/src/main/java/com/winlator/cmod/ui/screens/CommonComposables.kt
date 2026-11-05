@@ -1,5 +1,8 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -60,11 +63,11 @@ fun ContainerPickerDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxWidth().padding(16.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     stringResource(R.string.select_container),

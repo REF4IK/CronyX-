@@ -1,5 +1,11 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.GlassSwitch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -74,8 +80,11 @@ fun FpsCounterSettingsDialog(
                 .fillMaxHeight()
                 .clickable(enabled = false, onClick = {}), // Предотвращаем закрытие при клике по самой панели
             shape = RectangleShape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
+            // Панель закрывает игру: с полупрозрачной заливкой сквозь неё
+            // проступает кадр, поэтому берём почти непрозрачную.
+            color = glassCardFill(),
+            contentColor = glassTitleColor(),
+            tonalElevation = 0.dp
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
 
@@ -257,10 +266,13 @@ fun FpsCounterSettingsDialog(
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
-                    OutlinedButton(onClick = onDismiss) {
+                    GlassPill(
+                        onClick = onDismiss,
+                    ) {
                         Text(stringResource(android.R.string.cancel))
                     }
-                    Button(onClick = {
+                    GlassSolidPill(
+                        onClick = {
                         config.setEnabled(enabled)
                         config.setModuleVisible(FpsCounterConfig.Module.FPS, showFps)
                         config.setModuleVisible(FpsCounterConfig.Module.RAM, showRam)
@@ -281,7 +293,8 @@ fun FpsCounterSettingsDialog(
                         config.setWhiteFonts(whiteFonts)
                         onConfigChanged()
                         onDismiss()
-                    }) {
+                    },
+                    ) {
                         Text(stringResource(android.R.string.ok))
                     }
                 }
@@ -334,7 +347,7 @@ private fun FpsCompactSwitchRow(
             color = if (enabled) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         )
-        Switch(
+        GlassSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
@@ -355,7 +368,7 @@ private fun FpsCheckboxItem(
         modifier = modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Checkbox(
+        GlassSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
@@ -400,7 +413,8 @@ private fun FpsSliderRow(
             steps = steps,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
-        )
+        ,
+            colors = glassSliderColors())
     }
 }
 
@@ -432,17 +446,11 @@ private fun FpsStyleSelectionRow(
                 rowStyles.forEachIndexed { columnIndex, styleName ->
                     val index = rowIndex * 2 + columnIndex
                     val isSelected = selectedStyle == index
-                    Button(
+                    GlassSolidPill(
                         onClick = { onStyleSelected(index) },
                         enabled = enabled,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.primary
-                                             else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                           else MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text(styleName, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                     }

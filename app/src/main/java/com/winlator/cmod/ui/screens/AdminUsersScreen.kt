@@ -1,5 +1,11 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassFieldShape
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -84,11 +90,11 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
     LaunchedEffect(Unit) { load() }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Surface(
-            modifier = Modifier.fillMaxHeight(0.9f).fillMaxWidth(0.94f),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
+        Surface(modifier = Modifier.fillMaxHeight(0.9f).fillMaxWidth(0.94f),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                color = glassCardFill(),
+                border = glassCardBorder(),
+            ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Group, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp).padding(end = 8.dp))
@@ -120,8 +126,9 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                             items(list, key = { it.username.lowercase() }) { u ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
                                     shape = RoundedCornerShape(10.dp),
+                                    border = glassCardBorder(),
                                 ) {
                                     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -144,7 +151,7 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                                         }
                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             if (u.admin) {
-                                                OutlinedButton(
+                                                GlassPill(
                                                     onClick = {
                                                         editTarget = u
                                                         editNum = if (u.num >= 0) String.format(Locale.US, "%07d", u.num) else ""
@@ -154,7 +161,7 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                                                 ) { Text(stringResource(R.string.profile_own_edit), fontSize = 12.sp) }
                                             } else {
-                                                OutlinedButton(
+                                                GlassPill(
                                                     onClick = { setBan(u, !u.banned) },
                                                     enabled = busyUser == null,
                                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
@@ -220,7 +227,7 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                    )
+)
                     OutlinedTextField(
                         value = editDate,
                         onValueChange = { editDate = it.take(10) },
@@ -229,7 +236,7 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                         placeholder = { Text("08.09.2026", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                    )
+)
                 }
             },
             confirmButton = {

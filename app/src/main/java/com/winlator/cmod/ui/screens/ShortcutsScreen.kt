@@ -1,5 +1,19 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassIsDark
+import com.winlator.cmod.ui.components.GlassSolidPill
+import androidx.compose.foundation.shape.CircleShape
+import com.winlator.cmod.ui.components.GlassChip
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutInfo
@@ -204,7 +218,7 @@ Column(modifier = Modifier.fillMaxSize()) {
             // Grid view — большие карточки
             LazyVerticalGrid(
                 columns = GridCells.Fixed(spanCount),
-                contentPadding = PaddingValues(12.dp),
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 84.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize(),
@@ -221,7 +235,7 @@ Column(modifier = Modifier.fillMaxSize()) {
         } else {
             // List view — компактные карточки
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -333,7 +347,7 @@ Column(modifier = Modifier.fillMaxSize()) {
                     Spacer(Modifier.height(4.dp))
                     Text("Playtime: $playtime", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
-                    Button(
+                    GlassSolidPill(
                         onClick = {
                             prefs.edit().remove(playtimeKey).remove(playCountKey).apply()
                             AppUtils.showToast(ctx, "Properties reset")
@@ -393,7 +407,9 @@ Column(modifier = Modifier.fillMaxSize()) {
                         label = { Text(stringResource(R.string.config_description_hint)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
-                    )
+
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {
@@ -649,9 +665,10 @@ private fun ShortcutCard(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        border = glassCardBorder(),
     ) {
         Row(
             modifier = Modifier
@@ -663,8 +680,8 @@ private fun ShortcutCard(
             Box(
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .clip(CircleShape)
+                    .background(glassBadgeFill()),
                 contentAlignment = Alignment.Center,
             ) {
                 if (coverFile != null) {
@@ -794,159 +811,118 @@ private fun ShortcutLargeCard(
     }
     val gameInfo = rememberGameInfo(shortcut)
     var showGameInfo by remember(shortcut) { mutableStateOf(false) }
-    Card(
+    GlassSurface(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A2E)),
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            // Cover art 228dp
+        // Референс (photo_2 «Мои игры»): обложка сверху, заголовок и мета —
+        // ПОД обложкой на теле карточки, а не поверх градиента.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .background(Color(0xFF101015)),
+            contentAlignment = Alignment.Center,
+        ) {
             if (coverFile != null) {
                 coil.compose.AsyncImage(
                     model = coverFile,
                     contentDescription = shortcut.name,
-                    modifier = Modifier.fillMaxWidth().height(228.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
             } else if (icon != null) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(228.dp).background(Color(0xFF0D0D1A)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    androidx.compose.foundation.Image(
-                        bitmap = icon!!,
-                        contentDescription = shortcut.name,
-                        modifier = Modifier.size(80.dp),
-                        contentScale = ContentScale.Fit,
-                    )
-                }
+                androidx.compose.foundation.Image(
+                    bitmap = icon!!,
+                    contentDescription = shortcut.name,
+                    modifier = Modifier.size(72.dp),
+                    contentScale = ContentScale.Fit,
+                )
             } else {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(228.dp).background(Color(0xFF0D0D1A)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Filled.VideogameAsset,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color.White.copy(alpha = 0.4f),
-                    )
-                }
+                Icon(
+                    Icons.Filled.VideogameAsset,
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp),
+                    tint = glassDescColor(),
+                )
             }
-            // Верхний градиент для кнопки меню
+            // ⋮ — круглая плашка поверх обложки справа сверху
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .align(Alignment.TopCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent),
-                        )
-                    ),
-            )
-            // Нижний градиент для текста
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
-                        )
-                    ),
-            )
-            // Кнопка ⋮
-            IconButton(
-                onClick = onLongClick,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(40.dp),
+                    .padding(8.dp)
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(onClick = onLongClick),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Filled.MoreVert, contentDescription = null, tint = Color.White)
-            }
-            // Текст снизу: имя → контейнер → бейджи
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 10.dp, bottom = 6.dp),
-            ) {
-                Text(
-                    text = shortcut.name,
-                    color = Color.White,
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
                 )
-                val wineVer = shortcut.container.wineVersion
-                if (wineVer.isNotEmpty() || gameInfo?.version != null) {
-                    Row(
-                        modifier = Modifier.padding(top = 1.dp),
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        if (wineVer.isNotEmpty()) {
-                            Surface(
-                                color = Color(0xFF1A73E8).copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(3.dp),
-                            ) {
-                                Text(
-                                    text = wineVer,
-                                    color = Color.White.copy(alpha = 0.87f),
-                                    fontSize = 8.sp,
-                                    lineHeight = 8.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 0.dp),
-                                )
-                            }
-                        }
-                        gameInfo?.version?.let {
-                            Surface(
-                                color = Color(0xFF2E7D32).copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(3.dp),
-                                modifier = Modifier.clickable { showGameInfo = true },
-                            ) {
-                                Text(
-                                    text = it,
-                                    color = Color.White.copy(alpha = 0.87f),
-                                    fontSize = 8.sp,
-                                    lineHeight = 8.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 0.dp),
-                                )
-                            }
-                        }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 12.dp),
+        ) {
+            Text(
+                text = shortcut.name,
+                color = glassTitleColor(),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(5.dp))
+
+            val wineVer = shortcut.container.wineVersion
+            val gameVer = gameInfo?.version
+            if (wineVer.isNotEmpty() || gameVer != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (wineVer.isNotEmpty()) {
+                        GlassChip(text = wineVer)
+                    }
+                    gameVer?.let {
+                        GlassChip(text = it, onClick = { showGameInfo = true })
                     }
                 }
-                Row(
-                    modifier = Modifier.padding(top = 1.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    rememberPlaytime(shortcut)?.let {
-                        Text(
-                            text = it,
-                            color = Color.White.copy(alpha = 0.74f),
-                            fontSize = 8.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                Spacer(Modifier.height(7.dp))
+            }
+
+            // Мета-ряд: иконка геймпада + наигранное время + контейнер
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Icon(
+                    Icons.Filled.VideogameAsset,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = glassDescColor(),
+                )
+                rememberPlaytime(shortcut)?.let {
                     Text(
-                        text = shortcut.container.name,
-                        color = Color.White.copy(alpha = 0.74f),
-                        fontSize = 8.sp,
+                        text = it,
+                        color = glassDescColor(),
+                        fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                Text(
+                    text = shortcut.container.name,
+                    color = glassDescColor(),
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -1736,7 +1712,7 @@ fun SteamInfoDialog(
                             .navigationBarsPadding(),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Button(
+                        GlassSolidPill(
                             onClick = {
                                 onDismiss()
                                 runShortcut(ctx, shortcut)
@@ -1744,11 +1720,6 @@ fun SteamInfoDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(54.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50),
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1771,8 +1742,9 @@ fun SteamInfoDialog(
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                            shape = RoundedCornerShape(12.dp)
+                            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
+                            border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.padding(6.dp)) {
                                 Row(
@@ -1873,8 +1845,9 @@ fun SteamInfoDialog(
                                 if (info.reviewScoreDesc.isNotEmpty() || info.totalReviews > 0) {
                                     Card(
                                         modifier = Modifier.weight(1.2f).fillMaxHeight(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                                        shape = RoundedCornerShape(12.dp)
+                                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                        shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                        border = glassCardBorder(),
                                     ) {
                                         Column(
                                             modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1931,8 +1904,9 @@ fun SteamInfoDialog(
 
                                 Card(
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                                    shape = RoundedCornerShape(12.dp)
+                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                    border = glassCardBorder(),
                                 ) {
                                     Column(
                                         modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1974,8 +1948,9 @@ fun SteamInfoDialog(
                                 if (info.metacriticScore > 0) {
                                     Card(
                                         modifier = Modifier.weight(0.8f).fillMaxHeight(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                                        shape = RoundedCornerShape(12.dp)
+                                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                        shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                        border = glassCardBorder(),
                                     ) {
                                         Column(
                                             modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -2013,8 +1988,9 @@ fun SteamInfoDialog(
 
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                border = glassCardBorder(),
                             ) {
                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (info.releaseDate.isNotEmpty()) {
@@ -2164,8 +2140,9 @@ fun SteamInfoDialog(
                                                 }
                                                 Card(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                                                    shape = RoundedCornerShape(8.dp)
+                                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    border = glassCardBorder(),
                                                 ) {
                                                     Column(modifier = Modifier.padding(12.dp)) {
                                                         Text(
@@ -2194,8 +2171,9 @@ fun SteamInfoDialog(
                                                 }
                                                 Card(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                                                    shape = RoundedCornerShape(8.dp)
+                                                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    border = glassCardBorder(),
                                                 ) {
                                                     Column(modifier = Modifier.padding(12.dp)) {
                                                         Text(
@@ -2239,7 +2217,9 @@ fun SteamInfoDialog(
                                         color = MaterialTheme.colorScheme.secondary,
                                         textAlign = TextAlign.Center
                                     )
-                                    Button(onClick = { retryAutoResolve() }) {
+                                    GlassSolidPill(
+                                        onClick = { retryAutoResolve() },
+                                    ) {
                                         Text(if (isRussian) "Повторить поиск" else "Retry")
                                     }
                                 }
@@ -2394,30 +2374,43 @@ private fun ActionGridItem(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    iconTint: Color = glassAccent()
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(GlassTokens.InnerRadius))
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = iconTint,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.height(4.dp))
+        // Референс (photo_3 «Еще меню»): иконка в круглой плашке, подпись под ней.
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .clip(CircleShape)
+                .background(
+                    if (glassIsDark()) Color.White.copy(alpha = 0.08f)
+                    else Color.Black.copy(alpha = 0.05f),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconTint,
+                modifier = Modifier.size(26.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
         Text(
             text = label,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            color = glassTitleColor(),
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

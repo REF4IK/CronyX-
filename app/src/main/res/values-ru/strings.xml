@@ -188,6 +188,7 @@
     <string name="color_adjustment">Настройка цвета</string>
     <string name="columns">Столбцы</string>
     <string name="compatibility">Совместимость</string>
+    <string name="graphics">Графика</string>
     <string name="configuration">Конфигурация</string>
     <string name="configure">Настроить</string>
     <string name="configure_analog_sticks">Настройка аналоговых стиков</string>
@@ -1720,6 +1721,8 @@
     <string name="theme_transfer">Перенос темы</string>
     <string name="export_theme">Экспорт темы</string>
     <string name="import_theme">Импорт темы</string>
+    <string name="theme_gamehub">GameHub Glass (стекло)</string>
+    <string name="more_menu">Ещё</string>
     <string name="theme_default">Классический бирюзовый</string>
     <string name="theme_midnight">Ночной OLED</string>
     <string name="theme_cyberpunk">Киберпанк неон</string>

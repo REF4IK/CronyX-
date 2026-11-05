@@ -1,5 +1,10 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassChevron
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassGroupDivider
 import android.content.SharedPreferences
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -40,7 +45,7 @@ fun ThemeManagerScreen(
     val ctx = LocalContext.current
     val prefs = preferences ?: MmkvPreferences()
 
-    var themeId by remember { mutableStateOf(prefs.getString("theme_id", "midnight") ?: "midnight") }
+    var themeId by remember { mutableStateOf(prefs.getString(ThemePrefs.THEME_ID, ThemePrefs.DEFAULT_THEME_ID) ?: ThemePrefs.DEFAULT_THEME_ID) }
     var themeMode by remember { mutableStateOf(ThemePrefs.resolveThemeMode(prefs)) }
     var dynamicColor by remember { mutableStateOf(prefs.getBoolean(ThemePrefs.DYNAMIC_COLOR, false)) }
     var showThemeModeDialog by remember { mutableStateOf(false) }
@@ -56,7 +61,7 @@ fun ThemeManagerScreen(
     fun themeModeLabel(v: String) = themeModeOptions.firstOrNull { it.first == v }?.second ?: ctx.getString(com.winlator.cmod.R.string.theme_mode_system)
 
     fun themeNameRes(id: String): Int = when (id) {
-        "midnight" -> com.winlator.cmod.R.string.theme_midnight
+        "gamehub" -> com.winlator.cmod.R.string.theme_gamehub        "midnight" -> com.winlator.cmod.R.string.theme_midnight
         "cyberpunk" -> com.winlator.cmod.R.string.theme_cyberpunk
         "royal" -> com.winlator.cmod.R.string.theme_royal
         "dracula" -> com.winlator.cmod.R.string.theme_dracula
@@ -97,7 +102,7 @@ fun ThemeManagerScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
@@ -177,7 +182,9 @@ fun ThemeManagerScreen(
                         )
                     }
                     if (theme != ThemesList.last()) {
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                        // Разделитель рисует сама строка внутри GlassSurface (glassGroupDivider),
+    // явная линия здесь дублировалась бы.
+    Spacer(Modifier.height(0.dp))
                     }
                 }
             }
@@ -205,10 +212,7 @@ fun ThemeManagerScreen(
 
 @Composable
 private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    GlassSurface(modifier = Modifier.fillMaxWidth()) {
         Column(content = content)
     }
 }
@@ -216,7 +220,7 @@ private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun SettingsClickRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
@@ -225,26 +229,28 @@ private fun SettingsClickRow(icon: androidx.compose.ui.graphics.vector.ImageVect
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        GlassChevron()
     }
 }
 
 @Composable
 private fun SettingsCheckRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        GlassSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
 @Composable
 private fun SettingsDivider() {
-    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+    // Разделитель рисует сама строка внутри GlassSurface (glassGroupDivider),
+    // явная линия здесь дублировалась бы.
+    Spacer(Modifier.height(0.dp))
 }
 
 @Composable

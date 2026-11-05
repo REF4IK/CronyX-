@@ -1,5 +1,11 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -345,7 +351,9 @@ fun BigPictureScreen(
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = onBack) { Text(stringResource(R.string.back)) }
+                    GlassSolidPill(
+                        onClick = onBack,
+                    ) { Text(stringResource(R.string.back)) }
                 }
             } else {
                 // ── Hero ──
@@ -551,9 +559,10 @@ private fun CoverCard(
             if (selected) Modifier.border(3.dp, Color(0xFF4FC3F7), RoundedCornerShape(12.dp))
             else Modifier
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
         elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 12.dp else 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF141A24)),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        border = glassCardBorder(),
     ) {
         if (cover != null) {
             Image(
@@ -695,7 +704,7 @@ private fun BpPlayButton(
     onPlay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(
+    GlassSolidPill(
         onClick = onPlay,
         modifier = modifier
             .height(50.dp)
@@ -703,8 +712,6 @@ private fun BpPlayButton(
                 if (playFocused) Modifier.border(3.dp, Color(0xFF4FC3F7), RoundedCornerShape(16.dp))
                 else Modifier
             ),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4FC3F7), contentColor = Color(0xFF0B0D12)),
     ) {
         Icon(Icons.Filled.PlayArrow, contentDescription = null)
         Spacer(Modifier.width(8.dp))
@@ -718,7 +725,7 @@ private fun BpOptionsButton(
     onOptions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedButton(
+    GlassPill(
         onClick = onOptions,
         modifier = modifier
             .height(50.dp)
@@ -726,7 +733,6 @@ private fun BpOptionsButton(
                 if (optionsFocused) Modifier.border(3.dp, Color(0xFF4FC3F7), RoundedCornerShape(16.dp))
                 else Modifier
             ),
-        shape = RoundedCornerShape(16.dp),
     ) {
         Icon(Icons.Filled.Tune, contentDescription = null, tint = Color.White)
         Spacer(Modifier.width(8.dp))

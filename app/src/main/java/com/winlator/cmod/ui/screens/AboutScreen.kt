@@ -1,5 +1,11 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -42,18 +48,15 @@ fun AboutScreen() {
 
     @Composable
     fun SectionCard(title: String, content: AnnotatedString) {
+        // Референс: название секции стоит НАД карточкой, а не внутри неё.
+        GlassSectionHeader(title = title)
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            border = glassCardBorder(),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = primary,
-                )
-                Spacer(Modifier.height(8.dp))
                 ClickableText(
                     text = content,
                     style = MaterialTheme.typography.bodyMedium.copy(color = bodyColor, lineHeight = 24.sp),
@@ -77,7 +80,9 @@ fun AboutScreen() {
         // Header
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            border = glassCardBorder(),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),

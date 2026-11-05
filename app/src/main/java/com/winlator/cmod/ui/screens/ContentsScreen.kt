@@ -1,5 +1,12 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -259,9 +266,9 @@ fun ContentsScreen(
     ) {
         // Выпадающий список типов контента
         Box {
-            OutlinedButton(
+            GlassPill(
                 onClick = { contentTypeExpanded = true },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 Text(currentContentType.toString(), modifier = Modifier.weight(1f))
                 Icon(if (contentTypeExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null)
@@ -381,12 +388,16 @@ fun ContentsScreen(
                         value = name, onValueChange = { name = it },
                         label = { Text(stringResource(R.string.profile_name_hint)) },
                         singleLine = true, modifier = Modifier.fillMaxWidth()
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     OutlinedTextField(
                         value = url, onValueChange = { url = it },
                         label = { Text(stringResource(R.string.profile_url_hint)) },
                         singleLine = true, modifier = Modifier.fillMaxWidth()
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {
@@ -536,7 +547,9 @@ private fun ContentItemCard(
     val isRemote = profile.remoteUrl != null
     Card(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),

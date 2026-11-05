@@ -1,5 +1,14 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -240,17 +249,14 @@ private fun RCScreenMain(
             .padding(16.dp)
     ) {
         // ---- Profile Selector Card ----
+        GlassSectionHeader(title = stringResource(R.string.profile))
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            border = glassCardBorder(),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = stringResource(R.string.profile),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
 
                 SpinnerRow(
                     label = "",
@@ -556,7 +562,9 @@ private fun GroupListItemCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Row(
             modifier = Modifier
@@ -578,7 +586,7 @@ private fun GroupListItemCard(
                 )
             }
 
-            Switch(
+            GlassSwitch(
                 checked = group.isEnabled,
                 onCheckedChange = onEnabledToggle
             )
@@ -675,7 +683,9 @@ private fun RCGroupEditor(
             label = { Text(stringResource(R.string.group_name)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
-        )
+        ,
+            shape = GlassFieldShape,
+            colors = glassFieldColors())
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -689,7 +699,7 @@ private fun RCGroupEditor(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Button(
+            GlassSolidPill(
                 onClick = {
                     onPrompt(
                         ctx.getString(R.string.process_name),
@@ -701,7 +711,7 @@ private fun RCGroupEditor(
                             refreshKey++
                         }
                     )
-                }
+                },
             ) {
                 Icon(Icons.Filled.Add, null)
                 Spacer(modifier = Modifier.width(4.dp))
@@ -788,7 +798,9 @@ private fun ProcessItemCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // Process Header
@@ -970,7 +982,9 @@ private fun VarConfigRow(
             },
             singleLine = true,
             modifier = Modifier.weight(1.2f)
-        )
+        ,
+            shape = GlassFieldShape,
+            colors = glassFieldColors())
 
         Spacer(modifier = Modifier.width(8.dp))
 
@@ -988,7 +1002,9 @@ private fun VarConfigRow(
             },
             singleLine = true,
             modifier = Modifier.weight(1f)
-        )
+        ,
+            shape = GlassFieldShape,
+            colors = glassFieldColors())
 
         Spacer(modifier = Modifier.width(4.dp))
 
@@ -1102,10 +1118,14 @@ fun PromptDialog(
                 label = if (label.isNotEmpty()) { { Text(label) } } else null,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
-            )
+            ,
+                shape = GlassFieldShape,
+                colors = glassFieldColors())
         },
         confirmButton = {
-            Button(onClick = { onConfirm(valueState) }) {
+            GlassSolidPill(
+                onClick = { onConfirm(valueState) },
+            ) {
                 Text(stringResource(id = android.R.string.ok))
             }
         },
@@ -1129,7 +1149,9 @@ fun ConfirmDialog(
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = { Text(message) },
         confirmButton = {
-            Button(onClick = onConfirm) {
+            GlassSolidPill(
+                onClick = onConfirm,
+            ) {
                 Text(stringResource(id = android.R.string.ok))
             }
         },

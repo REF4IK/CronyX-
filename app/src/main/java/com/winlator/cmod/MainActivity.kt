@@ -87,6 +87,18 @@ class MainActivity : AppCompatActivity() {
         // Тема читается сразу — нужна для настройки окна ниже
         preferences = MmkvPreferences()
         isDarkMode = preferences.getBoolean("dark_mode", false)
+        // Однократная миграция оформления: стеклянная тема GameHub.
+        // Без неё на существующей установке в prefs уже лежит theme_id из
+        // старой темы, и фон с акцентом взяли бы её цвета, а не #0B0B0D и
+        // #2E9BF0. Флаг ставится один раз, поэтому поздний осознанный выбор
+        // темы пользователем не перезаписывается.
+        if (!preferences.getBoolean("ui_glass_migration_v1", false)) {
+            preferences.edit()
+                .putString(ThemePrefs.THEME_ID, ThemePrefs.DEFAULT_THEME_ID)
+                .putString(ThemePrefs.CORNER_RADIUS, ThemePrefs.DEFAULT_CORNER_RADIUS)
+                .putBoolean("ui_glass_migration_v1", true)
+                .apply()
+        }
 
         // Настройка окна ДО создания первого кадра: edge-to-edge + скрытый статус-бар.
         // Делается до setContentView, чтобы при старте не было relayout'а и скачка меню.

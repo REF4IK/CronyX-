@@ -1,5 +1,19 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSwitch
+import androidx.compose.ui.draw.alpha
+import com.winlator.cmod.ui.components.GlassChevron
+import com.winlator.cmod.ui.components.GlassGroupGap
+import com.winlator.cmod.ui.components.GlassPillButton
+import com.winlator.cmod.ui.components.GlassPillRow
+import com.winlator.cmod.ui.components.GlassRow
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.GlassSliderRow
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassGroupDivider
+import com.winlator.cmod.ui.components.GlassRoundIconButton
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
@@ -115,29 +129,24 @@ fun InputControlsScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(
+                start = GlassTokens.RowPaddingH,
+                end = GlassTokens.RowPaddingH,
+                top = 4.dp,
+                bottom = 24.dp,
+            ),
     ) {
-        // ---- Profile ----
-        Text(stringResource(R.string.profile), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
+        // ---- Профиль ----
+        GlassSectionHeader(stringResource(R.string.profile))
+        GlassSurface(Modifier.fillMaxWidth()) {
+            Box {
+                GlassRow(
+                    title = stringResource(R.string.profile),
                     value = currentProfile?.name ?: stringResource(R.string.no_profile_selected),
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) },
-                )
-                // Invisible click area on top of the field
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .padding(end = 48.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { profileExpanded = true },
+                    onClick = { profileExpanded = true },
                 )
                 DropdownMenu(
                     expanded = profileExpanded,
@@ -154,221 +163,243 @@ fun InputControlsScreen(
                     }
                     if (profiles.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text("(No profiles)", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            text = {
+                                Text(
+                                    "(No profiles)",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
                             onClick = { profileExpanded = false },
                         )
                     }
                 }
             }
-            IconButton(onClick = {
-                ContentDialog.prompt(ctx, R.string.profile_name, null) { name ->
-                    val p = manager.createProfile(name)
-                    onProfileChanged(p); reloadProfiles()
-                }
-            }) { Icon(Icons.Filled.Add, stringResource(R.string.add)) }
-            IconButton(onClick = {
-                val p = currentProfile ?: return@IconButton
-                ContentDialog.prompt(ctx, R.string.profile_name, p.name) { name ->
-                    p.setName(name); p.save(); reloadProfiles()
-                }
-            }) { Icon(Icons.Filled.Edit, stringResource(R.string.edit)) }
-            IconButton(onClick = {
-                val p = currentProfile ?: return@IconButton
-                ContentDialog.confirm(ctx, R.string.do_you_want_to_duplicate_this_profile) {
-                    val dup = manager.duplicateProfile(p)
-                    onProfileChanged(dup); reloadProfiles()
-                }
-            }) { Icon(Icons.Filled.ContentCopy, stringResource(R.string.duplicate)) }
-            IconButton(onClick = {
-                val p = currentProfile ?: return@IconButton
-                ContentDialog.confirm(ctx, R.string.do_you_want_to_remove_this_profile) {
-                    manager.removeProfile(p)
-                    onProfileChanged(null); reloadProfiles()
-                }
-            }) { Icon(Icons.Filled.Delete, stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error) }
-        }
 
-        HorizontalDivider()
-
-        // ---- Preview button ----
-        FilledTonalButton(
-            onClick = { showPreviewDialog = true },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Filled.Visibility, null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.controls_profile_preview))
-        }
-
-        HorizontalDivider()
-
-        // ---- Cursor Speed ----
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.cursor_speed), modifier = Modifier.weight(1f))
-            Text("$cursorSpeedProgress%", style = MaterialTheme.typography.bodyMedium)
-        }
-        AndroidView(
-            factory = { ctx2 ->
-                SeekBar(ctx2).apply {
-                    max = 200; min = 10
-                    setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                        override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                            cursorSpeedProgress = progress
-                            currentProfile?.let { p ->
-                                p.cursorSpeed = progress / 100.0f; p.save()
-                            }
-                        }
-                        override fun onStartTrackingTouch(sb: SeekBar?) {}
-                        override fun onStopTrackingTouch(sb: SeekBar?) {}
-                    })
-                }
-            },
-            update = { it.progress = cursorSpeedProgress },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        // ---- Overlay Opacity ----
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.overlay_opacity), modifier = Modifier.weight(1f))
-            Text("$overlayOpacityProgress%", style = MaterialTheme.typography.bodyMedium)
-        }
-        AndroidView(
-            factory = { ctx2 ->
-                SeekBar(ctx2).apply {
-                    max = 100; min = 10
-                    setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                        override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                            if (fromUser) {
-                                val rounded = Mathf.roundTo(progress.toFloat(), 5f).toInt()
-                                overlayOpacityProgress = rounded
-                                prefs.edit().putFloat("overlay_opacity", rounded / 100.0f).apply()
-                            }
-                        }
-                        override fun onStartTrackingTouch(sb: SeekBar?) {}
-                        override fun onStopTrackingTouch(sb: SeekBar?) {}
-                    })
-                }
-            },
-            update = { it.progress = overlayOpacityProgress },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        HorizontalDivider()
-
-        // ---- Import / Export ----
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedButton(onClick = { showImportMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Filled.FileDownload, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.import_profile))
-                }
-                DropdownMenu(expanded = showImportMenu, onDismissRequest = { showImportMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.open_file)) },
-                        onClick = { showImportMenu = false; importLauncher.launch(arrayOf("*/*")) },
-                        leadingIcon = { Icon(Icons.Filled.FolderOpen, null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.download_file)) },
-                        onClick = { showImportMenu = false; showDownloadDialog = true },
-                        leadingIcon = { Icon(Icons.Filled.CloudDownload, null) },
-                    )
-                }
-            }
-            OutlinedButton(
-                onClick = {
-                    val p = currentProfile ?: return@OutlinedButton
-                    val f = manager.exportProfile(p)
-                    if (f != null) AppUtils.showToast(ctx, "Profile exported to ${f.path}")
-                },
-                modifier = Modifier.weight(1f),
+            // Действия над профилем — круглые иконки, а не квадратные кнопки.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .glassGroupDivider()
+                    .padding(
+                        horizontal = GlassTokens.RowPaddingH,
+                        vertical = GlassTokens.RowPaddingV - 4.dp,
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(Icons.Filled.FileUpload, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(R.string.export_profile))
+                GlassRoundIconButton(Icons.Filled.Add, stringResource(R.string.add)) {
+                    ContentDialog.prompt(ctx, R.string.profile_name, null) { name ->
+                        val pr = manager.createProfile(name)
+                        onProfileChanged(pr); reloadProfiles()
+                    }
+                }
+                GlassRoundIconButton(
+                    Icons.Filled.Edit,
+                    stringResource(R.string.edit),
+                    enabled = currentProfile != null,
+                ) {
+                    val pr = currentProfile ?: return@GlassRoundIconButton
+                    ContentDialog.prompt(ctx, R.string.profile_name, pr.name) { name ->
+                        pr.setName(name); pr.save(); reloadProfiles()
+                    }
+                }
+                GlassRoundIconButton(
+                    Icons.Filled.ContentCopy,
+                    stringResource(R.string.duplicate),
+                    enabled = currentProfile != null,
+                ) {
+                    val pr = currentProfile ?: return@GlassRoundIconButton
+                    ContentDialog.confirm(ctx, R.string.do_you_want_to_duplicate_this_profile) {
+                        val dup = manager.duplicateProfile(pr)
+                        onProfileChanged(dup); reloadProfiles()
+                    }
+                }
+                GlassRoundIconButton(
+                    Icons.Filled.Delete,
+                    stringResource(R.string.remove),
+                    enabled = currentProfile != null,
+                    tint = MaterialTheme.colorScheme.error,
+                ) {
+                    val pr = currentProfile ?: return@GlassRoundIconButton
+                    ContentDialog.confirm(ctx, R.string.do_you_want_to_remove_this_profile) {
+                        manager.removeProfile(pr)
+                        onProfileChanged(null); reloadProfiles()
+                    }
+                }
             }
         }
 
-        HorizontalDivider()
+        GlassGroupGap()
 
-        // ---- Action buttons ----
-        Button(
-            onClick = {
-                val profile = currentProfile
-                if (profile != null) {
-                    val intent = Intent(ctx, ControlsEditorActivity::class.java).apply {
-                        putExtra("profile_id", profile.id)
+        // ---- Параметры ----
+        GlassSurface(Modifier.fillMaxWidth()) {
+            GlassRow(
+                title = stringResource(R.string.controls_profile_preview),
+                icon = Icons.Filled.Visibility,
+                onClick = { showPreviewDialog = true },
+            )
+
+            GlassSliderRow(
+                title = stringResource(R.string.cursor_speed),
+                valueText = "$cursorSpeedProgress%",
+                value = cursorSpeedProgress.toFloat(),
+                valueRange = 10f..200f,
+                onValueChange = { v ->
+                    cursorSpeedProgress = v.toInt()
+                    currentProfile?.let { pr ->
+                        pr.cursorSpeed = v / 100f; pr.save()
                     }
-                    ctx.startActivity(intent)
-                } else {
-                    AppUtils.showToast(ctx, R.string.no_profile_selected)
+                },
+            )
+
+            GlassSliderRow(
+                title = stringResource(R.string.overlay_opacity),
+                valueText = "$overlayOpacityProgress%",
+                value = overlayOpacityProgress.toFloat(),
+                valueRange = 10f..100f,
+                onValueChange = { v ->
+                    val rounded = Mathf.roundTo(v, 5f).toInt()
+                    overlayOpacityProgress = rounded
+                    prefs.edit().putFloat("overlay_opacity", rounded / 100.0f).apply()
+                },
+            )
+        }
+
+        GlassGroupGap()
+
+        // ---- Импорт / экспорт ----
+        GlassPillRow(
+            first = {
+                Box {
+                    GlassPillButton(
+                        text = stringResource(R.string.import_profile),
+                        icon = Icons.Filled.FileDownload,
+                        onClick = { showImportMenu = true },
+                    )
+                    DropdownMenu(
+                        expanded = showImportMenu,
+                        onDismissRequest = { showImportMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.open_file)) },
+                            onClick = { showImportMenu = false; importLauncher.launch(arrayOf("*/*")) },
+                            leadingIcon = { Icon(Icons.Filled.FolderOpen, null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.download_file)) },
+                            onClick = { showImportMenu = false; showDownloadDialog = true },
+                            leadingIcon = { Icon(Icons.Filled.CloudDownload, null) },
+                        )
+                    }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.controls_editor))
-        }
-        OutlinedButton(onClick = onOpenGamepadTest, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.gamepad_test))
-        }
-        OutlinedButton(onClick = onOpenIconManager, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.icon_manager))
-        }
-
-        HorizontalDivider()
-
-        // ---- External Controllers ----
-        Text(stringResource(R.string.external_controllers), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        HorizontalDivider()
-        if (controllers.isEmpty()) {
-            Text(
-                stringResource(R.string.no_items_to_display),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            controllers.forEach { controller ->
-                val isConnected = try { controller.isConnected() } catch (_: Exception) { false }
-                val isSaved = currentProfile?.loadControllers()?.any { it.id == controller.id } == true
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        if (currentProfile != null) {
-                            val intent = android.content.Intent(ctx, com.winlator.cmod.ExternalControllerBindingsActivity::class.java).apply {
-                                putExtra("profile_id", currentProfile!!.id)
-                                putExtra("controller_id", controller.id)
-                            }
-                            ctx.startActivity(intent)
-                        } else {
-                            com.winlator.cmod.core.AppUtils.showToast(ctx, R.string.no_profile_selected)
-                        }
+            second = {
+                GlassPillButton(
+                    text = stringResource(R.string.export_profile),
+                    icon = Icons.Filled.FileUpload,
+                    enabled = currentProfile != null,
+                    onClick = {
+                        val pr = currentProfile ?: return@GlassPillButton
+                        val f = manager.exportProfile(pr)
+                        if (f != null) AppUtils.showToast(ctx, "Profile exported to ${f.path}")
                     },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                ) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Filled.Gamepad, null, modifier = Modifier.size(24.dp),
-                            tint = if (isConnected) MaterialTheme.colorScheme.primary else ComposeColor(0xFFE57373)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(controller.getName(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "${controller.getControllerBindingCount()} ${stringResource(R.string.bindings)}" + if (!isConnected) " • ${stringResource(R.string.not_connected)}" else "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                )
+            },
+        )
+
+        GlassGroupGap()
+
+        // ---- Переходы ----
+        GlassSurface(Modifier.fillMaxWidth()) {
+            GlassRow(
+                title = stringResource(R.string.controls_editor),
+                enabled = currentProfile != null,
+                onClick = {
+                    val profile = currentProfile
+                    if (profile != null) {
+                        val intent = Intent(ctx, ControlsEditorActivity::class.java).apply {
+                            putExtra("profile_id", profile.id)
                         }
-                        if (isSaved && controller.getControllerBindingCount() > 0) {
-                            IconButton(onClick = {
-                                ContentDialog.confirm(ctx, R.string.do_you_want_to_remove_this_controller) {
-                                    currentProfile?.let { p ->
-                                        p.removeController(controller); p.save(); reloadProfiles()
-                                    }
-                                }
-                            }) { Icon(Icons.Filled.Delete, stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error) }
-                        }
+                        ctx.startActivity(intent)
+                    } else {
+                        AppUtils.showToast(ctx, R.string.no_profile_selected)
                     }
+                },
+            )
+            GlassRow(
+                title = stringResource(R.string.gamepad_test),
+                onClick = onOpenGamepadTest,
+            )
+            GlassRow(
+                title = stringResource(R.string.icon_manager),
+                onClick = onOpenIconManager,
+            )
+        }
+
+        GlassGroupGap()
+
+        // ---- Внешние контроллеры ----
+        GlassSectionHeader(stringResource(R.string.external_controllers))
+        GlassSurface(Modifier.fillMaxWidth()) {
+            if (controllers.isEmpty()) {
+                Text(
+                    stringResource(R.string.no_items_to_display),
+                    fontSize = GlassTokens.DescSize,
+                    color = glassDescColor(),
+                    modifier = Modifier.padding(
+                        horizontal = GlassTokens.RowPaddingH,
+                        vertical = GlassTokens.RowPaddingV,
+                    ),
+                )
+            } else {
+                controllers.forEach { controller ->
+                    val isConnected = try { controller.isConnected() } catch (_: Exception) { false }
+                    val isSaved = currentProfile?.loadControllers()?.any { it.id == controller.id } == true
+                    GlassRow(
+                        title = controller.getName(),
+                        desc = "${controller.getControllerBindingCount()} ${stringResource(R.string.bindings)}" +
+                            if (!isConnected) " • ${stringResource(R.string.not_connected)}" else "",
+                        icon = Icons.Filled.Gamepad,
+                        onClick = {
+                            if (currentProfile != null) {
+                                val intent = Intent(
+                                    ctx,
+                                    com.winlator.cmod.ExternalControllerBindingsActivity::class.java,
+                                ).apply {
+                                    putExtra("profile_id", currentProfile!!.id)
+                                    putExtra("controller_id", controller.id)
+                                }
+                                ctx.startActivity(intent)
+                            } else {
+                                AppUtils.showToast(ctx, R.string.no_profile_selected)
+                            }
+                        },
+                        showChevron = false,
+                        trailing = {
+                            if (isSaved && controller.getControllerBindingCount() > 0) {
+                                GlassRoundIconButton(
+                                    icon = Icons.Filled.Delete,
+                                    description = stringResource(R.string.remove),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    size = 38.dp,
+                                    onClick = {
+                                        ContentDialog.confirm(
+                                            ctx,
+                                            R.string.do_you_want_to_remove_this_controller,
+                                        ) {
+                                            currentProfile?.let { pr ->
+                                                pr.removeController(controller); pr.save(); reloadProfiles()
+                                            }
+                                        }
+                                    },
+                                )
+                            } else {
+                                GlassChevron(
+                                    enabled = isConnected,
+                                    modifier = Modifier.alpha(if (isConnected) 1f else 0.38f),
+                                )
+                            }
+                        },
+                    )
                 }
             }
         }
@@ -436,7 +467,7 @@ fun InputControlsScreen(
                     ) {
                         downloadProfilesList!!.forEachIndexed { i, name ->
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                Checkbox(
+                                GlassSwitch(
                                     checked = selectedDownloadIndices.getOrElse(i) { false },
                                     onCheckedChange = { checked ->
                                         selectedDownloadIndices = selectedDownloadIndices.toMutableList().also {

@@ -37,6 +37,10 @@ object ThemePrefs {
     const val UI_WALLPAPER_DARKEN = "ui_wallpaper_darken"
 
     const val THEME_MODE_SYSTEM = "system"
+
+    /** Дефолты оформления. Читать их нужно отсюда, а не хардкодить в экранах. */
+    const val DEFAULT_THEME_ID = "gamehub"
+    const val DEFAULT_CORNER_RADIUS = "large"
     const val THEME_MODE_LIGHT = "light"
     const val THEME_MODE_DARK = "dark"
 
@@ -124,6 +128,7 @@ data class ThemeInfo(val id: String, val name: String, val primaryColor: Color, 
 
 val ThemesList = listOf(
     ThemeInfo("default", "Teal Classic", Color(0xFF1A6C59), Color(0xFF8CD5BC)),
+    ThemeInfo("gamehub", "GameHub Glass", Color(0xFF2E9BF0), Color(0xFF7FC7FF)),
     ThemeInfo("midnight", "Midnight OLED", Color(0xFF00B2FF), Color(0xFF005180)),
     ThemeInfo("cyberpunk", "Cyberpunk Neon", Color(0xFFFF007F), Color(0xFF9D00FF)),
     ThemeInfo("royal", "Royal Obsidian", Color(0xFFD4AF37), Color(0xFF4C4015)),
@@ -147,6 +152,54 @@ fun getColorSchemeFor(
 ): ColorScheme {
     val customColor = Color(customColorArgb)
     return when (themeId) {
+        // GameHub Glass: почти чёрный фон, синий акцент, полупрозрачные
+        // поверхности. surfaceVariant несёт альфу, поэтому самописные Card
+        // в экранах автоматически становятся стеклянными.
+        "gamehub" -> if (isDark) {
+            darkColorScheme(
+                primary = Color(0xFF2E9BF0),
+                onPrimary = Color(0xFF001A2E),
+                primaryContainer = Color(0xFF123A57),
+                onPrimaryContainer = Color(0xFFCFE7FF),
+                secondary = Color(0xFF7FC7FF),
+                onSecondary = Color(0xFF002033),
+                secondaryContainer = Color(0xFF1E4460),
+                onSecondaryContainer = Color(0xFFD1ECFF),
+                tertiary = Color(0xFFB9C6D4),
+                onTertiary = Color(0xFF24303B),
+                background = Color(0xFF0B0B0D),
+                onBackground = Color(0xFFF2F2F4),
+                surface = Color(0xFF121215),
+                onSurface = Color(0xFFF2F2F4),
+                surfaceVariant = Color(0xFF1B1B21).copy(alpha = 0.92f),
+                onSurfaceVariant = Color(0xFF9A9AA0),
+                surfaceContainer = Color(0xFF15151A),
+                surfaceContainerLow = Color(0xFF101013),
+                surfaceContainerHigh = Color(0xFF1C1C22),
+                surfaceContainerHighest = Color(0xFF232329),
+                outline = Color(0xFF6E6E74),
+                outlineVariant = Color(0xFF3A3A40),
+                error = Color(0xFFFF6B6B),
+                onError = Color(0xFF3B0000),
+            )
+        } else {
+            lightColorScheme(
+                primary = Color(0xFF1877D1),
+                onPrimary = Color(0xFFFFFFFF),
+                primaryContainer = Color(0xFFD3E9FF),
+                onPrimaryContainer = Color(0xFF00203A),
+                secondary = Color(0xFF00639B),
+                onSecondary = Color(0xFFFFFFFF),
+                background = Color(0xFFF6F7F9),
+                onBackground = Color(0xFF15161A),
+                surface = Color(0xFFFFFFFF),
+                onSurface = Color(0xFF15161A),
+                surfaceVariant = Color(0xFF1B1B21).copy(alpha = 0.06f),
+                onSurfaceVariant = Color(0xFF5B6169),
+                outline = Color(0xFF757B85),
+                outlineVariant = Color(0xFFC4C8D0),
+            )
+        }
         "midnight" -> if (isDark) {
             darkColorScheme(
                 primary = Color(0xFF00B2FF),
@@ -586,12 +639,12 @@ fun WinlatorTheme(
     val prefs = remember { MmkvPreferences() }
 
     val themeMode by prefs.observeString(ThemePrefs.THEME_MODE, ThemePrefs.resolveThemeMode(prefs))
-    val themeId by prefs.observeString(ThemePrefs.THEME_ID, "midnight")
+    val themeId by prefs.observeString(ThemePrefs.THEME_ID, ThemePrefs.DEFAULT_THEME_ID)
     val customColor by prefs.observeInt(ThemePrefs.CUSTOM_THEME_COLOR, 0xFF1A6C59.toInt())
     val dynamicEnabled by prefs.observeBoolean(ThemePrefs.DYNAMIC_COLOR, false)
     val uiScale by prefs.observeFloat(ThemePrefs.UI_SCALE, 0.85f)
     val fontScale by prefs.observeFloat(ThemePrefs.FONT_SCALE, 0.85f)
-    val cornerRadius by prefs.observeString(ThemePrefs.CORNER_RADIUS, "small")
+    val cornerRadius by prefs.observeString(ThemePrefs.CORNER_RADIUS, ThemePrefs.DEFAULT_CORNER_RADIUS)
     val customPrimary by prefs.observeInt(
         ThemePrefs.CUSTOM_PRIMARY,
         if (prefs.contains(ThemePrefs.CUSTOM_THEME_COLOR)) customColor else 0xFF1A6C59.toInt(),
@@ -652,8 +705,8 @@ fun WinlatorTheme(
         )
         "large" -> Shapes(
             small = RoundedCornerShape(12.dp),
-            medium = RoundedCornerShape(20.dp),
-            large = RoundedCornerShape(28.dp),
+            medium = RoundedCornerShape(18.dp),
+            large = RoundedCornerShape(26.dp),
         )
         else -> Shapes(
             small = RoundedCornerShape(8.dp),

@@ -1,5 +1,11 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.theme.ThemePrefs
 import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,7 +47,7 @@ fun FirstLaunchDialog(
     // Берём настройки темы один раз — диалог только для первого запуска
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = MmkvPreferences()
-    val currentThemeId = prefs.getString("theme_id", "midnight") ?: "midnight"
+    val currentThemeId = prefs.getString(ThemePrefs.THEME_ID, ThemePrefs.DEFAULT_THEME_ID) ?: ThemePrefs.DEFAULT_THEME_ID
     val currentCustomColor = prefs.getInt("custom_theme_color", 0xFF1A6C59.toInt())
 
     val lightScheme = remember(currentThemeId, currentCustomColor) {
@@ -64,9 +70,8 @@ fun FirstLaunchDialog(
                 .padding(24.dp),
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            border = glassCardBorder(),
         ) {
             Column(
                 modifier = Modifier
@@ -145,7 +150,7 @@ fun FirstLaunchDialog(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Кнопка подтверждения
-                Button(
+                GlassSolidPill(
                     onClick = {
                         // Сохраняем выбор навсегда
                         preferences.edit()
@@ -157,10 +162,6 @@ fun FirstLaunchDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                    ),
                 ) {
                     Text(
                         text = stringResource(R.string.start_using),
@@ -213,13 +214,14 @@ private fun ThemeOptionCard(
                 color = if (isSelected) colors.border else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp),
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isSelected) 4.dp else 1.dp,
         ),
         colors = CardDefaults.cardColors(
             containerColor = colors.cardBackground,
         ),
+        border = glassCardBorder(),
     ) {
         Column(
             modifier = Modifier

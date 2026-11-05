@@ -1,5 +1,10 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import androidx.compose.foundation.shape.CircleShape
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -332,7 +337,7 @@ fun FileManagerScreen(
                             }
                         }
                     },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = glassCardFill()
                 ) {
                     Icon(Icons.Filled.ContentPaste, contentDescription = "Paste Here")
                 }
@@ -577,7 +582,9 @@ fun FileManagerScreen(
                     label = { Text(stringResource(R.string.fm_new_folder_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -618,13 +625,17 @@ fun FileManagerScreen(
                         label = { Text(stringResource(R.string.fm_new_file_name_hint)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                     OutlinedTextField(
                         value = fileContent,
                         onValueChange = { fileContent = it },
                         label = { Text(stringResource(R.string.fm_new_file_content_hint)) },
                         modifier = Modifier.fillMaxWidth().height(100.dp)
-                    )
+                    ,
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors())
                 }
             },
             confirmButton = {
@@ -665,7 +676,9 @@ fun FileManagerScreen(
                     onValueChange = { newName = it },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
-                )
+                ,
+                    shape = GlassFieldShape,
+                    colors = glassFieldColors())
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -784,8 +797,8 @@ private fun GridEntryTile(
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .clip(CircleShape)
+                .background(glassBadgeFill()),
             contentAlignment = Alignment.Center
         ) {
             when (entry.type) {
@@ -855,8 +868,8 @@ private fun ListEntryRow(
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .clip(CircleShape)
+                .background(glassBadgeFill()),
             contentAlignment = Alignment.Center
         ) {
             when (entry.type) {

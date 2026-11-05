@@ -1,5 +1,9 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -63,7 +67,7 @@ fun TaskManagerScreen(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                 ),
             )
         },
@@ -79,7 +83,12 @@ fun TaskManagerScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // CPU Card
-                    Card(modifier = Modifier.weight(1f)) {
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
+                        border = glassCardBorder(),
+                    ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text("CPU Usage", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(4.dp))
@@ -92,7 +101,12 @@ fun TaskManagerScreen(
                         }
                     }
                     // Memory Card
-                    Card(modifier = Modifier.weight(1f)) {
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
+                        border = glassCardBorder(),
+                    ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text("Memory", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(4.dp))
@@ -110,7 +124,12 @@ fun TaskManagerScreen(
 
             // Info rows
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                    border = glassCardBorder(),
+                ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         InfoRow("CPU Temp", cpuTemp)
                         InfoRow("Battery", "$batteryLevel / $batteryTemp")
@@ -175,7 +194,9 @@ private fun ProcessItem(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+        shape = RoundedCornerShape(GlassTokens.CardRadius),
+        border = glassCardBorder(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),

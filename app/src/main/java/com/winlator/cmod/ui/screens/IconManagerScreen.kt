@@ -1,5 +1,13 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.GlassSolidPill
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.GlassTokens
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -136,7 +144,12 @@ fun IconManagerScreen(onBack: () -> Unit) {
         }
 
         // Tabs switcher
-        TabRow(selectedTabIndex = selectedTab) {
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.Transparent,
+            contentColor = glassAccent(),
+            divider = { },
+        ) {
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
@@ -176,7 +189,9 @@ fun IconManagerScreen(onBack: () -> Unit) {
                                         onClick = { showPreviewBitmap = bitmap },
                                         onLongClick = { editingIconId = iconId }
                                     ),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                border = glassCardBorder(),
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     if (bitmap != null) {
@@ -212,7 +227,9 @@ fun IconManagerScreen(onBack: () -> Unit) {
                                         }
                                         ctx.startActivity(intent)
                                     },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                shape = RoundedCornerShape(GlassTokens.CardRadius),
+                                border = glassCardBorder(),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(16.dp),
@@ -280,11 +297,13 @@ fun IconManagerScreen(onBack: () -> Unit) {
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                GlassSolidPill(
+                    onClick = {
                     customIconManager.rotateIcon(editingIconId!!)
                     refreshKey++
                     editingIconId = null
-                }) {
+                },
+                ) {
                     Icon(Icons.Filled.RotateRight, null)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Rotate 90°")

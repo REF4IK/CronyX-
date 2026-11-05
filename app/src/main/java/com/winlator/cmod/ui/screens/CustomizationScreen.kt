@@ -1,5 +1,14 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.CircleShape
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassChevron
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassGroupDivider
+import com.winlator.cmod.ui.components.glassTitleColor
 import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.Toast
@@ -52,10 +61,10 @@ fun CustomizationScreen(
 
     // Реактивное наблюдение за текущей темой: секция «Своя тема» мгновенно
     // реагирует на выбор темы во вложенном «Менеджере тем».
-    val themeId by prefs.observeString("theme_id", "midnight")
+    val themeId by prefs.observeString(ThemePrefs.THEME_ID, ThemePrefs.DEFAULT_THEME_ID)
     var uiScale by remember { mutableStateOf(prefs.getFloat(ThemePrefs.UI_SCALE, 0.85f)) }
     var fontScale by remember { mutableStateOf(prefs.getFloat(ThemePrefs.FONT_SCALE, 0.85f)) }
-    var cornerRadius by remember { mutableStateOf(prefs.getString(ThemePrefs.CORNER_RADIUS, "small") ?: "small") }
+    var cornerRadius by remember { mutableStateOf(prefs.getString(ThemePrefs.CORNER_RADIUS, ThemePrefs.DEFAULT_CORNER_RADIUS) ?: ThemePrefs.DEFAULT_CORNER_RADIUS) }
     var uiWallpaper by remember { mutableStateOf(prefs.getString(ThemePrefs.UI_WALLPAPER, "") ?: "") }
     var uiWallpaperBlur by remember { mutableStateOf(prefs.getInt(ThemePrefs.UI_WALLPAPER_BLUR, 20)) }
     var uiWallpaperDarken by remember { mutableStateOf(prefs.getInt(ThemePrefs.UI_WALLPAPER_DARKEN, 40)) }
@@ -93,7 +102,7 @@ fun CustomizationScreen(
     fun cornerRadiusLabel(v: String) = cornerRadiusOptions.firstOrNull { it.first == v }?.second ?: ctx.getString(com.winlator.cmod.R.string.corner_radius_small)
 
     fun themeNameRes(id: String): Int = when (id) {
-        "midnight" -> com.winlator.cmod.R.string.theme_midnight
+        "gamehub" -> com.winlator.cmod.R.string.theme_gamehub        "midnight" -> com.winlator.cmod.R.string.theme_midnight
         "cyberpunk" -> com.winlator.cmod.R.string.theme_cyberpunk
         "royal" -> com.winlator.cmod.R.string.theme_royal
         "dracula" -> com.winlator.cmod.R.string.theme_dracula
@@ -229,7 +238,7 @@ fun CustomizationScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
@@ -290,7 +299,7 @@ fun CustomizationScreen(
                             Icon(item.icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(16.dp))
                             Text(item.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                            Checkbox(checked = item.id !in hiddenIds, onCheckedChange = { checked ->
+                            GlassSwitch(checked = item.id !in hiddenIds, onCheckedChange = { checked ->
                                 val newHidden = if (checked) hiddenIds - item.id else hiddenIds + item.id
                                 hiddenIds = newHidden
                                 com.winlator.cmod.core.XServerMenuSettings.setHidden(newHidden)
@@ -466,7 +475,7 @@ fun CustomizationScreen(
                             onClick = { showColorPickerFor = ThemePrefs.CUSTOM_SURFACE }
                         )
                         Spacer(Modifier.height(4.dp))
-                        OutlinedButton(
+                        GlassPill(
                             onClick = { showColorPickerFor = ThemePrefs.CUSTOM_PRIMARY },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -652,21 +661,18 @@ fun CustomizationScreen(
 @Composable
 private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(
-        Modifier.padding(top = 12.dp, bottom = 4.dp),
+        Modifier.padding(top = 18.dp, bottom = 10.dp, start = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
-        Text(title, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(title, color = glassTitleColor(), fontSize = GlassTokens.SectionSize, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    GlassSurface(modifier = Modifier.fillMaxWidth()) {
         Column(content = content)
     }
 }
@@ -674,7 +680,7 @@ private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun SettingsClickRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
@@ -683,14 +689,14 @@ private fun SettingsClickRow(icon: androidx.compose.ui.graphics.vector.ImageVect
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        GlassChevron()
     }
 }
 
 @Composable
 private fun SettingsButtonRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, onClick: () -> Unit, subtitle: String? = null) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).glassGroupDivider().padding(horizontal = GlassTokens.RowPaddingH, vertical = GlassTokens.RowPaddingV + 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
@@ -701,13 +707,15 @@ private fun SettingsButtonRow(icon: androidx.compose.ui.graphics.vector.ImageVec
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Icon(Icons.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        GlassChevron()
     }
 }
 
 @Composable
 private fun SettingsDivider() {
-    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+    // Разделитель рисует сама строка внутри GlassSurface (glassGroupDivider),
+    // явная линия здесь дублировалась бы.
+    Spacer(Modifier.height(0.dp))
 }
 
 @Composable
@@ -749,7 +757,8 @@ private fun SliderSettingRow(
             onValueChange = onValueChange,
             valueRange = valueRange,
             steps = 8,
-        )
+        
+            colors = glassSliderColors())
     }
 }
 

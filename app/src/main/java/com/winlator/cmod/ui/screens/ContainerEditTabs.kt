@@ -1,5 +1,28 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassSliderColors
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.GlassChevron
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassSwitchRow
+import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassBorder
+import com.winlator.cmod.ui.components.glassFillBrush
+import com.winlator.cmod.ui.components.glassGroupDivider
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassValueColor
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -52,6 +75,117 @@ import java.util.Locale
 
 // ---- Переиспользуемые Composable-компоненты ----
 
+// ---- Стеклянные строки в стиле GameHub ----
+//
+// Прежний вид (мелкая серая подпись + outlined-дропдаун) не соответствовал
+// референсу. В GameHub строка = крупный белый заголовок слева, значение
+// справа с обрезкой и шеврон; группы разделены линиями; заголовок секции
+// стоит НАД карточкой; действие — полноширинная стеклянная пилюля.
+// Сигнатуры функций не изменены, поэтому вкладки правок не требуют.
+
+/** Приведение сохранённого значения к одному из пунктов списка. */
+private fun matchEntry(entries: List<String>, selected: String): String {
+    val trimmed = selected.trim()
+    if (trimmed.isEmpty()) return selected
+    return entries.firstOrNull { it.equals(trimmed, ignoreCase = true) }
+        ?: entries.firstOrNull {
+            it.startsWith(trimmed, true) || trimmed.startsWith(it, true) ||
+                it.contains(trimmed, true) || trimmed.contains(it, true)
+        }
+        ?: selected
+}
+
+/**
+ * Базовая строка-выбор: заголовок + значение + шеврон, с выпадающим списком.
+ * [trailing] — дополнительные круглые кнопки справа (конфиг/загрузка).
+ */
+@Composable
+private fun GlassPickerRow(
+    title: String,
+    entries: List<String>,
+    value: String,
+    enabled: Boolean,
+    onSelected: (String) -> Unit,
+    hasAction: Boolean = false,
+    trailing: @Composable () -> Unit = {},
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassGroupDivider()
+            .then(if (enabled) Modifier.clickable { expanded = true } else Modifier)
+            .padding(
+                horizontal = GlassTokens.RowPaddingH,
+                vertical = GlassTokens.RowPaddingV,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = GlassTokens.TitleSize,
+            fontWeight = FontWeight.Medium,
+            color = if (enabled) glassTitleColor() else glassTitleColor().copy(alpha = 0.38f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = value,
+                    modifier = Modifier.widthIn(max = if (hasAction) 150.dp else 180.dp),
+                    fontSize = GlassTokens.ValueSize,
+                    color = glassValueColor(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!hasAction) GlassChevron(enabled = enabled)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                entries.forEach { entry ->
+                    DropdownMenuItem(
+                        text = { Text(entry) },
+                        onClick = { onSelected(entry); expanded = false },
+                    )
+                }
+            }
+        }
+
+        trailing()
+    }
+}
+
+/** Круглая стеклянная кнопка-действие справа от строки. */
+@Composable
+private fun GlassRoundAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .clip(CircleShape)
+            .background(glassAccent().copy(alpha = 0.18f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = glassAccent(),
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
 @Composable
 fun ContainerSpinnerRow(
     label: String,
@@ -60,36 +194,13 @@ fun ContainerSpinnerRow(
     enabled: Boolean = true,
     onSelected: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val trimmed = selected.trim()
-    val displaySelected = if (trimmed.isEmpty()) selected else
-        entries.firstOrNull { it.equals(trimmed, ignoreCase = true) }
-        ?: entries.firstOrNull { it.startsWith(trimmed, ignoreCase = true) || trimmed.startsWith(it, ignoreCase = true) || it.contains(trimmed, ignoreCase = true) || trimmed.contains(it, ignoreCase = true) }
-        ?: selected
-
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedButton(
-                    onClick = { if (enabled) expanded = true },
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(displaySelected, modifier = Modifier.weight(1f))
-                    Icon(Icons.Filled.ArrowDropDown, null)
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    entries.forEach { entry ->
-                        DropdownMenuItem(
-                            text = { Text(entry) },
-                            onClick = { onSelected(entry); expanded = false }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    GlassPickerRow(
+        title = label,
+        entries = entries,
+        value = matchEntry(entries, selected),
+        enabled = enabled,
+        onSelected = onSelected,
+    )
 }
 
 @Composable
@@ -101,47 +212,17 @@ fun ContainerSpinnerRowWithDownload(
     onSelected: (String) -> Unit,
     onDownloadClick: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val trimmed = selected.trim()
-    val displaySelected = if (trimmed.isEmpty()) selected else
-        entries.firstOrNull { it.equals(trimmed, ignoreCase = true) }
-        ?: entries.firstOrNull { it.startsWith(trimmed, ignoreCase = true) || trimmed.startsWith(it, ignoreCase = true) || it.contains(trimmed, ignoreCase = true) || trimmed.contains(it, ignoreCase = true) }
-        ?: selected
-
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedButton(
-                    onClick = { if (enabled) expanded = true },
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(displaySelected, modifier = Modifier.weight(1f))
-                    Icon(Icons.Filled.ArrowDropDown, null)
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    entries.forEach { entry ->
-                        DropdownMenuItem(
-                            text = { Text(entry) },
-                            onClick = { onSelected(entry); expanded = false }
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            FilledIconButton(
-                onClick = onDownloadClick,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(Icons.Filled.Download, contentDescription = "Download")
-            }
-        }
-    }
+    GlassPickerRow(
+        title = label,
+        entries = entries,
+        value = matchEntry(entries, selected),
+        enabled = enabled,
+        onSelected = onSelected,
+        hasAction = true,
+        trailing = {
+            GlassRoundAction(Icons.Filled.Download, "Download", onDownloadClick)
+        },
+    )
 }
 
 @Composable
@@ -154,49 +235,23 @@ fun ContainerSpinnerRowWithConfig(
     onSelected: (String) -> Unit,
     onConfigClick: () -> Unit = {},
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val trimmed = selected.trim()
-    val displaySelected = if (trimmed.isEmpty()) selected else
-        entries.firstOrNull { it.equals(trimmed, ignoreCase = true) }
-        ?: entries.firstOrNull { it.startsWith(trimmed, ignoreCase = true) || trimmed.startsWith(it, ignoreCase = true) || it.contains(trimmed, ignoreCase = true) || trimmed.contains(it, ignoreCase = true) }
-        ?: selected
-
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedButton(
-                    onClick = { if (enabled) expanded = true },
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(displaySelected, modifier = Modifier.weight(1f))
-                    Icon(Icons.Filled.ArrowDropDown, null)
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    entries.forEach { entry ->
-                        DropdownMenuItem(
-                            text = { Text(entry) },
-                            onClick = { onSelected(entry); expanded = false }
-                        )
-                    }
-                }
-            }
+    GlassPickerRow(
+        title = label,
+        entries = entries,
+        value = matchEntry(entries, selected),
+        enabled = enabled,
+        onSelected = onSelected,
+        hasAction = showConfigButton,
+        trailing = {
             if (showConfigButton) {
-                Spacer(Modifier.width(8.dp))
-                FilledIconButton(
-                    onClick = onConfigClick,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.configuration))
-                }
+                GlassRoundAction(
+                    Icons.Filled.Settings,
+                    stringResource(R.string.configuration),
+                    onConfigClick,
+                )
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -209,97 +264,85 @@ fun ContainerSpinnerRowWithConfigAndDownload(
     onConfigClick: () -> Unit = {},
     onDownloadClick: () -> Unit = {},
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val trimmed = selected.trim()
-    val displaySelected = if (trimmed.isEmpty()) selected else
-        entries.firstOrNull { it.equals(trimmed, ignoreCase = true) }
-        ?: entries.firstOrNull { it.startsWith(trimmed, ignoreCase = true) || trimmed.startsWith(it, ignoreCase = true) || it.contains(trimmed, ignoreCase = true) || trimmed.contains(it, ignoreCase = true) }
-        ?: selected
-
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedButton(
-                    onClick = { if (enabled) expanded = true },
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(displaySelected, modifier = Modifier.weight(1f))
-                    Icon(Icons.Filled.ArrowDropDown, null)
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    entries.forEach { entry ->
-                        DropdownMenuItem(
-                            text = { Text(entry) },
-                            onClick = { onSelected(entry); expanded = false }
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            FilledIconButton(
-                onClick = onConfigClick,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
-                ),
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.configuration))
-            }
-            Spacer(Modifier.width(8.dp))
-            FilledIconButton(
-                onClick = onDownloadClick,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(Icons.Filled.Download, contentDescription = "Download")
-            }
-        }
-    }
+    GlassPickerRow(
+        title = label,
+        entries = entries,
+        value = matchEntry(entries, selected),
+        enabled = enabled,
+        onSelected = onSelected,
+        hasAction = true,
+        trailing = {
+            GlassRoundAction(
+                Icons.Filled.Settings,
+                stringResource(R.string.configuration),
+                onConfigClick,
+            )
+            GlassRoundAction(Icons.Filled.Download, "Download", onDownloadClick)
+        },
+    )
 }
 
+/**
+ * Действие — полноширинная стеклянная пилюля (как «Установить новый компонент»
+ * в референсе), а не outlined-кнопка с иконкой настроек.
+ */
 @Composable
 fun ButtonRow(label: String, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+    val shape = RoundedCornerShape(GlassTokens.CardRadius)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = GlassTokens.RowPaddingH, vertical = 10.dp)
+            .shadow(6.dp, shape, clip = false)
+            .clip(shape)
+            .background(glassFillBrush())
+            .border(glassBorder(), shape)
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(label, modifier = Modifier.weight(1f))
-        Icon(Icons.Filled.Settings, null)
+        Text(
+            text = label,
+            fontSize = GlassTokens.TitleSize,
+            fontWeight = FontWeight.Medium,
+            color = glassTitleColor(),
+        )
     }
 }
 
 @Composable
 fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
+    GlassSwitchRow(
+        title = label,
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+    )
 }
 
+/**
+ * Группа: заголовок секции НАД стеклянной карточкой, как в референсе.
+ * Иконка оставлена в сигнатуре, но в стекло-стиле заголовок без иконки —
+ * она только подкрашивает акцент, если вызывающий код её передаёт.
+ */
 @Composable
-fun SectionCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(Modifier.padding(vertical = 8.dp)) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            }
+fun SectionCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        GlassSectionHeader(
+            title = title,
+            action = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = glassAccent(),
+                    modifier = Modifier.size(20.dp),
+                )
+            },
+        )
+        GlassSurface(modifier = Modifier.fillMaxWidth()) {
             content()
         }
     }
@@ -420,7 +463,8 @@ fun WineConfigTab(
                             Card(
                                 shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.size(80.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                border = glassCardBorder(),
                             ) {
                                 Image(
                                     bitmap = bitmap!!,
@@ -433,7 +477,8 @@ fun WineConfigTab(
                             Card(
                                 shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.size(80.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                                border = glassCardBorder(),
                             ) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Text("No Image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -445,23 +490,22 @@ fun WineConfigTab(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Button(
+                            GlassSolidPill(
                                 onClick = { pickerLauncher.launch("image/*") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Icon(Icons.Filled.Photo, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
                                 Text(stringResource(R.string.browse))
                             }
                             if (wallpaperExists) {
-                                OutlinedButton(
+                                GlassPill(
                                     onClick = {
                                         userWallpaperFile.delete()
                                         wallpaperExists = false
                                         onDesktopThemeChange("$theme,$bgType,$bgColor,0")
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                                 ) {
                                     Icon(Icons.Filled.Delete, contentDescription = null)
                                     Spacer(Modifier.width(8.dp))
@@ -524,7 +568,8 @@ fun WineConfigTab(
                     onValueChange = { onLogPixelsChange((it / 24 * 24).toInt().coerceIn(96, 240)) },
                     valueRange = 96f..240f,
                     steps = (240 - 96) / 24 - 1,
-                )
+                
+                    colors = glassSliderColors())
             }
         }
 
@@ -533,17 +578,17 @@ fun WineConfigTab(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
+                GlassSolidPill(
                     onClick = onExportProfile,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.Publish, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.export_container_profile))
                 }
-                Button(
+                GlassSolidPill(
                     onClick = onImportProfile,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.Download, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
@@ -619,7 +664,10 @@ fun EnvVarsTab(
     var editingIndex by remember { mutableStateOf(-1) }
 
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = { showAddDialog = true }, modifier = Modifier.fillMaxWidth()) {
+        GlassSolidPill(
+            onClick = { showAddDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.add))
@@ -628,10 +676,15 @@ fun EnvVarsTab(
             Text(stringResource(R.string.no_env_vars), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
         } else {
             vars.forEachIndexed { index, (name, value) ->
-                Card(Modifier.fillMaxWidth().clickable {
+                Card(
+                    Modifier.fillMaxWidth().clickable {
                     editingIndex = index
                     showAddDialog = true
-                }) {
+                },
+                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                    border = glassCardBorder(),
+                ) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, fontFamily = FontFamily.Monospace)
@@ -665,7 +718,9 @@ fun EnvVarsTab(
                             label = { Text("Name") },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                         Spacer(Modifier.width(8.dp))
                         Box {
                             var menuExpanded by remember { mutableStateOf(false) }
@@ -725,7 +780,7 @@ fun EnvVarsTab(
                                                     .padding(vertical = 4.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Checkbox(
+                                                GlassSwitch(
                                                     checked = checked,
                                                     onCheckedChange = {
                                                         val updated = if (it) selectedOptions + option else selectedOptions - option
@@ -746,7 +801,9 @@ fun EnvVarsTab(
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
-                                )
+                                ,
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                             }
                             else -> {
                                 OutlinedTextField(
@@ -755,7 +812,9 @@ fun EnvVarsTab(
                                     label = { Text("Value") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
-                                )
+                                ,
+                                    shape = GlassFieldShape,
+                                    colors = glassFieldColors())
                             }
                         }
                     } else {
@@ -765,7 +824,9 @@ fun EnvVarsTab(
                             label = { Text("Value") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                     }
                 }
             },
@@ -815,12 +876,15 @@ fun DrivesTab(
     }
 
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = {
+        GlassSolidPill(
+            onClick = {
             val usedLetters = driveList.map { it.first }
-            val nextLetter = letters.firstOrNull { it !in usedLetters } ?: return@Button
+            val nextLetter = letters.firstOrNull { it !in usedLetters } ?: return@GlassSolidPill
             driveList = (driveList + (nextLetter to "")).toMutableList()
             onDrivesChange(driveList.joinToString("") { "${it.first}:${it.second}" })
-        }, modifier = Modifier.fillMaxWidth()) {
+        },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.add))
@@ -829,7 +893,12 @@ fun DrivesTab(
             Text(stringResource(R.string.no_drives), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
         } else {
             driveList.forEachIndexed { index, (letter, path) ->
-                Card(Modifier.fillMaxWidth()) {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+                    shape = RoundedCornerShape(GlassTokens.CardRadius),
+                    border = glassCardBorder(),
+                ) {
                     Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(letter.toString(), modifier = Modifier.width(24.dp), fontWeight = FontWeight.Bold)
                         OutlinedTextField(
@@ -840,7 +909,9 @@ fun DrivesTab(
                                 onDrivesChange(driveList.joinToString("") { "${it.first}:${it.second}" })
                             },
                             singleLine = true, modifier = Modifier.weight(1f)
-                        )
+                        ,
+                            shape = GlassFieldShape,
+                            colors = glassFieldColors())
                         IconButton(onClick = {
                             editingDriveIndex = index
                             openTreeLauncher.launch(null)
@@ -1051,7 +1122,7 @@ fun CpuListRow(label: String, cpuList: String, numCpus: Int, onCpuListChange: (S
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 rowCpus.forEach { cpu ->
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Checkbox(
+                        GlassSwitch(
                             checked = cpu in selected,
                             onCheckedChange = { checked ->
                                 val newSelected = selected.toMutableSet()
