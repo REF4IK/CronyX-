@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassTitleColor
+
 import com.winlator.cmod.ui.components.glassAlwaysDivider
 import com.winlator.cmod.ui.components.glassSliderColors
 import com.winlator.cmod.ui.components.GlassPill
@@ -521,7 +523,7 @@ fun ScreenEffectDialogCompose(
     ) {
         Surface(modifier = Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.95f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {

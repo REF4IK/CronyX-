@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassTitleColor
+
 import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
@@ -405,7 +407,7 @@ private fun ElementSettingsDialog(
                     topStart = GlassTokens.CardRadius,
                     bottomStart = GlassTokens.CardRadius,
                 ),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {
@@ -955,7 +957,7 @@ private fun BindingPickerDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(modifier = Modifier.fillMaxSize(),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
                 border = glassCardBorder(),
             ) {

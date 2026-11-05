@@ -5,6 +5,7 @@ import com.winlator.cmod.ui.components.GlassTokens
 
 import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassSheetFill
+import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassSolidPill
 import androidx.compose.foundation.layout.*
@@ -75,7 +76,7 @@ fun ContainerDetailScreen(
         SectionCard(title = "Переменные окружения", icon = Icons.Filled.Code) {
             Surface(modifier = Modifier.padding(16.dp),
                 shape = RoundedCornerShape(GlassTokens.InnerRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {

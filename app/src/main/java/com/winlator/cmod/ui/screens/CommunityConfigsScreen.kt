@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassTitleColor
+
 import com.winlator.cmod.ui.components.GlassChip
 
 import com.winlator.cmod.ui.components.GlassFieldShape
@@ -293,7 +295,7 @@ fun CommunityConfigsScreen(onBack: () -> Unit = {}, contextShortcut: com.winlato
     Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 border = glassCardBorder(),
             ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -735,7 +737,7 @@ private fun ConfigDetailDialog(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 border = glassCardBorder(),
             ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {

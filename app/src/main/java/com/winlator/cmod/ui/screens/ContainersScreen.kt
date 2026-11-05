@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassTitleColor
+
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -299,7 +301,7 @@ fun ContainerCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(GlassTokens.InnerRadius),
-                            color = glassSheetFill(),
+                            color = glassSheetFill(), contentColor = glassTitleColor(),
                             modifier = Modifier
                                 .padding(end = 8.dp)
                                 .border(

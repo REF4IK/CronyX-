@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassTitleColor
+
 import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
@@ -66,7 +68,7 @@ fun ContainerPickerDialog(
     ) {
         Surface(modifier = Modifier.fillMaxWidth().padding(16.dp),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 border = glassCardBorder(),
             ) {
             Column(modifier = Modifier.padding(16.dp)) {

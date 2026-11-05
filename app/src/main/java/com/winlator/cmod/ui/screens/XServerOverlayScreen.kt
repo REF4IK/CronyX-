@@ -43,7 +43,7 @@ fun XServerMenuDialog(
     ) {
         Surface(modifier = Modifier.fillMaxWidth(0.85f).fillMaxHeight(0.9f).padding(8.dp),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {

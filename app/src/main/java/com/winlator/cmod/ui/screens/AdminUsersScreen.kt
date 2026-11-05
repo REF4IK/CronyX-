@@ -96,7 +96,7 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(modifier = Modifier.fillMaxHeight(0.9f).fillMaxWidth(0.94f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(),
+                color = glassSheetFill(), contentColor = glassTitleColor(),
                 border = glassCardBorder(),
             ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
