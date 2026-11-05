@@ -1,10 +1,12 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassAlwaysDivider
 import com.winlator.cmod.ui.components.glassSliderColors
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.GlassSwitch
@@ -112,6 +114,7 @@ fun CheckBoxRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCheckedChange(!checked) }
+            .glassAlwaysDivider()
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -518,7 +521,7 @@ fun ScreenEffectDialogCompose(
     ) {
         Surface(modifier = Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.95f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {

@@ -1,5 +1,8 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.glassAccent
+
 import androidx.compose.ui.graphics.Color
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
@@ -153,9 +156,16 @@ fun GPUPerformanceScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(GlassTokens.ListGap),
         ) {
             // Информация о GPU
+            // Референс: название секции с иконкой стоит НАД карточкой, внутри — только данные.
+            GlassSectionHeader(
+                title = stringResource(R.string.configure_gpu_performance),
+                action = {
+                    Icon(Icons.Filled.Memory, null, tint = glassAccent())
+                },
+            )
             Card(
                 Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
@@ -163,11 +173,6 @@ fun GPUPerformanceScreen(
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Memory, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.configure_gpu_performance), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    }
                     Text(gpuInfoText, style = MaterialTheme.typography.bodyMedium)
                     Text(currentFreqText, style = MaterialTheme.typography.bodyMedium)
                     Text(maxFreqText, style = MaterialTheme.typography.bodyMedium)
@@ -175,6 +180,7 @@ fun GPUPerformanceScreen(
             }
 
             // Выбор режима производительности
+            GlassSectionHeader(title = stringResource(R.string.gpu_performance_mode_label))
             Card(
                 Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
@@ -182,7 +188,6 @@ fun GPUPerformanceScreen(
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.gpu_performance_mode_label), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     modes.forEachIndexed { index, mode ->
                         Row(
                             Modifier.fillMaxWidth().padding(vertical = 4.dp),

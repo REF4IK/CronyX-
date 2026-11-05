@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.CircleShape
+
 import com.winlator.cmod.ui.components.glassSliderColors
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSwitch
@@ -539,6 +541,9 @@ fun SettingsScreen(
         FloatingActionButton(
             onClick = { onConfirmSave() },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            // В Material3 FAB по умолчанию берёт shapes.large, то есть 26dp —
+            // плавающая кнопка выглядела скруглённым квадратом.
+            shape = CircleShape,
             containerColor = MaterialTheme.colorScheme.primary
         ) { Icon(Icons.Filled.Check, "Save", tint = MaterialTheme.colorScheme.onPrimary) }
     }

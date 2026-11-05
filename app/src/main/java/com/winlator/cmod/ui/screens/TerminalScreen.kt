@@ -1,5 +1,8 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassChevronColor
+
 import com.winlator.cmod.ui.components.GlassFieldShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -163,9 +166,11 @@ fun TerminalScreen(onBack: () -> Unit) {
                     color = Color.White
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF4AF626),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color(0xFF4AF626)
+                    // Акцент по теме один на весь интерфейс, поэтому бордюр и
+                    // каретка берутся от стеклянных токенов, а не зелёного «матрицы»
+                    focusedBorderColor = glassAccent(),
+                    unfocusedBorderColor = glassChevronColor(),
+                    cursorColor = glassAccent()
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),

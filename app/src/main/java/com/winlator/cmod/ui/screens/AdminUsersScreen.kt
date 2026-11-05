@@ -1,8 +1,12 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassFieldShape
@@ -92,7 +96,7 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(modifier = Modifier.fillMaxHeight(0.9f).fillMaxWidth(0.94f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 border = glassCardBorder(),
             ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -226,8 +230,9 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                         label = { Text(stringResource(R.string.profile_own_num), fontSize = 12.sp) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-)
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors(),
+                    )
                     OutlinedTextField(
                         value = editDate,
                         onValueChange = { editDate = it.take(10) },
@@ -235,8 +240,9 @@ fun AdminUsersScreen(onDismiss: () -> Unit) {
                         singleLine = true,
                         placeholder = { Text("08.09.2026", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-)
+                        shape = GlassFieldShape,
+                        colors = glassFieldColors(),
+                    )
                 }
             },
             confirmButton = {

@@ -1,9 +1,15 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassChip
+
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassFieldShape
@@ -287,7 +293,7 @@ fun CommunityConfigsScreen(onBack: () -> Unit = {}, contextShortcut: com.winlato
     Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 border = glassCardBorder(),
             ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -428,25 +434,26 @@ private fun CatalogPanel(
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-)
+                shape = GlassFieldShape,
+                colors = glassFieldColors(),
+            )
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(GlassTokens.CardRadius),
                 border = glassCardBorder(),
             ) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = sort == SortMode.CONFIGS,
+                        GlassChip(
+                            text = stringResource(R.string.community_sort_configs),
                             onClick = { onSortChange(SortMode.CONFIGS) },
-                            label = { Text(stringResource(R.string.community_sort_configs), fontSize = 12.sp) },
+                            accent = sort == SortMode.CONFIGS,
                         )
-                        FilterChip(
-                            selected = sort == SortMode.DEVICES,
+                        GlassChip(
+                            text = stringResource(R.string.community_sort_devices),
                             onClick = { onSortChange(SortMode.DEVICES) },
-                            label = { Text(stringResource(R.string.community_sort_devices), fontSize = 12.sp) },
+                            accent = sort == SortMode.DEVICES,
                         )
                     }
                     Text(
@@ -475,7 +482,7 @@ private fun CatalogPanel(
                         onClick = { onGameClick(g) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
                         border = glassCardBorder(),
                     ) {
                         Row(
@@ -536,11 +543,11 @@ private fun DevicePanel(
             ) {
                 Text(gameName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text("${entries.size}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                FilterChip(
-                    selected = matchesMyDevice,
+                GlassChip(
+                    text = stringResource(R.string.community_filter_device),
                     onClick = onToggleDevice,
-                    label = { Text(stringResource(R.string.community_filter_device), fontSize = 11.sp) },
-                    leadingIcon = if (matchesMyDevice) {{ Icon(Icons.Default.PhoneAndroid, null, modifier = Modifier.size(14.dp)) }} else null,
+                    icon = if (matchesMyDevice) Icons.Default.PhoneAndroid else null,
+                    accent = matchesMyDevice,
                 )
             }
             OutlinedTextField(
@@ -550,14 +557,15 @@ private fun DevicePanel(
                 leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-)
+                shape = GlassFieldShape,
+                colors = glassFieldColors(),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = favOnly,
+                GlassChip(
+                    text = stringResource(R.string.community_filter_fav),
                     onClick = { favOnly = !favOnly },
-                    label = { Text(stringResource(R.string.community_filter_fav), fontSize = 11.sp) },
-                    leadingIcon = { Icon(if (favOnly) Icons.Default.Star else Icons.Default.StarBorder, null, modifier = Modifier.size(14.dp)) },
+                    icon = if (favOnly) Icons.Default.Star else Icons.Default.StarBorder,
+                    accent = favOnly,
                 )
             }
         }
@@ -604,7 +612,7 @@ private fun DevicePanel(
                             onClick = { onEntryClick(entry) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
                             border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
@@ -727,7 +735,7 @@ private fun ConfigDetailDialog(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.96f),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 border = glassCardBorder(),
             ) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -748,7 +756,7 @@ private fun ConfigDetailDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
                         border = glassCardBorder(),
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -796,7 +804,7 @@ private fun ConfigDetailDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
                         border = glassCardBorder(),
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -863,7 +871,7 @@ private fun ConfigDetailDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(GlassTokens.CardRadius),
                         border = glassCardBorder(),
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -903,7 +911,7 @@ private fun ConfigDetailDialog(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
                             border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -965,8 +973,9 @@ private fun ConfigDetailDialog(
                                         onValueChange = { if (it.length <= 500) descEdit = it },
                                         modifier = Modifier.fillMaxWidth(),
                                         maxLines = 3,
-                                        shape = RoundedCornerShape(10.dp),
-)
+                                        shape = GlassFieldShape,
+                                        colors = glassFieldColors(),
+                                    )
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         GlassSolidPill(
                                             onClick = {
@@ -1002,7 +1011,7 @@ private fun ConfigDetailDialog(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
                             border = glassCardBorder(),
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1105,8 +1114,9 @@ private fun ConfigDetailDialog(
                                         placeholder = { Text(stringResource(R.string.community_add_comment), fontSize = 13.sp) },
                                         modifier = Modifier.weight(1f),
                                         maxLines = 3,
-                                        shape = RoundedCornerShape(10.dp),
-)
+                                        shape = GlassFieldShape,
+                                        colors = glassFieldColors(),
+                                    )
                                     FilledIconButton(
                                         onClick = {
                                             val text = commentText.trim()

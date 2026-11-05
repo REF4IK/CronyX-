@@ -255,6 +255,8 @@ Column(modifier = Modifier.fillMaxSize()) {
                 pendingImport = true
                 showContainerPicker = true
             },
+            // FAB без shape берёт shapes.large (26dp) — был квадратом
+            shape = CircleShape,
             containerColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)

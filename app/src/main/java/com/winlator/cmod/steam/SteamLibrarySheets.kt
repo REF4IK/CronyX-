@@ -1,5 +1,12 @@
 package com.winlator.cmod.steam
 
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassChevronColor
+import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassSwitch
+
+import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -112,10 +119,10 @@ fun SteamSearchField(
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = glassCardFill(),
+                unfocusedContainerColor = glassCardFill(),
+                focusedBorderColor = glassAccent(),
+                unfocusedBorderColor = glassChevronColor(),
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -346,11 +353,10 @@ fun SteamContentManagerSheet(
                                     modifier = Modifier.fillMaxWidth().padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Checkbox(
+                                    GlassSwitch(
                                         checked = checked,
                                         onCheckedChange = { if (entry.installable) selectedDlcIds[entry.appId] = it },
                                         enabled = entry.installable,
-                                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant),
                                     )
                                     Spacer(Modifier.width(8.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -490,7 +496,7 @@ fun SteamWorkshopManagerSheet(
                 Spacer(Modifier.height(12.dp))
                 Text(stringResource(R.string.steam_library_workshop_failed), color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(8.dp))
-                OutlinedButton(onClick = {
+                GlassPill(onClick = {
                     scope.launch {
                         isLoading = true
                         fetchFailed = false
@@ -551,7 +557,7 @@ fun SteamWorkshopManagerSheet(
                                     ) {
                                         // Preview image
                                         Box(
-                                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(6.dp)).background(glassCardFill()).border(glassCardBorder(), RoundedCornerShape(6.dp)),
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             if (item.previewUrl.isNotBlank()) {
@@ -577,11 +583,10 @@ fun SteamWorkshopManagerSheet(
                                             Text("ID: ${item.publishedFileId}", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 10.sp)
                                         }
 
-                                        Checkbox(
-                                            checked = isChecked,
-                                            onCheckedChange = { selectedIds[item.publishedFileId] = it },
-                                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant),
-                                        )
+                                            GlassSwitch(
+                                                checked = isChecked,
+                                                onCheckedChange = { selectedIds[item.publishedFileId] = it },
+                                            )
                                     }
                                 }
                             }
@@ -829,7 +834,7 @@ private fun SteamWorkshopRow(
                 modifier = Modifier
                     .size(58.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                    .background(glassCardFill()),
                 contentAlignment = Alignment.Center,
             ) {
                 if (item.previewUrl.isNotBlank()) {

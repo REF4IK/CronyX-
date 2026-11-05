@@ -156,13 +156,17 @@ fun GameCheckRow(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Checkbox(
+        // Переключатель вместо чекбокса, но в палитре самого оверлея: у него своя
+        // система цветов, стеклянные токены сюда не подходят.
+        Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = CheckboxDefaults.colors(
-                checkedColor = GameOverlayColors.Accent,
-                checkmarkColor = Color.Black,
-                uncheckedColor = GameOverlayColors.TextSecondary
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.Black,
+                checkedTrackColor = GameOverlayColors.Accent,
+                uncheckedThumbColor = GameOverlayColors.TextSecondary,
+                uncheckedTrackColor = Color.Transparent,
+                uncheckedBorderColor = GameOverlayColors.TextSecondary,
             ),
             modifier = Modifier.size(34.dp)
         )

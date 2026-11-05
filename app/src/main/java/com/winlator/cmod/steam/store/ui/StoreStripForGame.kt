@@ -1,5 +1,6 @@
 package com.winlator.cmod.steam.store.ui
 
+import com.winlator.cmod.ui.components.glassCardFill
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -57,7 +58,7 @@ fun StoreStripForGame(appId: Int) {
     val d = detail ?: return
     Card(
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill()),
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Страница в магазине", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)

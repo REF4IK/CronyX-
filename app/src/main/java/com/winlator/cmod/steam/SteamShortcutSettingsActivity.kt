@@ -1,5 +1,9 @@
 package com.winlator.cmod.steam
 
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassChevronColor
+
+import com.winlator.cmod.ui.components.glassCardFill
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
@@ -1595,13 +1599,13 @@ private fun SteamTextField(
             minLines = minLines,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedBorderColor = glassAccent(),
+                unfocusedBorderColor = glassChevronColor(),
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = glassCardFill(),
+                unfocusedContainerColor = glassCardFill(),
+                cursorColor = glassAccent(),
             ),
             shape = RoundedCornerShape(16.dp),
         )
@@ -1630,7 +1634,7 @@ private fun SteamSelectField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(if (enabled) MaterialTheme.colorScheme.surfaceVariant else glassCardFill())
                     .border(1.dp, if (enabled) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
                     .clickable(enabled = enabled && options.isNotEmpty()) { expanded = true }
                     .padding(horizontal = 14.dp, vertical = 12.dp),

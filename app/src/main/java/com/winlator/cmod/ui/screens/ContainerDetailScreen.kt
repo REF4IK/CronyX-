@@ -1,6 +1,10 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.GlassTokens
+
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassSolidPill
 import androidx.compose.foundation.layout.*
@@ -70,8 +74,8 @@ fun ContainerDetailScreen(
         // Переменные окружения
         SectionCard(title = "Переменные окружения", icon = Icons.Filled.Code) {
             Surface(modifier = Modifier.padding(16.dp),
-                shape = MaterialTheme.shapes.small,
-                color = glassCardFill(),
+                shape = RoundedCornerShape(GlassTokens.InnerRadius),
+                color = glassSheetFill(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {

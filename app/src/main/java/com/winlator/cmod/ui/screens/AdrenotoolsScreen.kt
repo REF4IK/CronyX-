@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.CircleShape
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassCardBorder
@@ -131,6 +133,8 @@ fun AdrenotoolsScreen(
             // Driver Store
             FloatingActionButton(
                 onClick = onOpenDriverStore,
+                // FAB без shape берёт shapes.large (26dp) — был квадратом
+                shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
             ) {
                 Icon(Icons.Filled.Store, contentDescription = stringResource(R.string.driver_store))
@@ -138,6 +142,7 @@ fun AdrenotoolsScreen(
             // Install driver
             FloatingActionButton(
                 onClick = { showInstallConfirm = true },
+                shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
             ) {
                 Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.install_drivers), tint = MaterialTheme.colorScheme.onPrimary)

@@ -1,6 +1,7 @@
 package com.winlator.cmod.ui.screens
 
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.glassBadgeFill
@@ -398,8 +399,13 @@ private fun ElementSettingsDialog(
                 .width(340.dp)
                 .fillMaxHeight()
                 .clickable(enabled = false, onClick = {}),
-                shape = RectangleShape,
-                color = glassCardFill(),
+                // Панель прижата к правому краю: скругляем левые углы, RectangleShape
+                // оставлял панель прямоугольной плитой.
+                shape = RoundedCornerShape(
+                    topStart = GlassTokens.CardRadius,
+                    bottomStart = GlassTokens.CardRadius,
+                ),
+                color = glassSheetFill(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {
@@ -949,7 +955,7 @@ private fun BindingPickerDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(modifier = Modifier.fillMaxSize(),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
                 border = glassCardBorder(),
             ) {

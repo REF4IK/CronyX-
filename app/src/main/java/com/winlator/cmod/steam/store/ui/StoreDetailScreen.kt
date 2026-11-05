@@ -1,5 +1,6 @@
 package com.winlator.cmod.steam.store.ui
 
+import com.winlator.cmod.ui.components.glassCardFill
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -208,7 +209,7 @@ private fun StoreDetailBody(
                         items(detail.genres) { g ->
                             Box(
                                 Modifier.clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .background(glassCardFill())
                                     .clickable { onGenreClick(g) }
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
@@ -221,7 +222,7 @@ private fun StoreDetailBody(
         }
         // Цена / издания
         item(key = "buy") {
-            Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))) {
+            Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = glassCardFill())) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         if (detail.comingSoon) stringResource(R.string.store_coming_soon)
@@ -394,7 +395,7 @@ private fun StoreDetailBody(
                             val sel = reviewType == key
                             Box(
                                 Modifier.clip(RoundedCornerShape(14.dp))
-                                    .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .background(if (sel) MaterialTheme.colorScheme.primary else glassCardFill())
                                     .clickable { if (!sel) onReviewType(key) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp),
                             ) {
@@ -420,7 +421,7 @@ private fun StoreDetailBody(
                         } else {
                             Box(
                                 Modifier.clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .background(glassCardFill())
                                     .clickable { onMoreReviews() }
                                     .padding(horizontal = 18.dp, vertical = 10.dp),
                             ) {
@@ -477,7 +478,7 @@ private fun ReviewBadge(scoreDesc: String, percent: Int, total: Int) {
 @Composable
 private fun StoreReviewCard(text: String, votedUp: Boolean, votesUp: Int, hours: Float, ts: Long) {
     var expanded by remember(text, ts) { mutableStateOf(false) }
-    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))) {
+    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = glassCardFill())) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(if (votedUp) Icons.Filled.ThumbUp else Icons.Filled.ThumbDown, contentDescription = null, tint = if (votedUp) Color(0xFF66CC33) else Color(0xFFCC5533), modifier = Modifier.width(18.dp))

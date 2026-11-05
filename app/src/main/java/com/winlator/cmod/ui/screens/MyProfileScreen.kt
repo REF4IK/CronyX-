@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSectionHeader
+
 import com.winlator.cmod.ui.components.glassBadgeFill
 import com.winlator.cmod.ui.components.GlassSwitch
 import com.winlator.cmod.ui.components.glassAccent
@@ -423,16 +425,15 @@ fun MyProfileScreen() {
 
 @Composable
 private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    // Референс: название секции стоит НАД карточкой, а не внутри неё.
+    GlassSectionHeader(title = title)
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
         shape = RoundedCornerShape(GlassTokens.CardRadius),
         border = glassCardBorder(),
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            content()
-        }
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     }
 }
 

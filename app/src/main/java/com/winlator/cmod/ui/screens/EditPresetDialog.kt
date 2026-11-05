@@ -4,6 +4,7 @@ import com.winlator.cmod.ui.components.GlassSwitch
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
@@ -144,7 +145,7 @@ fun EditPresetDialog(
                 .fillMaxHeight(0.95f),
             // tonalElevation подмешивал primary-тонировку: на surface
             // #121215 это давало сине-зелёную панель вместо стекла
-            color = glassCardFill(),
+            color = glassSheetFill(),
             contentColor = glassTitleColor(),
             tonalElevation = 0.dp,
             border = glassCardBorder(),

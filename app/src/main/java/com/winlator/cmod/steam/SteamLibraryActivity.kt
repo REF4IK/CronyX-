@@ -1,5 +1,11 @@
 package com.winlator.cmod.steam
 
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+
+import com.winlator.cmod.ui.components.GlassPill
+
+import com.winlator.cmod.ui.components.glassCardFill
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -956,7 +962,7 @@ private fun SteamTopBar(
             modifier = Modifier
                 .weight(1f)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                .background(glassCardFill())
                 .padding(3.dp)
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -1024,7 +1030,7 @@ private fun SteamTopBar(
             modifier = Modifier
                 .padding(horizontal = 4.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                .background(glassCardFill())
                 .padding(2.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
@@ -1238,9 +1244,9 @@ private fun RoundActionButton(
             .clip(CircleShape)
             .background(
                 if (enabled) {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                    glassCardFill()
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                    glassCardFill()
                 },
             )
             .clickable(
@@ -1456,7 +1462,7 @@ private fun SteamMenuRow(
 private fun ProfileStatCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill()),
         shape = RoundedCornerShape(14.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1550,7 +1556,7 @@ private fun SteamProfileDialog(
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
                         0 -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)), shape = RoundedCornerShape(14.dp)) {
+                            Card(colors = CardDefaults.cardColors(containerColor = glassCardFill()), shape = RoundedCornerShape(14.dp)) {
                                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Box(Modifier.size(10.dp).clip(CircleShape).background(if (profile.isOnline) onlineColor else MaterialTheme.colorScheme.onSurfaceVariant))
@@ -1590,7 +1596,7 @@ private fun SteamProfileDialog(
                                 val friend = friends.firstOrNull { it.steamId64 == fid }
                                 val msgs = chatMap[fid] ?: emptyList()
                                 Column(Modifier.fillMaxSize()) {
-                                    Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Row(Modifier.fillMaxWidth().background(glassCardFill()).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(onClick = { chatFriendId = null }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
                                         Text(friend?.name ?: "Чат", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                                     }
@@ -1605,7 +1611,7 @@ private fun SteamProfileDialog(
                                         }
                                     }
                                     Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        OutlinedTextField(value = chatInput, onValueChange = { chatInput = it }, modifier = Modifier.weight(1f), placeholder = { Text("Сообщение...") }, singleLine = true)
+                                        OutlinedTextField(value = chatInput, onValueChange = { chatInput = it }, modifier = Modifier.weight(1f), placeholder = { Text("Сообщение...") }, singleLine = true, shape = GlassFieldShape, colors = glassFieldColors())
                                         IconButton(onClick = {
                                             if (chatInput.isNotBlank()) {
                                                 val t = chatInput; chatInput = ""
@@ -1620,7 +1626,7 @@ private fun SteamProfileDialog(
                                 } else {
                                     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         items(friends, key = { it.steamId64 }) { f ->
-                                            Card(modifier = Modifier.fillMaxWidth().clickable { chatFriendId = f.steamId64 }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)), shape = RoundedCornerShape(12.dp)) {
+                                            Card(modifier = Modifier.fillMaxWidth().clickable { chatFriendId = f.steamId64 }, colors = CardDefaults.cardColors(containerColor = glassCardFill()), shape = RoundedCornerShape(12.dp)) {
                                                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                                     Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface), contentAlignment = Alignment.Center) {
                                                         if (f.avatarHash.isNotBlank()) {
@@ -1737,7 +1743,7 @@ private fun SteamGameCard(game: SteamLibraryGameUi, onClick: () -> Unit) {
             .scale(scale)
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(glassCardFill())
             .then(
                 if (game.installed) {
                     Modifier.border(
@@ -1831,7 +1837,7 @@ private fun SteamGameListCard(game: SteamLibraryGameUi, onClick: () -> Unit) {
         targetValue = if (pressed) {
             MaterialTheme.colorScheme.surfaceVariant
         } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            glassCardFill()
         },
         label = "rowPress",
     )
@@ -1906,7 +1912,7 @@ private fun SteamGameCapsuleCard(game: SteamLibraryGameUi, onClick: () -> Unit) 
     val scale by animateFloatAsState(targetValue = if (pressed) 0.96f else 1f, label = "capsulePress")
     Column(
         modifier = Modifier.width(122.dp).scale(scale).clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(glassCardFill())
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
     ) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f)) {
@@ -1922,7 +1928,7 @@ private fun SteamGameCapsuleCard(game: SteamLibraryGameUi, onClick: () -> Unit) 
 private fun SteamGameCarouselCard(game: SteamLibraryGameUi, onClick: () -> Unit) {
     Column(
         modifier = Modifier.width(200.dp).clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .background(glassCardFill())
             .clickable(onClick = onClick),
     ) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(460f / 215f)) {
@@ -2364,7 +2370,7 @@ private fun SteamGameOverlay(
                         verticalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
                         if (!isDownloadSession) {
-                            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))) {
+                            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = glassCardFill())) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().padding(if (compactLayout) 6.dp else 8.dp),
                                     verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -2382,7 +2388,7 @@ private fun SteamGameOverlay(
                                             )
                                         }
                                         if (showFolderPicker) {
-                                            OutlinedButton(
+                                            GlassPill(
                                                 onClick = { onPickInstallFolder(game.appId) },
                                                 modifier = Modifier.weight(1f).height(36.dp),
                                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
@@ -2396,7 +2402,7 @@ private fun SteamGameOverlay(
                                 }
                             }
                         } else {
-                            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))) {
+                            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = glassCardFill())) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
                                     verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -2817,7 +2823,7 @@ private fun DownloadProgressCard(game: SteamGameDetailUi, compactLayout: Boolean
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(glassCardFill())
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -3039,7 +3045,7 @@ private fun ContainerDropdown(
                 .fillMaxWidth()
                 .height(38.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                .background(glassCardFill())
                 .clickable { expanded = true }
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -3098,7 +3104,7 @@ private fun StatusBadge(text: String, modifier: Modifier = Modifier, solid: Bool
     val container = if (solid) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+        glassCardFill()
     }
     val content = if (solid) {
         MaterialTheme.colorScheme.onPrimary
@@ -3136,7 +3142,7 @@ private fun DetailInfoCard(title: String, value: String, modifier: Modifier = Mo
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(glassCardFill())
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
@@ -3178,7 +3184,7 @@ private fun CompactStatCard(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .background(glassCardFill())
             .padding(horizontal = 8.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -3305,7 +3311,7 @@ private fun SteamActionTile(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+    containerColor: Color = glassCardFill(),
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     val interactionSource = remember { MutableInteractionSource() }

@@ -1,6 +1,10 @@
 package com.winlator.cmod.ui.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.GlassTokens
+
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.glassSliderColors
 import com.winlator.cmod.ui.components.GlassPill
@@ -79,10 +83,15 @@ fun FpsCounterSettingsDialog(
                 .width(340.dp)
                 .fillMaxHeight()
                 .clickable(enabled = false, onClick = {}), // Предотвращаем закрытие при клике по самой панели
-            shape = RectangleShape,
+            // Панель прижата к правому краю, поэтому скруглены только левые углы:
+            // RectangleShape давал тот самый «квадрат» внутри стекла.
+            shape = RoundedCornerShape(
+                topStart = GlassTokens.CardRadius,
+                bottomStart = GlassTokens.CardRadius,
+            ),
             // Панель закрывает игру: с полупрозрачной заливкой сквозь неё
             // проступает кадр, поэтому берём почти непрозрачную.
-            color = glassCardFill(),
+            color = glassSheetFill(),
             contentColor = glassTitleColor(),
             tonalElevation = 0.dp
         ) {

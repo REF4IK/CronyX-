@@ -1,5 +1,8 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+
 import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.shape.CircleShape
 import com.winlator.cmod.ui.components.glassBadgeFill
@@ -304,6 +307,8 @@ fun FileManagerScreen(
         floatingActionButton = {
             if (clipboardFile != null && !showingDriveRoot) {
                 FloatingActionButton(
+                    // FAB без shape берёт shapes.large (26dp) — был квадратом
+                    shape = CircleShape,
                     onClick = {
                         val source = clipboardFile!!
                         val current = currentDir ?: Environment.getExternalStorageDirectory()
@@ -360,10 +365,8 @@ fun FileManagerScreen(
                 placeholder = { Text(stringResource(R.string.fm_search_hint)) },
                 leadingIcon = { Icon(Icons.Filled.Search, null) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                )
+                shape = GlassFieldShape,
+                colors = glassFieldColors()
             )
 
             if (isOpRunning) {

@@ -1,5 +1,7 @@
 package com.winlator.cmod.steam.ui
 
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -162,7 +164,7 @@ private fun FriendRow(friend: SteamFriend, onClick: () -> Unit = {}) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(glassCardFill()).border(glassCardBorder(), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 if (avatarUrl.isNotBlank()) {

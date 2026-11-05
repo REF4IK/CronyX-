@@ -9,9 +9,11 @@ import androidx.compose.ui.unit.sp
 import com.winlator.cmod.ui.components.GlassDivider
 import com.winlator.cmod.ui.components.GlassRoundIconButton
 import com.winlator.cmod.ui.components.GlassSurface
+import androidx.compose.foundation.shape.CircleShape
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.glassAccent
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassDescColor
 import com.winlator.cmod.ui.components.glassDividerColor
 import com.winlator.cmod.ui.components.glassTitleColor
@@ -90,6 +92,8 @@ fun ContainersScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { if (ImageFs.find(ctx).isValid()) onCreateContainer() },
+                // FAB без shape берёт shapes.large (26dp) — был квадратом
+                shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
             ) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add), tint = MaterialTheme.colorScheme.onPrimary) }
         },
@@ -295,7 +299,7 @@ fun ContainerCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(GlassTokens.InnerRadius),
-                            color = glassCardFill(),
+                            color = glassSheetFill(),
                             modifier = Modifier
                                 .padding(end = 8.dp)
                                 .border(

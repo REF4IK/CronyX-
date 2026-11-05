@@ -1,5 +1,8 @@
 package com.winlator.cmod.steam.ui
 
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -124,14 +127,8 @@ fun ChatScreen(
                         onValueChange = { inputText = it },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Message", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedBorderColor = MaterialTheme.colorScheme.outline,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                        ),
-                        shape = RoundedCornerShape(20.dp),
+                        colors = glassFieldColors(),
+                        shape = GlassFieldShape,
                         maxLines = 4,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = {

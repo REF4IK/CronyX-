@@ -1,8 +1,14 @@
 package com.winlator.cmod.ui.screens
 
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassChevronColor
+import com.winlator.cmod.ui.components.glassDividerColor
+import com.winlator.cmod.ui.components.glassTitleColor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,32 +43,35 @@ fun XServerMenuDialog(
     ) {
         Surface(modifier = Modifier.fillMaxWidth(0.85f).fillMaxHeight(0.9f).padding(8.dp),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 tonalElevation = 0.dp,
                 border = glassCardBorder(),
             ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header
+                // Подложка шапки — как у карточек. Сплошное залитие primaryContainer
+                // было единственным местом, где вместо стекла получался цветной блок.
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = glassBadgeFill(),
+                    contentColor = glassTitleColor(),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Default.Menu, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Icon(Icons.Default.Menu, null, tint = glassAccent())
                         Spacer(Modifier.width(12.dp))
                         Text(
                             "XServer Menu",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            color = glassTitleColor(),
                         )
                     }
                 }
 
-                HorizontalDivider()
+                HorizontalDivider(color = glassDividerColor())
 
                 // Items
                 Column(
@@ -92,10 +101,13 @@ fun XServerMenuDialog(
                             if (isPauseItem && isPaused) {
                                 Icon(Icons.Default.PlayArrow, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
                             }
-                            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.ChevronRight, null, tint = glassChevronColor(), modifier = Modifier.size(20.dp))
                         }
                         if (item != menuItems.last()) {
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            HorizontalDivider(
+                                color = glassDividerColor(),
+                                modifier = Modifier.padding(horizontal = GlassTokens.RowPaddingH),
+                            )
                         }
                     }
                 }

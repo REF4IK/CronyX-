@@ -1,5 +1,7 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassChip
+
 import com.winlator.cmod.ui.components.GlassPill
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.winlator.cmod.ui.components.glassCardFill
@@ -799,15 +801,15 @@ fun RegistryEditorTab(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = spoofPresetName == PRESET_ARM.name,
+                        GlassChip(
+                            text = PRESET_ARM.name,
                             onClick = { applyPreset(PRESET_ARM) },
-                            label = { Text(PRESET_ARM.name) }
+                            accent = spoofPresetName == PRESET_ARM.name,
                         )
-                        FilterChip(
-                            selected = spoofPresetName == PRESET_INTEL.name,
+                        GlassChip(
+                            text = PRESET_INTEL.name,
                             onClick = { applyPreset(PRESET_INTEL) },
-                            label = { Text(PRESET_INTEL.name) }
+                            accent = spoofPresetName == PRESET_INTEL.name,
                         )
                     }
                     Text(

@@ -1,5 +1,7 @@
 package com.winlator.cmod.steam.store.ui
 
+import com.winlator.cmod.ui.components.glassCardBorder
+import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -199,7 +201,7 @@ private fun StoreDailyDeal(deal: StoreApp, onOpenDetail: (Int) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).clickable { onOpenDetail(deal.id) },
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = glassCardFill()),
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             AsyncImage(
@@ -271,7 +273,7 @@ private fun StoreGenreChips(names: List<String>) {
         LazyRow(contentPadding = PaddingValues(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(names) { n ->
                 Box(
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)).padding(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(glassCardFill()).border(glassCardBorder(), RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
                 ) {
                     Text(n, style = MaterialTheme.typography.labelMedium)
                 }
@@ -284,7 +286,7 @@ private fun StoreGenreChips(names: List<String>) {
 private fun StoreLoadingSkeleton() {
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         repeat(4) {
-            Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)))
+            Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(14.dp)).background(glassCardFill()).border(glassCardBorder(), RoundedCornerShape(14.dp)))
         }
     }
 }

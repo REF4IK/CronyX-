@@ -1,5 +1,7 @@
 package com.winlator.cmod.steam
 
+import com.winlator.cmod.ui.components.glassFieldColors
+
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -238,7 +240,7 @@ class SteamLoginActivity : ComponentActivity() {
                 enabled = !state.isLoggingIn,
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                colors = darkFieldColors(),
+                colors = glassFieldColors(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
             )
@@ -265,7 +267,7 @@ class SteamLoginActivity : ComponentActivity() {
                     enabled = !state.isLoggingIn,
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
-                    colors = darkFieldColors(),
+                    colors = glassFieldColors(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         if (canSubmit) { hasAttemptedLogin = true; viewModel.onCredentialLogin() }
@@ -451,7 +453,7 @@ class SteamLoginActivity : ComponentActivity() {
                                     enabled = !state.isLoggingIn,
                                     singleLine = true,
                                     shape = RoundedCornerShape(10.dp),
-                                    colors = darkFieldColors(),
+                                    colors = glassFieldColors(),
                                     textStyle = androidx.compose.ui.text.TextStyle(
                                         fontSize = 14.sp,
                                         textAlign = TextAlign.Center,

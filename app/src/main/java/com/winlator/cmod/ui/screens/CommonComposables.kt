@@ -1,6 +1,7 @@
 package com.winlator.cmod.ui.screens
 
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassTokens
 import androidx.compose.foundation.layout.*
@@ -65,7 +66,7 @@ fun ContainerPickerDialog(
     ) {
         Surface(modifier = Modifier.fillMaxWidth().padding(16.dp),
                 shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassCardFill(),
+                color = glassSheetFill(),
                 border = glassCardBorder(),
             ) {
             Column(modifier = Modifier.padding(16.dp)) {

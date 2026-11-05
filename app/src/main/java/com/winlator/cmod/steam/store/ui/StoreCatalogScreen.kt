@@ -1,5 +1,9 @@
 package com.winlator.cmod.steam.store.ui
 
+import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.glassFieldColors
+
+import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -90,7 +94,8 @@ fun StoreCatalogScreen(
             keyboardActions = KeyboardActions(onSearch = {
                 viewModel.setCatalogQuery(q.copy(term = termInput))
             }),
-            shape = RoundedCornerShape(14.dp),
+            shape = GlassFieldShape,
+            colors = glassFieldColors(),
         )
         Spacer(Modifier.height(8.dp))
         // Фильтры — сворачиваемая панель, чтобы список занимал весь экран
@@ -132,7 +137,7 @@ fun StoreCatalogScreen(
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            colors = CardDefaults.cardColors(containerColor = glassCardFill()),
         ) {
             Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
@@ -255,7 +260,7 @@ fun StoreCatalogScreen(
                             } else {
                                 Box(
                                     Modifier.clip(RoundedCornerShape(10.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                        .background(glassCardFill())
                                         .clickable { viewModel.loadMoreCatalog() }
                                         .padding(horizontal = 18.dp, vertical = 10.dp),
                                 ) {
@@ -274,7 +279,7 @@ fun StoreCatalogScreen(
 private fun CatalogChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(14.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            .background(if (selected) MaterialTheme.colorScheme.primary else glassCardFill())
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {

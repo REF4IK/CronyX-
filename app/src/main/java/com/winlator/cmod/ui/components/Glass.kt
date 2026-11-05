@@ -94,7 +94,7 @@ fun glassBorder(): BorderStroke {
     return remember(dark) {
         BorderStroke(
             1.dp,
-            if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f),
+            if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.12f),
         )
     }
 }
@@ -714,7 +714,11 @@ fun glassSliderColors(): SliderColors {
  */
 @Composable
 fun glassCardFill(): Color =
-    if (glassIsDark()) Color(0xFF1A1A1F).copy(alpha = 0.97f) else Color(0xFFFFFFFF).copy(alpha = 0.98f)
+    // Полупрозрачная панель: Card не умеет градиент, поэтому берётся среднее
+    // значение того же стекла, что рисует GlassSurface. Непрозрачные поверхности
+    // (диалоги, листы, боковые панели) используют glassSheetFill, иначе сквозь
+    // них просвечивает интерфейс.
+    if (glassIsDark()) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.72f)
 
 /**
  * Заливка листов (bottom sheet). Почти непрозрачная: лист перекрывает
@@ -808,5 +812,25 @@ fun GlassPillRow(
     ) {
         Box(Modifier.weight(1f)) { first() }
         Box(Modifier.weight(1f)) { second() }
+    }
+}
+
+
+/**
+ * Разделитель строки, не зависящий от LocalGlassGrouped.
+ * Нужен в диалогах: список опций там не обёрнут в GlassSurface, а разделители
+ * между строками по референсу есть.
+ */
+@Composable
+fun Modifier.glassAlwaysDivider(): Modifier {
+    val c = glassDividerColor()
+    val inset = GlassTokens.RowPaddingH
+    return drawBehind {
+        val insetPx = inset.toPx()
+        drawRect(
+            color = c,
+            topLeft = Offset(insetPx, size.height - 1.dp.toPx()),
+            size = Size(size.width - insetPx, 1.dp.toPx()),
+        )
     }
 }

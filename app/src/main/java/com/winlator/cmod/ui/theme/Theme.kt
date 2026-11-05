@@ -697,21 +697,30 @@ fun WinlatorTheme(
         colorScheme
     }
 
+    // extraSmall/extraLarge задаются явно: AlertDialog берёт радиус из extraLarge,
+    // а Surface без явного shape — из small. Без этого стеклянные диалоги получали
+    // углы от дефолтного ключа темы, а не 26dp, как карточки.
     val shapes = when (cornerRadius) {
         "small" -> Shapes(
+            extraSmall = RoundedCornerShape(4.dp),
             small = RoundedCornerShape(4.dp),
             medium = RoundedCornerShape(8.dp),
             large = RoundedCornerShape(12.dp),
+            extraLarge = RoundedCornerShape(12.dp),
         )
         "large" -> Shapes(
+            extraSmall = RoundedCornerShape(12.dp),
             small = RoundedCornerShape(12.dp),
             medium = RoundedCornerShape(18.dp),
             large = RoundedCornerShape(26.dp),
+            extraLarge = RoundedCornerShape(26.dp),
         )
         else -> Shapes(
+            extraSmall = RoundedCornerShape(6.dp),
             small = RoundedCornerShape(8.dp),
             medium = RoundedCornerShape(16.dp),
             large = RoundedCornerShape(24.dp),
+            extraLarge = RoundedCornerShape(24.dp),
         )
     }
 
