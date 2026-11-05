@@ -1,5 +1,7 @@
 package com.winlator.cmod.steam.store.ui
 
+import androidx.compose.foundation.border
+
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.background

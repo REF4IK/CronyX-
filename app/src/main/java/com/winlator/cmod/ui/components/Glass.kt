@@ -137,8 +137,14 @@ fun GlassSurface(
     ) {
         Column(
             modifier = modifier
+                // clip = false обязателен: при клипе HWUI обрезает подъёмность
+                // границами слоя, и тень рисуется ВНУТРИ карточки квадратной полосой.
                 .shadow(10.dp, shape, clip = false)
                 .clip(shape)
+                // Непрозрачная база под стекло. Без неё полупрозрачная заливка
+                // пропускает наружную тень насквозь, и прямоугольник тени
+                // проступает внутри карточки — это и был «квадрат».
+                .background(glassSheetFill())
                 .background(glassFillBrush())
                 .border(glassBorder(), shape)
                 .then(if (padded) Modifier.padding(vertical = GlassTokens.GroupPaddingV) else Modifier),
@@ -418,7 +424,7 @@ fun GlassChip(
     }
     Row(
         modifier = modifier
-            .shadow(if (accent) 8.dp else 0.dp, shape, clip = false)
+            .shadow(0.dp, shape)
             .clip(shape)
             .background(bg)
             .border(
@@ -452,7 +458,7 @@ fun GlassGlowButton(
     val shape = CircleShape
     Box(
         modifier = modifier
-            .shadow(elevation = if (enabled) 12.dp else 0.dp, shape = shape, clip = false, spotColor = accent, ambientColor = accent)
+            .shadow(elevation = 0.dp, shape = shape)
             .clip(shape)
             .background(if (enabled) accent else accent.copy(alpha = 0.38f))
             .clickable(enabled = enabled, onClick = onClick)
@@ -524,7 +530,7 @@ fun GlassPill(
     ) {
         Row(
             modifier = modifier
-                .shadow(if (enabled) 6.dp else 0.dp, shape, clip = false)
+                .shadow(0.dp, shape)
                 .clip(shape)
                 .background(glassFillBrush())
                 .border(glassBorder(), shape)
@@ -555,7 +561,7 @@ fun GlassSolidPill(
     ) {
         Row(
             modifier = modifier
-                .shadow(if (enabled) 10.dp else 0.dp, shape, clip = false, spotColor = accent, ambientColor = accent)
+                .shadow(0.dp, shape)
                 .clip(shape)
                 .background(if (enabled) accent else accent.copy(alpha = 0.38f))
                 .clickable(enabled = enabled, onClick = onClick)
@@ -656,7 +662,7 @@ fun GlassPillButton(
     Row(
         modifier
             .fillMaxWidth()
-            .shadow(if (enabled) 6.dp else 0.dp, shape, clip = false)
+            .shadow(0.dp, shape)
             .clip(shape)
             .background(glassFillBrush())
             .border(glassBorder(), shape)

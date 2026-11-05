@@ -1,5 +1,7 @@
 package com.winlator.cmod.steam
 
+import androidx.compose.foundation.border
+
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassAccent
 import com.winlator.cmod.ui.components.glassChevronColor

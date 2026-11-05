@@ -293,7 +293,7 @@ fun ButtonRow(label: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = GlassTokens.RowPaddingH, vertical = 10.dp)
-            .shadow(6.dp, shape, clip = false)
+            .shadow(0.dp, shape)
             .clip(shape)
             .background(glassFillBrush())
             .border(glassBorder(), shape)
