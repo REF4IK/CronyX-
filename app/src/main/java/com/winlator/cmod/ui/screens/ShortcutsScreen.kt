@@ -344,8 +344,6 @@ Column(modifier = Modifier.fillMaxSize()) {
                         Spacer(Modifier.height(8.dp))
                     }
                     Text("Container: ${s.container.name}", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Wine version: ${s.container.wineVersion}", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(8.dp))
                     Text("Number of times played: $playCount", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(4.dp))
@@ -728,32 +726,17 @@ private fun ShortcutCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val wineVer = shortcut.container.wineVersion
-                if (wineVer.isNotEmpty() || gameInfo?.version != null) {
-                    Row(
-                        modifier = Modifier.padding(top = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        if (wineVer.isNotEmpty()) {
-                            Text(
-                                text = wineVer,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        gameInfo?.version?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.clickable { showGameInfo = true },
-                            )
-                        }
-                    }
+                // Версия Wine с карточки убрана: она показывалась и как значение
+                // gameInfo.version (PEParser читает версию с бинаря Wine/Proton).
+                gameInfo?.version?.takeIf { it != shortcut.container.wineVersion }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp).clickable { showGameInfo = true },
+                    )
                 }
                 rememberPlaytime(shortcut)?.let {
                     Text(
@@ -820,12 +803,13 @@ private fun ShortcutLargeCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
-        // Референс (photo_2 «Мои игры»): обложка сверху, заголовок и мета —
-        // ПОД обложкой на теле карточки, а не поверх градиента.
+        // Текстового блока на плитке нет: название, чип версии и строка контейнера
+        // убирали у обложки ~71dp. Вся карточка — картинка, высота 222dp = 150dp
+        // обложки + 71dp отданного ей места, поэтому размер карточки не изменился.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp)
+                .height(222.dp)
                 .background(Color(0xFF101015)),
             contentAlignment = Alignment.Center,
         ) {
@@ -869,61 +853,47 @@ private fun ShortcutLargeCard(
                     modifier = Modifier.size(18.dp),
                 )
             }
-        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 12.dp),
-        ) {
-            Text(
-                text = shortcut.name,
-                color = glassTitleColor(),
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(5.dp))
-
-            val wineVer = shortcut.container.wineVersion
-            val gameVer = gameInfo?.version
-            if (wineVer.isNotEmpty() || gameVer != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (wineVer.isNotEmpty()) {
-                        GlassChip(text = wineVer)
-                    }
-                    gameVer?.let {
-                        GlassChip(text = it, onClick = { showGameInfo = true })
-                    }
-                }
-                Spacer(Modifier.height(7.dp))
-            }
-
-            // Мета-ряд: иконка геймпада + наигранное время + контейнер
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Icon(
-                    Icons.Filled.VideogameAsset,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = glassDescColor(),
-                )
-                rememberPlaytime(shortcut)?.let {
-                    Text(
-                        text = it,
-                        color = glassDescColor(),
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            // Название игры и контейнер — НАД обложкой внизу, а не под ней: текст
+            // не отнимает у картинки место, а затемнение снизу даёт читать на любом арте.
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.80f)),
+                        ),
                     )
-                }
+                    .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 10.dp),
+            ) {
+                Text(
+                    text = shortcut.name,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = shortcut.container.name,
-                    color = glassDescColor(),
+                    color = Color.White.copy(alpha = 0.78f),
                     fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // Версия игры и число запусков. Версию фильтруем от строки Wine:
+                // для Proton-контейнеров PEParser отдаёт FileVersion бинаря Wine.
+                val gameVer = gameInfo?.version?.takeIf { it != shortcut.container.wineVersion }
+                val launches = remember(shortcut) {
+                    MmkvPreferences("playtime_stats").getInt("${shortcut.name}_play_count", 0)
+                }
+                Text(
+                    text = if (gameVer != null) "$gameVer · ${stringResource(R.string.launches_count, launches)}"
+                    else stringResource(R.string.launches_count, launches),
+                    color = Color.White.copy(alpha = 0.66f),
+                    fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

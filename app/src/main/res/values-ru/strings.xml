@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="launches_count">Запусков: %1$d</string>
     <string name="_continue">Продолжить</string>
     <string name="_copy">Копировать</string>
     <string name="_new">Новый</string>

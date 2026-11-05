@@ -68,8 +68,6 @@ fun ContainerDetailScreen(
             InfoRow("Драйвер графики", container.graphicsDriver.ifEmpty { "Wrapper" })
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             InfoRow("DX Wrapper", container.getDXWrapper().ifEmpty { "DXVK" })
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            InfoRow("Wine версия", container.wineVersion)
         }
 
         // Переменные окружения

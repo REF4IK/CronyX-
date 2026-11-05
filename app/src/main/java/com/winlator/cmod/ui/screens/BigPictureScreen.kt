@@ -751,7 +751,7 @@ private fun buildChips(shortcut: Shortcut, gameVersion: String?): List<Pair<Stri
     val emulator = c.getEmulator().lowercase()
     val chips = mutableListOf<Pair<String, String?>>()
     chips.add("Container" to c.name)
-    chips.add("Wine" to c.wineVersion.takeIf { it.isNotBlank() })
+    // Чип "Wine" убран: на плитке он выглядел как название Wine вместо данных игры
     val driverLabel = c.graphicsDriver.ifBlank { "wrapper" }
     chips.add("Driver" to buildString {
         append(driverLabel)

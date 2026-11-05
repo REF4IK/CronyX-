@@ -256,16 +256,8 @@ fun ContainerCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            val wv = container.wineVersion
-            if (!wv.isNullOrEmpty()) {
-                Text(
-                    text = wv,
-                    fontSize = GlassTokens.DescSize,
-                    color = glassDescColor(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            // Версия Wine с карточки убрана по требованию интерфейса: остаётся
+            // только имя контейнера.
         }
         GlassDivider()
         Row(

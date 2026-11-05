@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="launches_count">Launches: %1$d</string>
     <string name="_continue">Continue</string>
     <string name="_copy">copy</string>
     <string name="_new">new</string>
