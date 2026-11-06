@@ -1594,6 +1594,26 @@
         <item quantity="other">%d файлов</item>
     </plurals>
 
+    <!-- Лист «Добавить игру» / автопоиск -->
+    <string name="add_game_title">Добавить</string>
+    <string name="auto_search">Автопоиск</string>
+    <string name="auto_search_hint">Найти установленные игры</string>
+    <string name="badge_recommended">Рекомендовано</string>
+    <string name="from_folder_section">Из папки</string>
+    <string name="game_folder">Папка игры</string>
+    <string name="game_folder_hint">Найти файл запуска в папке игры</string>
+    <string name="game_exe_file">Файл игры (.exe)</string>
+    <string name="game_exe_file_hint">Добавить игру через файл .exe</string>
+    <string name="scanning_title">Сканирование…</string>
+    <string name="scanning_hint">Проверяем частые папки загрузки игр</string>
+    <string name="scan_done_title">Сканирование завершено</string>
+    <string name="scan_done_hint">На вашем устройстве найдены файлы игр</string>
+    <string name="scan_found_count">Найдено файлов игр: %1$d</string>
+    <string name="import_to_library">Импорт в библиотеку</string>
+    <string name="scan_pick_folder">Не нашли? Укажите папку</string>
+    <string name="imported_status">Импортировано</string>
+    <string name="scan_done_btn">Готово</string>
+
     <!-- Contents source dialog -->
     <string name="contents_source">Источник контента</string>
     <string name="custom_profile">Свой профиль</string>

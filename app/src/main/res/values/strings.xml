@@ -1613,6 +1613,26 @@
         <item quantity="other">%d files</item>
     </plurals>
 
+    <!-- Add game sheet / auto search -->
+    <string name="add_game_title">Add game</string>
+    <string name="auto_search">Auto search</string>
+    <string name="auto_search_hint">Find installed games</string>
+    <string name="badge_recommended">Recommended</string>
+    <string name="from_folder_section">From folder</string>
+    <string name="game_folder">Game folder</string>
+    <string name="game_folder_hint">Find the launcher file in the game folder</string>
+    <string name="game_exe_file">Game file (.exe)</string>
+    <string name="game_exe_file_hint">Add a game via an .exe file</string>
+    <string name="scanning_title">Scanning…</string>
+    <string name="scanning_hint">Checking common game download folders</string>
+    <string name="scan_done_title">Scan complete</string>
+    <string name="scan_done_hint">Game files were found on your device</string>
+    <string name="scan_found_count">Game files found: %1$d</string>
+    <string name="import_to_library">Import to library</string>
+    <string name="scan_pick_folder">Nothing found? Pick a folder</string>
+    <string name="imported_status">Imported</string>
+    <string name="scan_done_btn">Done</string>
+
     <!-- Import Game Dialog -->
     <string name="description_optional">Description (optional)</string>
     <string name="path_to_launch_file">Path to launch file</string>
