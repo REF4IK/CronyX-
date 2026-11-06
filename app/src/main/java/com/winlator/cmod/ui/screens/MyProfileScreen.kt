@@ -1,6 +1,7 @@
 package com.winlator.cmod.ui.screens
 
 import com.winlator.cmod.ui.components.GlassSectionHeader
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 
 import com.winlator.cmod.ui.components.glassBadgeFill
 import com.winlator.cmod.ui.components.GlassSwitch
@@ -197,7 +198,8 @@ fun MyProfileScreen() {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = GlassBottomNavClearance),
         // промежуток между блоками — как в остальных списках
         verticalArrangement = Arrangement.spacedBy(GlassTokens.ListGap),
     ) {

@@ -61,6 +61,12 @@ object GlassTokens {
     val AccentFallback = Color(0xFF2E9BF0)
 }
 
+/**
+ * Отступ снизу для прокручиваемого контента: плавающая нижняя панель
+ * перекрывает экран, поэтому последний элемент должен уметь уехать выше неё.
+ */
+val GlassBottomNavClearance: Dp = 96.dp
+
 /** Тёмное ли стекло: зависит от яркости фона темы, а не от флага. */
 @Composable
 fun glassIsDark(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -499,6 +505,7 @@ fun GlassSheetContent(
                 .fillMaxWidth()
                 .clip(shape)
                 .background(glassSheetFill())
+                .background(glassFillBrush())
                 .border(glassBorder(), shape)
                 // Лист без скролла и без нижнего инсета обрезается и уезжает
                 // под системную навигацию, когда пунктов много.

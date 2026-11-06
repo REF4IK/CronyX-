@@ -540,7 +540,7 @@ fun SettingsScreen(
         // FAB - подтверждение сохранения (как BTConfirm в оригинале)
         FloatingActionButton(
             onClick = { onConfirmSave() },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 98.dp),
             // В Material3 FAB по умолчанию берёт shapes.large, то есть 26dp —
             // плавающая кнопка выглядела скруглённым квадратом.
             shape = CircleShape,

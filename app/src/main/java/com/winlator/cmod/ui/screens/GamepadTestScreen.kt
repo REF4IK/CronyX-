@@ -7,6 +7,7 @@ import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -263,7 +264,7 @@ fun GamepadTestScreen(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = GlassBottomNavClearance),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Device Info Card

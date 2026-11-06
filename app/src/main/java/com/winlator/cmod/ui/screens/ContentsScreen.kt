@@ -6,6 +6,7 @@ import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
 import android.content.Intent
@@ -305,7 +306,7 @@ fun ContentsScreen(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = GlassBottomNavClearance),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(profiles, key = { ContentsManager.getEntryName(it) }) { profile ->

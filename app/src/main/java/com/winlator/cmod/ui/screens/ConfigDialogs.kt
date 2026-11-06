@@ -10,6 +10,7 @@ import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.glassSliderColors
 import com.winlator.cmod.ui.components.GlassSolidPill
+import com.winlator.cmod.ui.components.GlassSurface
 import com.winlator.cmod.ui.components.GlassFieldShape
 import com.winlator.cmod.ui.components.glassFieldColors
 import com.winlator.cmod.ui.components.GlassSwitch
@@ -95,11 +96,9 @@ fun AudioDriverConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(modifier = Modifier.fillMaxWidth().padding(16.dp),
-                shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                border = glassCardBorder(),
-            ) {
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -299,11 +298,9 @@ fun GraphicsDriverConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(8.dp),
-                shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                border = glassCardBorder(),
-            ) {
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(8.dp),
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -657,12 +654,9 @@ fun GraphicsDriverConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                tonalElevation = 0.dp,
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                border = glassCardBorder(),
-            ) {
+                        GlassSurface(
+                            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        ) {
                             Column(
                                 modifier = Modifier.padding(24.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -691,12 +685,9 @@ fun GraphicsDriverConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                tonalElevation = 0.dp,
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                border = glassCardBorder(),
-            ) {
+                        GlassSurface(
+                            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        ) {
                             Row(
                                 modifier = Modifier.padding(24.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -899,11 +890,9 @@ fun VKD3DConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(modifier = Modifier.fillMaxWidth().padding(16.dp),
-                shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                border = glassCardBorder(),
-            ) {
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1139,12 +1128,9 @@ fun VKD3DConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                tonalElevation = 0.dp,
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                border = glassCardBorder(),
-            ) {
+                        GlassSurface(
+                            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        ) {
                             Row(
                                 modifier = Modifier.padding(24.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1296,11 +1282,9 @@ fun DXVKConfigDialogCompose(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.95f).padding(16.dp),
-                shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                border = glassCardBorder(),
-            ) {
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.95f).padding(16.dp),
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()),
@@ -1509,12 +1493,9 @@ fun DXVKConfigDialogCompose(
                         onDismissRequest = {},
                         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
                     ) {
-                        Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                tonalElevation = 0.dp,
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                border = glassCardBorder(),
-            ) {
+                        GlassSurface(
+                            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        ) {
                             Row(
                                 modifier = Modifier.padding(24.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -2025,11 +2006,8 @@ fun ContentDownloadDialogCompose(
             onDismissRequest = onDismiss,
             properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
         ) {
-            Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                tonalElevation = 0.dp,
+            GlassSurface(
                 modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                border = glassCardBorder(),
             ) {
                 Row(
                     modifier = Modifier.padding(24.dp),
@@ -2175,11 +2153,8 @@ fun ContentDownloadDialogCompose(
             onDismissRequest = {},
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
         ) {
-            Surface(shape = RoundedCornerShape(GlassTokens.CardRadius),
-                color = glassSheetFill(), contentColor = glassTitleColor(),
-                tonalElevation = 0.dp,
+            GlassSurface(
                 modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                border = glassCardBorder(),
             ) {
                 Row(
                     modifier = Modifier.padding(24.dp),

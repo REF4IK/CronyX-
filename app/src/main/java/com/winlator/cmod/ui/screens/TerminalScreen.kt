@@ -4,6 +4,7 @@ import com.winlator.cmod.ui.components.glassAccent
 import com.winlator.cmod.ui.components.glassChevronColor
 
 import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -189,5 +190,9 @@ fun TerminalScreen(onBack: () -> Unit) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = "Run")
             }
         }
+
+        // Плавающая панель лежит поверх экрана — под ней остаётся тёмный фон,
+        // а поле ввода поднимается выше неё.
+        Spacer(Modifier.height(GlassBottomNavClearance))
     }
 }

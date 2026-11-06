@@ -11,6 +11,7 @@ import com.winlator.cmod.ui.components.GlassSectionHeader
 import com.winlator.cmod.ui.components.GlassSliderRow
 import com.winlator.cmod.ui.components.GlassSurface
 import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import com.winlator.cmod.ui.components.glassDescColor
 import com.winlator.cmod.ui.components.glassGroupDivider
 import com.winlator.cmod.ui.components.GlassRoundIconButton
@@ -136,7 +137,7 @@ fun InputControlsScreen(
                 start = GlassTokens.RowPaddingH,
                 end = GlassTokens.RowPaddingH,
                 top = 4.dp,
-                bottom = 24.dp,
+                bottom = GlassBottomNavClearance,
             ),
     ) {
         // ---- Профиль ----

@@ -105,7 +105,7 @@ fun AdrenotoolsScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 176.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(driversList, key = { it }) { driverId ->
@@ -129,7 +129,7 @@ fun AdrenotoolsScreen(
 
         // FAB внизу справа
         Row(
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 98.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Driver Store

@@ -8,6 +8,7 @@ import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.GlassFieldShape
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
 import android.content.Context
@@ -500,6 +501,7 @@ private fun RCScreenMain(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(bottom = GlassBottomNavClearance),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredGroups) { group ->
@@ -732,6 +734,7 @@ private fun RCGroupEditor(
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = GlassBottomNavClearance),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(itemsList) { item ->

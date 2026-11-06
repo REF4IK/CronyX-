@@ -97,6 +97,8 @@ fun ContainersScreen(
                 // FAB без shape берёт shapes.large (26dp) — был квадратом
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
+                // Поднять над плавающей нижней панелью.
+                modifier = Modifier.padding(bottom = 82.dp),
             ) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add), tint = MaterialTheme.colorScheme.onPrimary) }
         },
     ) { padding ->
@@ -108,7 +110,7 @@ fun ContainersScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 176.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

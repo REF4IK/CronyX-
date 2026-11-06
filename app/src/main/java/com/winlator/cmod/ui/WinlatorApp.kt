@@ -8,7 +8,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,9 +42,9 @@ import com.winlator.cmod.core.FileUtils
 import com.winlator.cmod.ui.navigation.Screen
 import com.winlator.cmod.ui.components.GlassSheetContent
 import com.winlator.cmod.ui.components.UpdateCheckDialog
-import com.winlator.cmod.ui.components.glassDividerColor
 import com.winlator.cmod.ui.components.glassIsDark
 import com.winlator.cmod.ui.components.glassFillBrush
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.glassValueColor
 import com.winlator.cmod.ui.components.glassAccent
@@ -50,6 +53,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.winlator.cmod.ui.components.glassBorder
 import com.winlator.cmod.ui.screens.*
 import com.winlator.cmod.ui.theme.observeFloat
 import com.winlator.cmod.ui.theme.observeInt
@@ -402,25 +407,20 @@ fun WinlatorApp(
                     }
                 },
             ) { padding ->
+                val layoutDirection = LocalLayoutDirection.current
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(if (hideTopBarBySteamInfo) PaddingValues(0.dp) else padding),
+                        // Плавающая панель не резервирует полосу под собой:
+                        // контент уходит под неё, как на референсе. Отступ
+                        // остаётся только от системной навигации.
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(
+                            start = padding.calculateStartPadding(layoutDirection),
+                            top = padding.calculateTopPadding(),
+                            end = padding.calculateEndPadding(layoutDirection),
+                        ),
                 ) {
-                    if (showMoreSheet) {
-                        GlassMoreSheet(
-                            onSelect = { screen ->
-                                showMoreSheet = false
-                                currentScreen = screen
-                                when (screen) {
-                                    Screen.Steam -> onOpenSteam()
-                                    Screen.FileManager -> fileManagerContainerId = -1
-                                    else -> { }
-                                }
-                            },
-                            onDismiss = { showMoreSheet = false },
-                        )
-                    }
                     AnimatedContent(
                         targetState = currentScreen,
                         transitionSpec = { screenTransition(transitionAnim, animDurationMs) },
@@ -627,6 +627,24 @@ fun WinlatorApp(
                 }
             }
 
+            // Лист «Ещё» — в окне приложения, поверх нижней панели.
+            // Не ModalBottomSheet: его отдельное окно показывает статус-бар
+            // и в ландшафте открывается только наполовину.
+            if (showMoreSheet) {
+                GlassMoreSheet(
+                    onSelect = { screen ->
+                        showMoreSheet = false
+                        currentScreen = screen
+                        when (screen) {
+                            Screen.Steam -> onOpenSteam()
+                            Screen.FileManager -> fileManagerContainerId = -1
+                            else -> { }
+                        }
+                    },
+                    onDismiss = { showMoreSheet = false },
+                )
+            }
+
             // Диалог первого запуска — поверх всего
             if (showFirstLaunchDialog) {
                 FirstLaunchDialog(
@@ -713,7 +731,7 @@ private fun GlassBottomNavBar(
     onSelect: (Screen) -> Unit,
     onMore: () -> Unit,
 ) {
-    val primaryScreens = listOf(Screen.Shortcuts, Screen.Containers, Screen.InputControls, Screen.MyProfile)
+    val primaryScreens = listOf(Screen.Shortcuts, Screen.Containers, Screen.InputControls, Screen.Settings)
     val primary = primaryScreens.mapNotNull { ps -> drawerItems.firstOrNull { it.screen == ps } }
     val moreCount = drawerItems.size - primary.size
 
@@ -723,19 +741,19 @@ private fun GlassBottomNavBar(
             // Без учёта инсета панель залезает под системный нав-бар и нижние
             // табы перестают нажиматься.
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .background(glassFillBrush()),
+            // Плавающая капсула: отступы от краёв экрана и системного нав-бара.
+            .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 10.dp)
+            .clip(CircleShape)
+            // Непрозрачная база: просвечивать под панелью не должно.
+            .background(glassSheetFill())
+            .background(glassFillBrush())
+            .border(glassBorder(), CircleShape),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(glassDividerColor())
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(66.dp)
-                .padding(horizontal = 4.dp),
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             primary.forEach { item ->
@@ -776,23 +794,15 @@ private fun NavTab(
     val tint = if (selected) glassAccent() else glassValueColor().copy(alpha = 0.7f)
     Column(
         modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
+            .padding(horizontal = 2.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (selected) glassAccent().copy(alpha = 0.16f) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 44.dp, height = 26.dp)
-                .background(
-                    if (selected) glassAccent().copy(alpha = 0.16f) else Color.Transparent,
-                    CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-        }
+        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(3.dp))
         Text(
             text = stringResource(labelResId),
@@ -808,21 +818,39 @@ private fun NavTab(
  * Стеклянный sheet «Ещё меню»: сетка круглых иконок, 4 в ряд —
  * как в референсе GameHub.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GlassMoreSheet(
     onSelect: (Screen) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val primaryScreens = listOf(Screen.Shortcuts, Screen.Containers, Screen.InputControls, Screen.MyProfile)
+    val primaryScreens = listOf(Screen.Shortcuts, Screen.Containers, Screen.InputControls, Screen.Settings)
     val secondary = drawerItems.filterNot { it.screen in primaryScreens }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = Color.Transparent,
-        dragHandle = null,
-    ) {
-        GlassSheetContent {
+    // Отдельное окно ModalBottomSheet показывало системный статус-бар и в
+    // ландшафте открывалось наполовину. Этот лист живёт в окне приложения.
+    BackHandler(onBack = onDismiss)
+
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss,
+                ),
+        )
+        GlassSheetContent(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                // Свои тапы по пустому месту листа не должны закрывать его.
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                ),
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

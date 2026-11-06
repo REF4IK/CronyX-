@@ -6,6 +6,7 @@ import com.winlator.cmod.ui.components.glassFieldColors
 import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.shape.CircleShape
 import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import com.winlator.cmod.ui.components.GlassFieldShape
 import com.winlator.cmod.ui.components.glassFieldColors
 import android.app.Activity
@@ -309,6 +310,7 @@ fun FileManagerScreen(
                 FloatingActionButton(
                     // FAB без shape берёт shapes.large (26dp) — был квадратом
                     shape = CircleShape,
+                    modifier = Modifier.padding(bottom = 82.dp),
                     onClick = {
                         val source = clipboardFile!!
                         val current = currentDir ?: Environment.getExternalStorageDirectory()
@@ -354,6 +356,8 @@ fun FileManagerScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.surface)
+                // Контент уходит под плавающую панель, фон остаётся за ней.
+                .padding(bottom = GlassBottomNavClearance)
         ) {
             // Search Bar
             OutlinedTextField(

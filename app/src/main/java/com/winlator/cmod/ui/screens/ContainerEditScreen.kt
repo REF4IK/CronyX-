@@ -461,7 +461,13 @@ fun ContainerEditScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 88.dp),
+                // Такой же боковой отступ, как в «Управлении вводом»:
+                // карточки не должны прилипать к краям экрана.
+                .padding(
+                    start = GlassTokens.RowPaddingH,
+                    end = GlassTokens.RowPaddingH,
+                    bottom = 88.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // ---- Верхний блок (вне вкладок) ----

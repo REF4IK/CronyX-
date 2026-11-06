@@ -8,6 +8,7 @@ import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -174,6 +175,7 @@ fun IconManagerScreen(onBack: () -> Unit) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(4),
                         modifier = Modifier.fillMaxSize().padding(8.dp),
+                        contentPadding = PaddingValues(bottom = GlassBottomNavClearance),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -215,7 +217,10 @@ fun IconManagerScreen(onBack: () -> Unit) {
                         Text(text = "No icon packs imported.", color = Color.Gray, fontSize = 16.sp)
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        contentPadding = PaddingValues(bottom = GlassBottomNavClearance),
+                    ) {
                         items(iconPacks) { pack ->
                             Card(
                                 modifier = Modifier

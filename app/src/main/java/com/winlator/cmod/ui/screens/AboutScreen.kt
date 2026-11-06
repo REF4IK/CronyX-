@@ -8,6 +8,7 @@ import com.winlator.cmod.ui.components.glassCardFill
 import com.winlator.cmod.ui.components.glassCardBorder
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -71,7 +72,7 @@ fun AboutScreen() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
+            .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = GlassBottomNavClearance),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Header
