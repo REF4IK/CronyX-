@@ -2,6 +2,11 @@ package com.winlator.cmod.ui.screens
 
 import com.winlator.cmod.ui.components.GlassFieldShape
 import com.winlator.cmod.ui.components.glassFieldColors
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassDescColor
 
 import com.winlator.cmod.ui.components.glassCardFill
 import androidx.compose.foundation.shape.CircleShape
@@ -77,8 +82,16 @@ private data class FMFileEntry(
     val file: File,
     val modifiedAt: Long,
     val size: Long,
-    val icon: Bitmap? = null
+    val icon: Bitmap? = null,
+    val childCount: Int = 0
 )
+
+/** Русские формы «файл»: 1 файл / 2 файла / 5 файлов. */
+private fun filesCountLabel(n: Int): String = when {
+    n % 10 == 1 && n % 100 != 11 -> "$n файл"
+    n % 10 in 2..4 && (n % 100 < 10 || n % 100 >= 20) -> "$n файла"
+    else -> "$n файлов"
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -159,8 +172,9 @@ fun FileManagerScreen(
                     val icon = if (!child.isDirectory && child.name.endsWith(".exe", ignoreCase = true)) {
                         try { PEParser.extractIcon(child) } catch (_: Throwable) { null }
                     } else null
+                    val childCount = if (child.isDirectory) child.listFiles()?.size ?: 0 else 0
 
-                    FMFileEntry(type, child.name, subtitle, child, child.lastModified(), if (child.isDirectory) 0L else child.length(), icon)
+                    FMFileEntry(type, child.name, subtitle, child, child.lastModified(), if (child.isDirectory) 0L else child.length(), icon, childCount)
                 }
 
                 val sortedList = list.sortedWith { left, right ->
@@ -792,67 +806,84 @@ private fun GridEntryTile(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlassTokens.InnerRadius)
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(glassBadgeFill()),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            when (entry.type) {
-                FMEntryType.DRIVE -> {
-                    Icon(
-                        Icons.Filled.Storage,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                FMEntryType.DIRECTORY -> {
-                    Icon(
-                        Icons.Filled.Folder,
-                        contentDescription = null,
-                        tint = Color(0xFFFFB300),
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                FMEntryType.FILE -> {
-                    if (entry.icon != null) {
-                        Image(
-                            bitmap = entry.icon.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize().padding(8.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    } else {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(glassBadgeFill()),
+                contentAlignment = Alignment.Center
+            ) {
+                when (entry.type) {
+                    FMEntryType.DRIVE -> {
                         Icon(
-                            Icons.Filled.Description,
+                            Icons.Filled.Storage,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(36.dp)
+                            tint = glassAccent(),
+                            modifier = Modifier.size(40.dp)
                         )
+                    }
+                    FMEntryType.DIRECTORY -> {
+                        Icon(
+                            Icons.Filled.Folder,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                    FMEntryType.FILE -> {
+                        if (entry.icon != null) {
+                            Image(
+                                bitmap = entry.icon.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().padding(8.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.Description,
+                                contentDescription = null,
+                                tint = glassDescColor(),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
                     }
                 }
             }
+            Text(
+                text = entry.title,
+                color = glassTitleColor(),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                fontWeight = FontWeight.Medium
+            )
+            // Как на референсе: у папок — число файлов, у дисков — «папка»,
+            // у файлов — размер.
+            Text(
+                text = when (entry.type) {
+                    FMEntryType.DIRECTORY -> filesCountLabel(entry.childCount)
+                    FMEntryType.DRIVE -> stringResource(R.string.fm_folder_label)
+                    FMEntryType.FILE -> formatSize(entry.size)
+                },
+                color = glassDescColor(),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-        Text(
-            text = entry.title,
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 
@@ -863,74 +894,78 @@ private fun ListEntryRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlassTokens.InnerRadius)
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(glassBadgeFill()),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            when (entry.type) {
-                FMEntryType.DRIVE -> {
-                    Icon(
-                        Icons.Filled.Storage,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                FMEntryType.DIRECTORY -> {
-                    Icon(
-                        Icons.Filled.Folder,
-                        contentDescription = null,
-                        tint = Color(0xFFFFB300),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                FMEntryType.FILE -> {
-                    if (entry.icon != null) {
-                        Image(
-                            bitmap = entry.icon.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize().padding(6.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    } else {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(glassBadgeFill()),
+                contentAlignment = Alignment.Center
+            ) {
+                when (entry.type) {
+                    FMEntryType.DRIVE -> {
                         Icon(
-                            Icons.Filled.Description,
+                            Icons.Filled.Storage,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
+                            tint = glassAccent(),
+                            modifier = Modifier.size(28.dp)
                         )
+                    }
+                    FMEntryType.DIRECTORY -> {
+                        Icon(
+                            Icons.Filled.Folder,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    FMEntryType.FILE -> {
+                        if (entry.icon != null) {
+                            Image(
+                                bitmap = entry.icon.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().padding(6.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.Description,
+                                contentDescription = null,
+                                tint = glassDescColor(),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = entry.title,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = entry.subtitle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.title,
+                    color = glassTitleColor(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = entry.subtitle,
+                    color = glassDescColor(),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

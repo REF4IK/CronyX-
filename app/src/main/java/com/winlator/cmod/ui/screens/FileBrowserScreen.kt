@@ -1,7 +1,8 @@
 package com.winlator.cmod.ui.screens
 
-import androidx.compose.foundation.shape.CircleShape
-import com.winlator.cmod.ui.components.glassBadgeFill
+import com.winlator.cmod.ui.components.glassTitleColor
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassChevronColor
 import android.graphics.Bitmap
 import android.os.Environment
 import androidx.activity.compose.BackHandler
@@ -96,7 +97,7 @@ fun FileBrowserScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    titleContentColor = glassTitleColor(),
                 ),
             )
         },
@@ -123,7 +124,7 @@ fun FileBrowserScreen(
                     ) {
                         Text(
                             stringResource(R.string.no_items_to_display),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = glassDescColor(),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
@@ -136,6 +137,7 @@ fun FileBrowserScreen(
                         items(entries) { entry ->
                             FileEntryTile(
                                 entry = entry,
+                                isSelected = entry.file == selectedFile,
                                 onClick = {
                                     if (entry.file.isDirectory) {
                                         currentDir = entry.file
@@ -189,51 +191,43 @@ private fun listDirectory(dir: File): List<FileEntry> {
 @Composable
 private fun FileEntryTile(
     entry: FileEntry,
+    isSelected: Boolean,
     onClick: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val isSelected = remember(entry) { entry.file.name.endsWith(".exe", ignoreCase = true) }
+    // Как на референсе: иконка стоит свободно, без круга. Выбранная плитка
+    // подсвечивается скруглённой подложкой во всю ячейку.
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(if (isSelected) glassTitleColor().copy(alpha = 0.10f) else Color.Transparent)
             .clickable(onClick = onClick)
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                RoundedCornerShape(8.dp),
-            )
-            .padding(8.dp),
+            .padding(horizontal = 8.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(glassBadgeFill()),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (entry.file.isDirectory) {
-                Icon(
-                    Icons.Filled.Folder,
-                    contentDescription = null,
-                    tint = Color(0xFFFFB300),
-                    modifier = Modifier.size(56.dp),
-                )
-            } else if (entry.icon != null) {
-                Image(
-                    bitmap = entry.icon.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                    contentScale = ContentScale.Fit,
-                )
-            } else {
-                Icon(Icons.Filled.Description, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(48.dp))
-            }
+        if (entry.file.isDirectory) {
+            Icon(
+                Icons.Filled.Folder,
+                contentDescription = null,
+                tint = Color(0xFFFFB300),
+                modifier = Modifier.size(64.dp),
+            )
+        } else if (entry.icon != null) {
+            Image(
+                bitmap = entry.icon.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                contentScale = ContentScale.Fit,
+            )
+        } else {
+            Icon(Icons.Filled.Description, contentDescription = null, tint = glassDescColor(), modifier = Modifier.size(56.dp))
         }
         Text(
             text = entry.file.name,
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodySmall,
+            color = glassTitleColor(),
+            style = MaterialTheme.typography.bodyMedium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -242,11 +236,11 @@ private fun FileEntryTile(
         if (entry.file.isDirectory) {
             // Plurals для счётчика файлов в папке
             val countText = ctx.resources.getQuantityString(R.plurals.game_import_files_count, entry.fileCount, entry.fileCount)
-            Text(text = countText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            Text(text = countText, color = glassDescColor(), style = MaterialTheme.typography.bodySmall, maxLines = 1)
         } else if (entry.size > 0) {
             Text(
                 text = formatSize(entry.size),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = glassDescColor(),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
             )
@@ -273,7 +267,7 @@ private fun BreadcrumbBar(
             Text(stringResource(R.string.game_import_internal_storage), color = MaterialTheme.colorScheme.primary)
         }
         parts.forEachIndexed { i, part ->
-            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("›", color = glassChevronColor())
             TextButton(onClick = {
                 val subPath = parts.subList(0, i + 1).joinToString("/")
                 onNavigate(File(rootDir, subPath))
