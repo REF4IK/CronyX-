@@ -46,10 +46,11 @@ void main() {
 
     vec3 blended = prev * (1.0 - t) + curr * t;
 
-    // Gamut clamp (5-tap cross around the reprojected current-frame position).
-    // The warped blend of a moving edge can fall outside what curr shows here;
-    // pulling it back into [min,max] removes the ghost trail. Only trust the
-    // range when the current-frame sample is actually on screen.
+    // Gamut clamp (8-tap: крест + диагонали вокруг репроецированной позиции
+    // текущего кадра). Диагонали дают честный min/max на углах и диагональном
+    // движении — кламп жмёт интерполяцию к реальным цветам точнее, а деталь
+    // (high-freq) становится богаче: мыла меньше без роста ghost.
+    // Только когда выборка текущего кадра реально на экране.
     if (inCurr) {
         vec2 e = 1.0 / dstSize;
         vec2 c = clamp(uvCurr, vec2(0.0), vec2(1.0));
@@ -57,8 +58,12 @@ void main() {
         vec3 n2 = texture(uCurr, clamp(c + vec2( e.x, 0.0), vec2(0.0), vec2(1.0))).rgb;
         vec3 n3 = texture(uCurr, clamp(c + vec2(0.0, -e.y), vec2(0.0), vec2(1.0))).rgb;
         vec3 n4 = texture(uCurr, clamp(c + vec2(0.0,  e.y), vec2(0.0), vec2(1.0))).rgb;
-        vec3 mn = min(min(min(curr, n1), min(n2, n3)), n4);
-        vec3 mx = max(max(max(curr, n1), max(n2, n3)), n4);
+        vec3 n5 = texture(uCurr, clamp(c + vec2(-e.x, -e.y), vec2(0.0), vec2(1.0))).rgb;
+        vec3 n6 = texture(uCurr, clamp(c + vec2( e.x, -e.y), vec2(0.0), vec2(1.0))).rgb;
+        vec3 n7 = texture(uCurr, clamp(c + vec2(-e.x,  e.y), vec2(0.0), vec2(1.0))).rgb;
+        vec3 n8 = texture(uCurr, clamp(c + vec2( e.x,  e.y), vec2(0.0), vec2(1.0))).rgb;
+        vec3 mn = min(min(min(min(curr, n1), min(n2, n3)), min(n4, n5)), min(min(n6, n7), n8));
+        vec3 mx = max(max(max(max(curr, n1), max(n2, n3)), max(n4, n5)), max(max(n6, n7), n8));
         // NEW (non-ML): multi-scale / selective warping. Синтез на втором масштабе
         // движения (поток * msScale) и попиксельный выбор по gamut-consistency: перелётный
         // поток => цвет вне гамута реального кадра вокруг => наказан. Считается в рантайме
@@ -87,10 +92,9 @@ void main() {
         // «Ultra»: линейное усреднение двух репроецированных кадров размывает
         // деталь — на 3x/4x почти весь экран синтетический, отсюда «мыло».
         // Возвращаем микроконтраст, подмешивая высокочастотную составляющую
-        // РЕАЛЬНОГО текущего кадра (её крест-соседей уже берём для гаммы — ноль
-        // доп. выборок, нагрузку не поднимаем). Призрака эта деталь не добавляет,
-        // т.к. взята из настоящего кадра, а не из среднего двух.
-        vec3 detail = curr - (n1 + n2 + n3 + n4) * 0.25;
+        // РЕАЛЬНОГО текущего кадра. Соседей теперь 8 (крест+диагонали) —
+        // high-freq чище и без анизотропных артефактов креста.
+        vec3 detail = curr - (n1 + n2 + n3 + n4 + n5 + n6 + n7 + n8) * 0.125;
         blended += pc.tune2.z * detail;
         // Гамут-зажим ПОСЛЕ резкости: поднимает чёткость, но не даёт усилить ghost
         // за пределы реально видимых вокруг цветов.
