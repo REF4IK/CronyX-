@@ -153,6 +153,8 @@ object GameTitleParser {
             return normalizeName(folderName?.let { betterSpelling(spaced, it) } ?: spaced)
                 .ifBlank { trusted }
         }
+        // Фолбэк без доверенного ресурса: имя папки осмысленнее имени exe-файла
+        // («Assassins Creed Rogue» вместо «ACC»), по нему же матчатся обложки
         return folderName?.let { cleanName(it) }?.let(::normalizeName)?.takeIf { it.isNotBlank() }
             ?: identity.name?.takeIf { it.isNotBlank() }?.let(::normalizeName)
     }
