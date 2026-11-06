@@ -12,6 +12,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,6 +46,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntOffset
 import com.winlator.cmod.R
 import com.winlator.cmod.inputcontrols.ExternalController
+import com.winlator.cmod.ui.components.GlassTokens
+import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassBorder
+import com.winlator.cmod.ui.components.glassFillBrush
+import com.winlator.cmod.ui.components.glassSheetFill
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -160,11 +166,11 @@ class PreloaderDialog(private val activity: Activity) {
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer { alpha = fade.value }
-                .background(Color(0xFF0F1016))
+                .background(Color(0xFF0B0C11))
         ) {
             val appId = _steamAppId?.toIntOrNull()
 
-            // Subtle blurred background (Steam Hero / local cover) — не перетягивает внимание
+            // Обложка: сильный блюр и низкая альфа, чтобы фон оставался ровным
             if (appId != null && appId > 0) {
                 val heroUrl = "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/$appId/library_hero.jpg"
                 val capsuleUrl = "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/$appId/capsule_616x353.jpg"
@@ -183,8 +189,8 @@ class PreloaderDialog(private val activity: Activity) {
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxSize()
-                            .blur(48.dp)
-                            .alpha(0.35f),
+                            .blur(72.dp)
+                            .alpha(0.18f),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -196,26 +202,17 @@ class PreloaderDialog(private val activity: Activity) {
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .blur(48.dp)
-                            .alpha(0.35f)
+                            .blur(72.dp)
+                            .alpha(0.18f)
                     )
                 }
             }
 
-            // Радиальный виньетный градиент (центр ярче, края темнее) — фокус на анимации
+            // Ровная вуаль поверх обложки, без градиентов — на них бандинг полосами
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                Color(0x00000000),
-                                Color(0x66000000),
-                                Color(0xCC0F1016)
-                            ),
-                            radius = 1200f
-                        )
-                    )
+                    .background(Color(0xE110111A))
             )
 
             // Уведомление о контроллере — плавно выплывает справа сверху
@@ -330,6 +327,7 @@ class PreloaderDialog(private val activity: Activity) {
         Surface(
             shape = RoundedCornerShape(14.dp),
             color = Color.Black.copy(alpha = 0.55f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)),
             shadowElevation = 10.dp,
             modifier = modifier.graphicsLayer {
                 translationX = slide.value * 240.dp.toPx()
@@ -400,13 +398,11 @@ class PreloaderDialog(private val activity: Activity) {
         Box(
             modifier = Modifier
                 .size(72.dp)
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp), ambientColor = Color(0xFF00A5FF), spotColor = Color(0xFF00A5FF))
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(Color(0xFF1B2233), Color(0xFF0B0F1A))
-                    )
-                ),
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(GlassTokens.InnerRadius), ambientColor = Color(0xFF00A5FF), spotColor = Color(0xFF00A5FF))
+                .clip(RoundedCornerShape(GlassTokens.InnerRadius))
+                .background(glassSheetFill())
+                .background(glassFillBrush())
+                .border(glassBorder(), RoundedCornerShape(GlassTokens.InnerRadius)),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -426,7 +422,7 @@ class PreloaderDialog(private val activity: Activity) {
             Icon(
                 imageVector = if (back) Icons.AutoMirrored.Filled.ArrowBack else Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
-                tint = Color(0xFF00A5FF),
+                tint = glassAccent(),
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -437,9 +433,11 @@ class PreloaderDialog(private val activity: Activity) {
         Box(
             modifier = Modifier
                 .size(72.dp)
-                .shadow(elevation = 14.dp, shape = RoundedCornerShape(12.dp), ambientColor = Color.Black, spotColor = Color.Black)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1B2233))
+                .shadow(elevation = 14.dp, shape = RoundedCornerShape(GlassTokens.InnerRadius), ambientColor = Color.Black, spotColor = Color.Black)
+                .clip(RoundedCornerShape(GlassTokens.InnerRadius))
+                .background(glassSheetFill())
+                .background(glassFillBrush())
+                .border(glassBorder(), RoundedCornerShape(GlassTokens.InnerRadius))
         ) {
             if (bitmap != null) {
                 Image(
@@ -498,13 +496,20 @@ class PreloaderDialog(private val activity: Activity) {
 
     @Composable
     private fun LoadingBar() {
+        // Лёгкая пульсация, чтобы полоса «дышала» на долгих стадиях
+        val pulse = rememberInfiniteTransition(label = "loadingPulse").animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "loadingPulseAlpha"
+        )
         LinearProgressIndicator(
             modifier = Modifier
-                .width(220.dp)
-                .height(3.dp)
+                .width(260.dp)
+                .height(4.dp)
                 .clip(RoundedCornerShape(2.dp)),
-            color = Color(0xFF00A5FF),
-            trackColor = Color(0xFF1B2130)
+            color = glassAccent().copy(alpha = pulse.value),
+            trackColor = Color.White.copy(alpha = 0.10f)
         )
     }
 
