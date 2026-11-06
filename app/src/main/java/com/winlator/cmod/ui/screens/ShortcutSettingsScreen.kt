@@ -4,10 +4,15 @@ import androidx.compose.foundation.shape.CircleShape
 import com.winlator.cmod.ui.components.glassBadgeFill
 import com.winlator.cmod.ui.components.glassSliderColors
 import com.winlator.cmod.ui.components.GlassSwitch
+import com.winlator.cmod.ui.components.GlassAlertDialog
 import com.winlator.cmod.ui.components.glassAccent
+import com.winlator.cmod.ui.components.glassDescColor
 import com.winlator.cmod.ui.components.GlassPill
+import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.GlassFieldShape
 import com.winlator.cmod.ui.components.glassFieldColors
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -49,6 +54,7 @@ import com.winlator.cmod.container.ContainerManager
 import com.winlator.cmod.container.Shortcut
 import com.winlator.cmod.core.MmkvPreferences
 import com.winlator.cmod.core.AppUtils
+import com.winlator.cmod.core.FileUtils
 import com.winlator.cmod.core.StringUtils
 import com.winlator.cmod.core.WineInfo
 import com.winlator.cmod.inputcontrols.ControlsProfile
@@ -67,9 +73,147 @@ import com.winlator.cmod.box86_64.rc.RCManager
 import com.winlator.cmod.box86_64.rc.RCFile
 import com.winlator.cmod.midi.MidiManager
 import com.winlator.cmod.contentdialog.ShortcutSettingsDialog
+import com.winlator.cmod.saves.CustomFilePickerActivity
+import com.winlator.cmod.xenvironment.ImageFs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
+
+/**
+ * Копия каталога между контейнерами (рекурсивно), без папки Desktop:
+ * в ней лежат .desktop-ярлыки, и копирование перетащило бы в целевой
+ * контейнер ярлыки всех остальных игр.
+ */
+private fun copyProfileDir(src: File, dst: File) {
+    if (!src.exists()) return
+    if (src.isDirectory) {
+        if (!dst.exists() && !dst.mkdirs()) return
+        val children = src.listFiles() ?: return
+        for (child in children) {
+            val skip = child.isDirectory &&
+                child.parentFile == src &&
+                child.name.equals("Desktop", ignoreCase = true)
+            if (skip) continue
+            copyProfileDir(child, File(dst, child.name))
+        }
+    } else {
+        FileUtils.copy(src, dst)
+    }
+}
+
+private fun normalizeTitleKey(s: String): String =
+    s.lowercase(Locale.ENGLISH).replace(Regex("[^a-z0-9а-я]+"), "")
+
+private fun matchesGameTitle(dirName: String, normalizedTitle: String): Boolean {
+    val n = normalizeTitleKey(dirName)
+    if (n.isEmpty()) return false
+    if (n.contains(normalizedTitle)) return true
+    // Короткие имена вида «AC» при сверке с длинным названием дают ложные
+    // совпадения, поэтому обратная сверка только для достаточно длинных имён
+    return normalizedTitle.contains(n) && n.length >= 5
+}
+
+/** Есть ли в файле/каталоге хоть один непустой файл. */
+private fun hasContent(file: File): Boolean {
+    if (file.isFile) return file.length() > 0
+    file.walkTopDown().forEach { if (it.isFile && it.length() > 0) return true }
+    return false
+}
+
+/**
+ * Компактный индекс путей сохранений из ludusavi-manifest
+ * (assets/save_manifest.json, см. tools/gen_save_manifest.mjs):
+ * нормализованное имя/installDir/exe → пути относительно drive_c.
+ */
+private object SaveManifestIndex {
+    @Volatile private var cached: org.json.JSONObject? = null
+
+    fun load(ctx: Context): org.json.JSONObject? {
+        cached?.let { return it }
+        return synchronized(this) {
+            cached ?: try {
+                val text = ctx.assets.open("save_manifest.json").bufferedReader().use { it.readText() }
+                org.json.JSONObject(text).also { cached = it }
+            } catch (_: Throwable) { null }
+        }
+    }
+}
+
+/**
+ * Перенос сохранений по базе ludusavi: название игры, installDir и имя exe
+ * ищутся в индексе, найденные пути копируются из старого контейнера в новый.
+ * @return true, если скопирован хотя бы один путь.
+ */
+private fun copySavesFromManifest(
+    ctx: Context,
+    srcDriveC: File,
+    dstDriveC: File,
+    gameTitle: String,
+    exeName: String,
+): Boolean {
+    val index = SaveManifestIndex.load(ctx) ?: return false
+    val keys = LinkedHashSet<String>()
+    normalizeTitleKey(gameTitle).takeIf { it.isNotEmpty() }?.let { keys.add(it) }
+    normalizeTitleKey(exeName).takeIf { it.isNotEmpty() }?.let { keys.add(it) }
+
+    var copiedAny = false
+    for (key in keys) {
+        val paths = index.optJSONArray(key) ?: continue
+        for (i in 0 until paths.length()) {
+            val rel = paths.optString(i) ?: continue
+            val src = File(srcDriveC, rel)
+            if (!src.exists() || !hasContent(src)) continue // пустые каталоги не считаем найденными
+            val dst = File(dstDriveC, rel)
+            try {
+                if (src.isDirectory) copyProfileDir(src, dst) else FileUtils.copy(src, dst)
+                copiedAny = true
+            } catch (_: Exception) {}
+        }
+    }
+    return copiedAny
+}
+
+/**
+ * Перенос сохранений конкретной игры. Приложение не знает, где именно игра
+ * хранит сейвы, поэтому сканируются типичные корни (AppData, Documents,
+ * Saved Games) и копируются только каталоги, чьё имя совпадает с названием
+ * игры — сохранения остальных игр не тянуться.
+ * @return true, если нашлась и скопировалась хотя бы одна папка.
+ */
+private fun copyGameSaves(srcProfile: File, dstProfile: File, gameTitle: String): Boolean {
+    val title = gameTitle.lowercase(Locale.ENGLISH).replace(Regex("[^a-z0-9а-я]+"), "")
+    if (title.isEmpty()) return false
+    var copiedAny = false
+    val roots = listOf("AppData/Roaming", "AppData/Local", "Documents", "Saved Games")
+    for (root in roots) {
+        val srcRoot = File(srcProfile, root)
+        if (!srcRoot.isDirectory) continue
+        val dstRoot = File(dstProfile, root)
+        if (!dstRoot.exists() && !dstRoot.mkdirs()) continue
+        for (entry in srcRoot.listFiles() ?: continue) {
+            if (matchesGameTitle(entry.name, title)) {
+                if (!hasContent(entry)) continue // пустые каталоги не считаем найденными
+                if (entry.isDirectory) copyProfileDir(entry, File(dstRoot, entry.name))
+                else FileUtils.copy(entry, File(dstRoot, entry.name))
+                copiedAny = true
+                continue
+            }
+            // На уровень глубже: Documents/My Games/<Игра>, AppData/<x>/<Игра>
+            if (!entry.isDirectory) continue
+            for (child in entry.listFiles() ?: continue) {
+                if (!matchesGameTitle(child.name, title)) continue
+                if (!hasContent(child)) continue
+                val dstChild = File(File(dstRoot, entry.name), child.name)
+                if (child.isDirectory) copyProfileDir(child, dstChild)
+                else FileUtils.copy(child, dstChild)
+                copiedAny = true
+            }
+        }
+    }
+    return copiedAny
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,6 +228,43 @@ fun ShortcutSettingsScreen(
     val sp = remember { MmkvPreferences() }
     val container = shortcut.container
     val isLegacyModeEnabled = remember { sp.getBoolean("legacy_mode_enabled", false) }
+    val moveScope = rememberCoroutineScope()
+    var showMovePicker by remember { mutableStateOf(false) }
+    var moveTarget by remember { mutableStateOf<Container?>(null) }
+    var movingShortcut by remember { mutableStateOf(false) }
+    // Ручной выбор папки сохранений: контекст (srcDriveC, dstDriveC, ярлык)
+    var pendingManualCopy by remember { mutableStateOf<Triple<File, File, Shortcut>?>(null) }
+    var showManualPickDialog by remember { mutableStateOf(false) }
+
+    val savesFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val pending = pendingManualCopy
+        val pickedPath = result.data?.getStringExtra("selectedDirectory")
+        if (pending == null || pickedPath == null) {
+            showManualPickDialog = false
+            AppUtils.showToast(ctx, ctx.getString(R.string.shortcut_moved_to, pending?.third?.name ?: ""))
+            onBack()
+            return@rememberLauncherForActivityResult
+        }
+        val (srcDriveC, dstDriveC, moved) = pending
+        pendingManualCopy = null
+        showManualPickDialog = false
+        moveScope.launch(Dispatchers.IO) {
+            val src = File(pickedPath)
+            val rel = src.absolutePath.removePrefix(srcDriveC.absolutePath).trim('/')
+            if (rel.isNotEmpty()) {
+                try {
+                    val dst = File(dstDriveC, rel)
+                    if (src.isDirectory) copyProfileDir(src, dst) else FileUtils.copy(src, dst)
+                    moved.putExtra("savesDir", rel)
+                    moved.saveData()
+                } catch (_: Exception) {}
+            }
+            withContext(Dispatchers.Main) {
+                AppUtils.showToast(ctx, ctx.getString(R.string.shortcut_moved_to, moved.name))
+                onBack()
+            }
+        }
+    }
 
     // Determine if Wine is arm64EC
     val wineVersion = remember { container.wineVersion }
@@ -524,7 +705,12 @@ fun ShortcutSettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 88.dp),
+                // Та же ширина карточек, что в «Редактировании контейнера»
+                .padding(
+                    start = GlassTokens.RowPaddingH,
+                    end = GlassTokens.RowPaddingH,
+                    bottom = 88.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // ---- Верхний блок: Contents ----
@@ -703,6 +889,193 @@ fun ShortcutSettingsScreen(
                         if (idx >= 0) lcAll = lcAllEntries[idx] + ".UTF-8"
                     }
                 )
+            }
+
+            // ---- Контейнер запуска ----
+            SectionCard(title = stringResource(R.string.container), icon = Icons.Filled.VideogameAsset) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !movingShortcut) { showMovePicker = true }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.VideogameAsset, null, tint = glassAccent(), modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.container_current),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(container.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    }
+                    Text(stringResource(R.string.change), color = glassAccent())
+                }
+            }
+
+            // Выбор целевого контейнера для переноса (текущий не предлагается)
+            if (showMovePicker) {
+                val otherContainers = remember(manager) {
+                    ArrayList(manager.containers.filter { it.id != shortcut.container.id })
+                }
+                ContainerPickerDialog(
+                    containers = otherContainers,
+                    onDismiss = { showMovePicker = false },
+                    onPick = { target ->
+                        showMovePicker = false
+                        moveTarget = target
+                    },
+                )
+            }
+
+            // Подтверждение переноса
+            moveTarget?.let { target ->
+                val targetIsArm64EC = remember(target) {
+                    WineInfo.fromIdentifier(ctx, contentsManager, target.wineVersion).isArm64EC()
+                }
+                val archMismatch = targetIsArm64EC != isArm64EC
+                var copySaves by remember(target) { mutableStateOf(true) }
+                var inheritContainer by remember(target) { mutableStateOf(true) }
+                GlassAlertDialog(
+                    onDismissRequest = { if (!movingShortcut) moveTarget = null },
+                    title = stringResource(R.string.move_shortcut_title),
+                    confirmText = stringResource(R.string.move_shortcut_confirm),
+                    dismissText = stringResource(R.string.cancel),
+                    confirmEnabled = !movingShortcut,
+                    dismissEnabled = !movingShortcut,
+                    onConfirm = {
+                        movingShortcut = true
+                        moveScope.launch(Dispatchers.IO) {
+                            // На wine другой архитектуры переопределения эмулятора
+                            // не действуют — сбрасываем на значения контейнера
+                            val drop = if (archMismatch) setOf(
+                                "emulator", "fexcoreVersion", "fexcorePreset",
+                                "useUnixLibs", "box64Version",
+                            ) else null
+                            val moved = shortcut.moveToContainer(target, drop, inheritContainer)
+                            if (moved == null) {
+                                withContext(Dispatchers.Main) {
+                                    movingShortcut = false
+                                    moveTarget = null
+                                    AppUtils.showToast(ctx, R.string.move_shortcut_fail)
+                                }
+                                return@launch
+                            }
+                            if (copySaves) {
+                                var copied = false
+                                val srcDriveC = File(container.rootDir, ".wine/drive_c")
+                                val dstDriveC = File(target.rootDir, ".wine/drive_c")
+                                try {
+                                    // 0) Папка, указанная вручную при прошлом переносе
+                                    val storedRel = moved.getExtra("savesDir")
+                                    if (!storedRel.isNullOrEmpty()) {
+                                        val src = File(srcDriveC, storedRel)
+                                        if (src.exists() && hasContent(src)) {
+                                            val dst = File(dstDriveC, storedRel)
+                                            if (src.isDirectory) copyProfileDir(src, dst) else FileUtils.copy(src, dst)
+                                            copied = true
+                                        }
+                                    }
+                                    // 1) Точный перенос по базе ludusavi
+                                    if (!copied) {
+                                        copied = copySavesFromManifest(
+                                            ctx, srcDriveC, dstDriveC,
+                                            moved.name,
+                                            moved.resolveExeFile()?.nameWithoutExtension ?: "",
+                                        )
+                                    }
+                                    // 2) Фолбэк: типичные корни по имени игры
+                                    if (!copied) {
+                                        val srcProfile = File(srcDriveC, "users/" + ImageFs.USER)
+                                        val dstProfile = File(dstDriveC, "users/" + ImageFs.USER)
+                                        if (srcProfile.exists()) {
+                                            copied = copyGameSaves(srcProfile, dstProfile, moved.name)
+                                        }
+                                    }
+                                } catch (_: Exception) { copied = false }
+                                if (!copied) {
+                                    // 3) Ничего не нашли — предлагаем указать папку вручную.
+                                    // Подтверждение переноса закрываем: сам ярлык уже перенесён
+                                    withContext(Dispatchers.Main) {
+                                        movingShortcut = false
+                                        moveTarget = null
+                                        pendingManualCopy = Triple(srcDriveC, dstDriveC, moved)
+                                        showManualPickDialog = true
+                                    }
+                                    return@launch // завершение — после ручного выбора/пропуска
+                                }
+                            }
+                            withContext(Dispatchers.Main) {
+                                movingShortcut = false
+                                moveTarget = null
+                                AppUtils.showToast(ctx, ctx.getString(R.string.shortcut_moved_to, target.name))
+                                onBack()
+                            }
+                        }
+                    },
+                    onDismiss = { moveTarget = null },
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.move_shortcut_hint, target.name),
+                            color = glassDescColor(),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (archMismatch) {
+                            Text(
+                                stringResource(R.string.move_warning_arch),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = copySaves, onCheckedChange = { copySaves = it }, enabled = !movingShortcut)
+                            Text(stringResource(R.string.move_copy_saves))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = inheritContainer, onCheckedChange = { inheritContainer = it }, enabled = !movingShortcut)
+                            Text(stringResource(R.string.inherit_container_settings))
+                        }
+                        if (movingShortcut) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                Text(stringResource(R.string.saves_migrating), color = glassDescColor(), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Ручной выбор папки сохранений, если автопоиск не справился
+            if (showManualPickDialog) {
+                pendingManualCopy?.let { pending ->
+                    GlassAlertDialog(
+                        onDismissRequest = { },
+                        title = stringResource(R.string.saves_manual_title),
+                        confirmText = stringResource(R.string.pick_folder),
+                        dismissText = stringResource(R.string.skip),
+                        onConfirm = {
+                            showManualPickDialog = false
+                            val intent = Intent(ctx, CustomFilePickerActivity::class.java)
+                                .putExtra("initialDirectory", pending.first.absolutePath)
+                            savesFolderPicker.launch(intent)
+                        },
+                        onDismiss = {
+                            val (_, _, moved) = pending
+                            pendingManualCopy = null
+                            showManualPickDialog = false
+                            AppUtils.showToast(ctx, ctx.getString(R.string.shortcut_moved_to, moved.name))
+                            onBack()
+                        },
+                    ) {
+                        Text(
+                            stringResource(R.string.saves_manual_hint, pending.third.name),
+                            color = glassDescColor(),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
             }
 
             // ---- Tab Layout ----

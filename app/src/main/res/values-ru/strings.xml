@@ -941,6 +941,23 @@
     <string name="secondary_executable">Путь:</string>
     <string name="select_container">Выберите контейнер:</string>
     <string name="select_container_first">Пожалуйста, выберите контейнер, содержащий ваше сохранение.</string>
+
+    <!-- Перенос ярлыка между контейнерами -->
+    <string name="container_current">Контейнер запуска</string>
+    <string name="move_shortcut_title">Перенос в контейнер</string>
+    <string name="move_shortcut_hint">Ярлык будет запускаться из %1$s. Сохранения можно перенести в него.</string>
+    <string name="move_copy_saves">Перенести сохранения</string>
+    <string name="inherit_container_settings">Наследовать настройки контейнера</string>
+    <string name="move_warning_arch">В целевом контейнере другая архитектура Wine — несовместимые переопределения (FEXCore/wowbox64) будут сброшены на значения контейнера.</string>
+    <string name="move_shortcut_confirm">Перенести</string>
+    <string name="move_shortcut_fail">Не удалось переместить ярлык</string>
+    <string name="shortcut_moved_to">Ярлык перемещён в %1$s</string>
+    <string name="saves_migrating">Перенос сохранений…</string>
+    <string name="saves_not_found_auto">Папка сохранений не найдена — перенеси вручную через «Сохранения»</string>
+    <string name="saves_manual_title">Сохранения не найдены</string>
+    <string name="saves_manual_hint">Не удалось автоматически найти сохранения «%1$s». Укажи папку с сохранениями в старом контейнере вручную, либо пропусти.</string>
+    <string name="pick_folder">Указать папку</string>
+    <string name="skip">Пропустить</string>
     <string name="select_directory">Выберите папку сохранения</string>
     <string name="select_graphics_driver_version">Выберите версию графического драйвера:</string>
     <string name="select_profile">Выберите профиль</string>

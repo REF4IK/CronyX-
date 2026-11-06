@@ -33,6 +33,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 /**
  * Стеклянная система в стиле GameHub: полупрозрачные панели со светящейся
@@ -845,5 +847,60 @@ fun Modifier.glassAlwaysDivider(): Modifier {
             topLeft = Offset(insetPx, size.height - 1.dp.toPx()),
             size = Size(size.width - insetPx, 1.dp.toPx()),
         )
+    }
+}
+/**
+ * Диалог в стекло-стиле: стеклянная панель вместо стандартной серой M3,
+ * заголовок, свой контент и кнопки подтверждения/отмены.
+ */
+@Composable
+fun GlassAlertDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    confirmText: String,
+    onConfirm: () -> Unit,
+    dismissText: String,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    confirmEnabled: Boolean = true,
+    dismissEnabled: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = modifier.fillMaxWidth().padding(16.dp),
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            color = glassSheetFill(),
+            contentColor = glassTitleColor(),
+            border = glassCardBorder(),
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = glassTitleColor(),
+                )
+                Spacer(Modifier.height(16.dp))
+                content()
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onDismiss, enabled = dismissEnabled) {
+                        Text(dismissText, color = glassValueColor())
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(onClick = onConfirm, enabled = confirmEnabled) {
+                        Text(confirmText, color = glassAccent(), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }

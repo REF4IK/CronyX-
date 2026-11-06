@@ -958,6 +958,23 @@
     <string name="secondary_executable">Path:</string>
     <string name="select_container">Target Container:</string>
     <string name="select_container_first">Please select the container containing your save.</string>
+
+    <!-- Shortcut container move -->
+    <string name="container_current">Launch container</string>
+    <string name="move_shortcut_title">Move to container</string>
+    <string name="move_shortcut_hint">The shortcut will launch from %1$s. Its saves can be carried over.</string>
+    <string name="move_copy_saves">Transfer saves</string>
+    <string name="inherit_container_settings">Inherit container settings</string>
+    <string name="move_warning_arch">Target container runs a different Wine architecture — incompatible overrides (FEXCore/wowbox64) will be reset to container defaults.</string>
+    <string name="move_shortcut_confirm">Move</string>
+    <string name="move_shortcut_fail">Failed to move shortcut</string>
+    <string name="shortcut_moved_to">Shortcut moved to %1$s</string>
+    <string name="saves_migrating">Transferring saves…</string>
+    <string name="saves_not_found_auto">Save folder not found — transfer it manually via Saves</string>
+    <string name="saves_manual_title">Saves not found</string>
+    <string name="saves_manual_hint">Could not locate saves of \"%1$s\" automatically. Pick the save folder in the old container manually, or skip.</string>
+    <string name="pick_folder">Pick folder</string>
+    <string name="skip">Skip</string>
     <string name="select_directory">Select your save directory</string>
     <string name="select_graphics_driver_version">Select Graphics Driver Version:</string>
     <string name="select_profile">Select Profile</string>

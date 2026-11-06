@@ -380,6 +380,127 @@ import java.nio.file.Files;
         public int getContainerId() {
             return container.id;
         }
+
+        /** Игровые данные ярлыка, которые не зависят от контейнера и переживают перенос. */
+        private static final java.util.Set<String> MOVE_KEEP_EXTRAS = new java.util.HashSet<>(java.util.Arrays.asList(
+                "uuid", "customIconPath", "customCoverArtPath", "execArgs", "secondaryExec", "execDelay",
+                "simTouchScreen", "forceFullscreen", "fullscreenStretched", "controlsProfile",
+                "sharpnessEffect", "sharpnessLevel", "sharpnessDenoise", "savesDir"
+        ));
+
+        /**
+         * Перенос ярлыка в другой контейнер: копия с новым container_id + иконки
+         * и обложки, затем удаление исходного .desktop (и рядом лежащего .lnk).
+         * Ключи из dropExtras выбрасываются из [Extra Data] — так чистятся
+         * переопределения, несовместимые с wine другой архитектуры.
+         * resetToContainerDefaults выбрасывает и все остальные переопределения —
+         * ярлык полностью наследует настройки целевого контейнера.
+         * @return ярлык, привязанный к новому контейнеру, или null при ошибке.
+         */
+        public Shortcut moveToContainer(Container newContainer, java.util.Set<String> dropExtras, boolean resetToContainerDefaults) {
+            try {
+                if (newContainer == null || newContainer.id == container.id) return null;
+                File oldRoot = container.getRootDir();
+                File newRoot = newContainer.getRootDir();
+
+                File newShortcutFile = new File(newContainer.getDesktopDir(), this.file.getName());
+                // В свежем контейнере префикса ещё нет — папку Desktop создаём
+                File desktopDir = newShortcutFile.getParentFile();
+                if (desktopDir != null && !desktopDir.exists() && !desktopDir.mkdirs()) {
+                    Log.e("Shortcut", "Failed to create desktop dir: " + desktopDir.getPath());
+                    return null;
+                }
+                StringBuilder updatedContent = new StringBuilder();
+                boolean containerIdFound = false;
+                String section = "";
+
+                for (String line : FileUtils.readLines(this.file)) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("[")) {
+                        section = trimmed.substring(1, trimmed.indexOf("]"));
+                        updatedContent.append(line).append("\n");
+                        continue;
+                    }
+                    if (trimmed.startsWith("container_id:")) {
+                        updatedContent.append("container_id:").append(newContainer.id).append("\n");
+                        containerIdFound = true;
+                        continue;
+                    }
+
+                    int index = trimmed.indexOf("=");
+                    if (index != -1) {
+                        String key = trimmed.substring(0, index);
+                        String value = trimmed.substring(index + 1);
+                        boolean isExtra = section.equals("Extra Data");
+                        if (isExtra && dropExtras != null && dropExtras.contains(key)) continue;
+                        if (isExtra && resetToContainerDefaults && !MOVE_KEEP_EXTRAS.contains(key)) continue;
+
+                        // Абсолютные пути внутрь старого контейнера переписываем на новый
+                        if (value.startsWith(oldRoot.getAbsolutePath())) {
+                            String newPath = newRoot.getAbsolutePath() + value.substring(oldRoot.getAbsolutePath().length());
+                            // Файл рядом с путём ещё не скопирован — скопируем ниже
+                            updatedContent.append(key).append("=").append(newPath).append("\n");
+                            continue;
+                        }
+                    }
+                    updatedContent.append(line).append("\n");
+                }
+
+                if (!containerIdFound) {
+                    updatedContent.append("container_id:").append(newContainer.id).append("\n");
+                }
+
+                // Пока запись не удалась — исходник не трогаем
+                if (!FileUtils.writeString(newShortcutFile, updatedContent.toString())) {
+                    Log.e("Shortcut", "Failed to write shortcut to: " + newShortcutFile.getPath());
+                    return null;
+                }
+
+                // Иконки и обложки
+                if (this.iconFile != null && this.iconFile.isFile()) {
+                    FileUtils.copy(this.iconFile, new File(newContainer.getIconsDir(64), this.iconFile.getName()));
+                }
+
+                File customIconSrc = this.customIconPath != null && !this.customIconPath.isEmpty() ? new File(this.customIconPath) : null;
+                if (customIconSrc != null && customIconSrc.isFile()) {
+                    File newIconDir = new File(newRoot, ICON_DIR);
+                    if (!newIconDir.exists()) newIconDir.mkdirs();
+                    FileUtils.copy(customIconSrc, new File(newIconDir, this.name + ".png"));
+                }
+
+                File coverArtSrc = new File(new File(oldRoot, COVER_ART_DIR), this.name + ".png");
+                if (coverArtSrc.isFile()) {
+                    File newCoverDir = new File(newRoot, COVER_ART_DIR);
+                    if (!newCoverDir.exists()) newCoverDir.mkdirs();
+                    FileUtils.copy(coverArtSrc, new File(newCoverDir, this.name + ".png"));
+                }
+                if (this.customCoverArtPath != null && !this.customCoverArtPath.isEmpty()) {
+                    File customCoverSrc = new File(this.customCoverArtPath);
+                    if (customCoverSrc.isFile() && customCoverSrc.getAbsolutePath().startsWith(oldRoot.getAbsolutePath())) {
+                        File newCoverDir = new File(newRoot, COVER_ART_DIR);
+                        if (!newCoverDir.exists()) newCoverDir.mkdirs();
+                        FileUtils.copy(customCoverSrc, new File(newCoverDir, customCoverSrc.getName()));
+                    }
+                }
+
+                // Исходник: .desktop и рядом .lnk с тем же базовым именем
+                if (!this.file.delete()) {
+                    Log.e("Shortcut", "Failed to delete source shortcut: " + this.file.getPath());
+                }
+                String baseName = this.file.getName();
+                if (baseName.endsWith(".desktop")) {
+                    File lnk = new File(this.file.getParentFile(), baseName.substring(0, baseName.length() - ".desktop".length()) + ".lnk");
+                    if (lnk.isFile() && !lnk.delete()) {
+                        Log.e("Shortcut", "Failed to delete source lnk: " + lnk.getPath());
+                    }
+                }
+
+                return new Shortcut(newContainer, newShortcutFile);
+            } catch (Exception e) {
+                Log.e("Shortcut", "Failed to move shortcut to new container", e);
+                return null;
+            }
+        }
          
         public String getExecutable() {
             String exe = "";
