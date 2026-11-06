@@ -609,7 +609,7 @@ public class ControlElement {
                     }
 
                     float gradR = Math.max(boundingBox.width(), boundingBox.height()) * 0.5f;
-                    drawGlassPath(canvas, paint, path, cx, cy, gradR, engaged ? g[5] : g[4], boundingBox, snappingSize);
+                    drawGlassPath(canvas, paint, path, cx, cy, gradR, 255, boundingBox, snappingSize);
 
                     if (!hideBorder) {
                         paint.setShader(null);
@@ -822,7 +822,12 @@ public class ControlElement {
 
     private static Shader getEdgeShadeShader() {
         if (edgeShadeShader == null) {
-            edgeShadeShader = new RadialGradient(0f, 0f, 1f, 0x00000000, 0xFF000000, Shader.TileMode.CLAMP);
+            // Стеклянный блик: светлая грань сверху, прозрачно-тёмное тело снизу —
+            // как панели меню XServer, а не плоская радиальная виньетка
+            edgeShadeShader = new LinearGradient(0f, -1f, 0f, 1f,
+                new int[] {0x22FFFFFF, 0x00FFFFFF, 0x16000000},
+                new float[] {0f, 0.45f, 1f},
+                Shader.TileMode.CLAMP);
         }
         return edgeShadeShader;
     }
@@ -863,11 +868,13 @@ public class ControlElement {
             : 0.78f + (overlayOpacity - 0.4f) * (0.22f / 0.6f);
         boolean hasAccent = borderColor != Color.TRANSPARENT;
 
-        int fillAlpha = (int)(90 * dim * effectiveOpacity);
-        int strokeAlpha = (int)(150 * dim * effectiveOpacity);
+        // Плотное тёмное стекло, как панели меню XServer: заметная заливка,
+        // мягкая белая грань; нажатие — чуть светлее и ярче в обводке
+        int fillAlpha = (int)(120 * dim * effectiveOpacity);
+        int strokeAlpha = (int)(85 * dim * effectiveOpacity);
         int glassEdgeAlpha = (int)(75 * dim * effectiveOpacity);
-        int pressedFillAlpha = (int)(90 * dim * effectiveOpacity);
-        int pressedStrokeAlpha = (int)(220 * dim * effectiveOpacity);
+        int pressedFillAlpha = (int)(150 * dim * effectiveOpacity);
+        int pressedStrokeAlpha = (int)(235 * dim * effectiveOpacity);
 
         return new int[] {
             Color.argb(fillAlpha, 0, 0, 0),
@@ -897,12 +904,13 @@ public class ControlElement {
                     drawBodyShape(canvas, paint, boundingBox, snappingSize);
                 }
 
-                drawGlassShape(canvas, paint, boundingBox, snappingSize, engaged ? g[5] : g[4]);
+                // Блик целиком: альфа зашита в самом градиенте
+                drawGlassShape(canvas, paint, boundingBox, snappingSize, 255);
 
                 if (!hideBorder) {
                     paint.setShader(null);
                     paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(Math.max(2f, snappingSize * 0.18f));
+                    paint.setStrokeWidth(Math.max(2f, snappingSize * 0.14f));
                     paint.setStrokeJoin(Paint.Join.ROUND);
                     paint.setStrokeCap(Paint.Cap.ROUND);
                     paint.setColor(engaged ? g[3] : g[1]);
