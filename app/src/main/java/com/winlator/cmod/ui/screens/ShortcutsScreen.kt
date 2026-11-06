@@ -139,7 +139,7 @@ fun ShortcutsScreen(
     refreshKey: Int = 0,
     isGridView: Boolean = true,
     onToggleView: () -> Unit = {},
-    onImportGame: (Container) -> Unit = {},
+    onImportGame: () -> Unit = {},
     onOpenShortcutSettings: (Shortcut) -> Unit = {},
     onBack: () -> Unit = {},
     onShowSteamInfo: (Boolean) -> Unit = {},
@@ -164,8 +164,6 @@ fun ShortcutsScreen(
     }
 
     val manager = remember(refreshKey, refreshKeyInternal) { ContainerManager(ctx) }
-    var showContainerPicker by remember { mutableStateOf(false) }
-    var pendingImport by remember { mutableStateOf(false) }
     var shortcutForClone by remember { mutableStateOf<Shortcut?>(null) }
     var showPublishDialog by remember { mutableStateOf<Shortcut?>(null) }
     var isPublishing by remember { mutableStateOf(false) }
@@ -183,11 +181,10 @@ fun ShortcutsScreen(
         manager.loadShortcuts()
     }
 
-    BackHandler(enabled = showContainerPicker || shortcutForSteamInfo != null || showCommunityConfigs) {
+    BackHandler(enabled = shortcutForSteamInfo != null || showCommunityConfigs) {
         when {
             showCommunityConfigs -> showCommunityConfigs = false
             shortcutForSteamInfo != null -> shortcutForSteamInfo = null
-            showContainerPicker -> showContainerPicker = false
         }
     }
 
@@ -253,10 +250,7 @@ Column(modifier = Modifier.fillMaxSize()) {
         }
 
         FloatingActionButton(
-            onClick = {
-                pendingImport = true
-                showContainerPicker = true
-            },
+            onClick = onImportGame,
             // FAB без shape берёт shapes.large (26dp) — был квадратом
             shape = CircleShape,
             containerColor = MaterialTheme.colorScheme.primary,
@@ -268,26 +262,6 @@ Column(modifier = Modifier.fillMaxSize()) {
         }
     }
     } // Column wrapper end
-
-    // Диалог выбора контейнера
-    if (showContainerPicker) {
-        ContainerPickerDialog(
-            containers = manager.containers,
-            onDismiss = { showContainerPicker = false; pendingImport = false },
-            onPick = { container ->
-                showContainerPicker = false
-                if (pendingImport) {
-                    pendingImport = false
-                    onImportGame(container)
-                } else {
-                    pendingImport = false
-                    AppUtils.showToast(ctx, "Add shortcut to ${container.name}")
-                }
-            },
-        )
-    }
-
-
 
     // Диалог выбора контейнера для клонирования
     shortcutForClone?.let { s ->

@@ -1631,7 +1631,9 @@
     <string name="import_to_library">Import to library</string>
     <string name="scan_pick_folder">Nothing found? Pick a folder</string>
     <string name="imported_status">Imported</string>
+    <string name="in_container_suffix">in %1$s</string>
     <string name="scan_done_btn">Done</string>
+    <string name="select_container_for_import">Select a container first</string>
 
     <!-- Import Game Dialog -->
     <string name="description_optional">Description (optional)</string>

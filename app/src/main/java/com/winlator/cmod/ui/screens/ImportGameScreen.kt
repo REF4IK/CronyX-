@@ -78,7 +78,7 @@ private enum class ImportStep { SHEET, BROWSER, CONFIRM, SCANNING, RESULTS }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportGameScreen(
-    container: Container,
+    initialContainerId: Int = -1,
     onBack: () -> Unit,
     onDone: (Shortcut) -> Unit = {},
 ) {
@@ -91,7 +91,10 @@ fun ImportGameScreen(
     var exeIcon by remember { mutableStateOf<Bitmap?>(null) }
     var step by remember { mutableStateOf(ImportStep.SHEET) }
     var showContainerPicker by remember { mutableStateOf(false) }
-    var selectedContainer by remember { mutableStateOf(container) }
+    // Контейнер выбирается в листе «Добавить»; по умолчанию — запрошенный или первый
+    var selectedContainer by remember {
+        mutableStateOf(manager.getContainerById(initialContainerId) ?: manager.containers.firstOrNull())
+    }
     var browserFromResults by remember { mutableStateOf(false) }
     var scanResults by remember { mutableStateOf<List<File>>(emptyList()) }
 
@@ -107,7 +110,7 @@ fun ImportGameScreen(
     when (step) {
         ImportStep.SHEET -> {
             AddGameSheet(
-                containerName = selectedContainer.name,
+                containerName = selectedContainer?.name ?: "—",
                 onClose = onBack,
                 onChangeContainer = { showContainerPicker = true },
                 onAutoSearch = { step = ImportStep.SCANNING },
@@ -150,6 +153,9 @@ fun ImportGameScreen(
                 exePath = exePath,
                 exeIcon = exeIcon,
                 selectedContainer = selectedContainer,
+                onContainerMissing = {
+                    AppUtils.showToast(ctx, R.string.select_container_for_import)
+                },
                 onChangeContainer = { showContainerPicker = true },
                 onChangeExe = { step = ImportStep.BROWSER },
                 onBack = { step = ImportStep.BROWSER },
@@ -171,6 +177,9 @@ fun ImportGameScreen(
             ScanResultsScreen(
                 files = scanResults,
                 container = selectedContainer,
+                onContainerMissing = {
+                    AppUtils.showToast(ctx, R.string.select_container_for_import)
+                },
                 onChangeContainer = { showContainerPicker = true },
                 onPickFolder = {
                     browserFromResults = true
@@ -204,10 +213,11 @@ private fun AddGameSheet(
     onPickExe: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize()) {
+        // Затемнение слабое: под листом должен быть виден экран «Ярлыки»
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(Color.Black.copy(alpha = 0.25f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -402,16 +412,31 @@ private fun ScanningScreen(onDone: (List<File>) -> Unit) {
 @Composable
 private fun ScanResultsScreen(
     files: List<File>,
-    container: Container,
+    container: Container?,
+    onContainerMissing: () -> Unit,
     onChangeContainer: () -> Unit,
     onPickFolder: () -> Unit,
     onFinish: () -> Unit,
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    var selected by remember { mutableStateOf(files.map { it.absolutePath }.toHashSet()) }
     val imported = remember { mutableStateListOf<String>() }
     var importing by remember { mutableStateOf(false) }
+    // Где какие exe уже добавлены: путь → имя контейнера ярлыка
+    var alreadyMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    LaunchedEffect(Unit) {
+        alreadyMap = withContext(Dispatchers.IO) { importedExeIds(ctx) }
+    }
+    val containerName = container?.name
+    fun importedInto(file: File): String? = alreadyMap[exeImportId(file).lowercase(Locale.ENGLISH)]
+    fun isImportedHere(file: File): Boolean =
+        file.absolutePath in imported || importedInto(file) == containerName
+
+    var selected by remember { mutableStateOf(files.map { it.absolutePath }.toHashSet()) }
+    LaunchedEffect(alreadyMap, containerName) {
+        // В выбранном контейнере уже есть — не предлагаем; в другом — можно добавить
+        selected = HashSet(files.filter { !isImportedHere(it) }.map { it.absolutePath })
+    }
 
     Column(
         modifier = Modifier
@@ -457,10 +482,13 @@ private fun ScanResultsScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(files, key = { it.absolutePath }) { file ->
+                    val into = importedInto(file)
                     ScanResultRow(
                         file = file,
                         checked = file.absolutePath in selected,
-                        imported = file.absolutePath in imported,
+                        imported = isImportedHere(file),
+                        statusContainer = into ?: if (file.absolutePath in imported) containerName else null,
+                        elsewhereContainer = into?.takeIf { it != containerName },
                         onToggle = { checked ->
                             // Новый set — иначе мутация не триггерит рекомпозицию
                             selected = HashSet(selected).apply {
@@ -486,6 +514,11 @@ private fun ScanResultsScreen(
                         return@GlassSolidPill
                     }
                     if (selected.isEmpty() || importing) return@GlassSolidPill
+                    val target = container
+                    if (target == null) {
+                        onContainerMissing()
+                        return@GlassSolidPill
+                    }
                     importing = true
                     scope.launch(Dispatchers.IO) {
                         var count = 0
@@ -496,7 +529,7 @@ private fun ScanResultsScreen(
                                 GameTitleParser.suggestName(file)?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension
                             } catch (_: Throwable) { file.nameWithoutExtension }
                             try {
-                                importExeToContainer(ctx, file, container, displayName, "")
+                                importExeToContainer(ctx, file, target, displayName, "")
                                 imported.add(path)
                                 count++
                             } catch (_: Exception) {}
@@ -529,6 +562,8 @@ private fun ScanResultRow(
     file: File,
     checked: Boolean,
     imported: Boolean,
+    statusContainer: String?,
+    elsewhereContainer: String?,
     onToggle: (Boolean) -> Unit,
 ) {
     var icon by remember(file) { mutableStateOf<Bitmap?>(null) }
@@ -592,14 +627,36 @@ private fun ScanResultRow(
                 )
             }
             if (imported) {
-                Text(
-                    text = stringResource(R.string.imported_status),
-                    color = glassDescColor(),
-                    style = MaterialTheme.typography.bodySmall,
+                // «Импортировано» + в каком контейнере, если он известен
+                Column(
+                    horizontalAlignment = Alignment.End,
                     modifier = Modifier.padding(start = 8.dp),
-                )
+                ) {
+                    Text(
+                        text = stringResource(R.string.imported_status),
+                        color = glassDescColor(),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (statusContainer != null) {
+                        Text(
+                            text = stringResource(R.string.in_container_suffix, statusContainer),
+                            color = glassDescColor(),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             } else {
-                Checkbox(checked = checked, onCheckedChange = onToggle)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Checkbox(checked = checked, onCheckedChange = onToggle)
+                    if (elsewhereContainer != null) {
+                        // Уже есть в другом контейнере — но в выбранный добавить можно
+                        Text(
+                            text = stringResource(R.string.in_container_suffix, elsewhereContainer),
+                            color = glassDescColor(),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         }
     }
@@ -607,7 +664,7 @@ private fun ScanResultRow(
 
 // Мусорные имена exe: инсталляторы, деинсталляторы, JRE, античиты, крэк-тулзы.
 private val JUNK_EXE_TOKENS = listOf(
-    "setup", "uninst", "install", "update", "patch", "redist", "vcredist", "dxsetup",
+    "setup", "unins", "install", "update", "patch", "redist", "vcredist", "dxsetup",
     "dxwebsetup", "dotnet", "javaw", "java", "javac", "javap", "jawt", "crack", "keygen",
     "activation", "reporter", "license", "unattend", "dedicated", "configurator",
 )
@@ -694,15 +751,28 @@ private fun scanForExes(): List<File> {
         val current = best[key]
         if (current == null || file.length() > current.length()) best[key] = file
     }
-    return best.values.sortedBy { it.nameWithoutExtension.lowercase(Locale.ENGLISH) }.take(100)
+
+    // Вторая склейка — по названию из PE-ресурсов: одна игра, разложенная по
+    // подпапкам (ACC.exe, launcher.exe, ...), даёт одинаковый заголовок.
+    val byTitle = LinkedHashMap<String, File>()
+    for (file in best.values) {
+        val title = (try {
+            GameTitleParser.suggestName(file)?.takeIf { it.isNotBlank() }
+        } catch (_: Throwable) { null } ?: file.nameWithoutExtension).lowercase(Locale.ENGLISH)
+        val current = byTitle[title]
+        if (current == null || file.length() > current.length()) byTitle[title] = file
+    }
+
+    return byTitle.values.sortedBy { it.nameWithoutExtension.lowercase(Locale.ENGLISH) }.take(100)
 }
 
-/** Создаёт .desktop-ярлык игры в контейнере. Общая для confirm-формы и автопоиска. */
-private fun importExeToContainer(ctx: Context, exeFile: File, container: Container, displayName: String, description: String) {
-    val absolutePath = exeFile.absolutePath
-    val fileName = exeFile.name
-    val safeName = GameTitleParser.normalizeName(displayName).ifBlank { displayName }
-    ShortcutCoverFetcher.clearCoverCache(ctx, safeName)
+/**
+ * Идентификатор exe в терминах ярлыка: «D:/путь/файл.exe» — то, что пишется
+ * в Exec после «wine ». Используется и при импорте, и при поиске уже
+ * добавленных игр, поэтому логика маппинга дисков живёт только здесь.
+ */
+private fun exeImportId(file: File): String {
+    val absolutePath = file.absolutePath
     val externalStoragePath = Environment.getExternalStorageDirectory().absolutePath
     val relativePath = absolutePath.lowercase(Locale.ENGLISH)
 
@@ -730,10 +800,41 @@ private fun importExeToContainer(ctx: Context, exeFile: File, container: Contain
             if (idx != -1) pathWOutPrefix = pathWOutPrefix.substring(idx + 15)
         }
     }
+    return "$driveLetter/$pathWOutPrefix"
+}
 
-    val execPath = pathWOutPrefix
-    val lastSlash = pathWOutPrefix.lastIndexOf("/")
-    val pathDir = if (lastSlash > 0) pathWOutPrefix.substring(0, lastSlash) else ""
+/** Пути exe, на которые уже есть ярлыки, → имя контейнера ярлыка. */
+private fun importedExeIds(ctx: Context): Map<String, String> {
+    val ids = HashMap<String, String>()
+    val manager = ContainerManager(ctx)
+    for (container in manager.containers) {
+        val dir = container.desktopDir
+        val files = dir?.listFiles { f -> f.name.endsWith(".desktop") } ?: continue
+        for (file in files) {
+            val text = try { file.readText() } catch (_: Exception) { continue }
+            for (line in text.lines()) {
+                val idx = line.indexOf(" wine ")
+                if (idx == -1) continue
+                val id = line.substring(idx + 6).trim()
+                if (id.isNotEmpty()) ids[id.lowercase(Locale.ENGLISH)] = container.name
+            }
+        }
+    }
+    return ids
+}
+
+/** Создаёт .desktop-ярлык игры в контейнере. Общая для confirm-формы и автопоиска. */
+private fun importExeToContainer(ctx: Context, exeFile: File, container: Container, displayName: String, description: String) {
+    val absolutePath = exeFile.absolutePath
+    val fileName = exeFile.name
+    val safeName = GameTitleParser.normalizeName(displayName).ifBlank { displayName }
+    ShortcutCoverFetcher.clearCoverCache(ctx, safeName)
+
+    val importId = exeImportId(exeFile)
+    val driveLetter = importId.substring(0, 2)
+    val execPath = importId.substring(3)
+    val lastSlash = execPath.lastIndexOf("/")
+    val pathDir = if (lastSlash > 0) execPath.substring(0, lastSlash) else ""
 
     val randomNum = (Math.random() * 10000).toInt()
     val iconName = "${randomNum}_$safeName.0"
@@ -776,7 +877,8 @@ private fun ImportConfirmUI(
     onDescriptionChange: (String) -> Unit,
     exePath: String,
     exeIcon: Bitmap?,
-    selectedContainer: Container,
+    selectedContainer: Container?,
+    onContainerMissing: () -> Unit,
     onChangeContainer: () -> Unit,
     onChangeExe: () -> Unit,
     onBack: () -> Unit,
@@ -898,7 +1000,7 @@ private fun ImportConfirmUI(
                 ) {
                     Icon(Icons.Filled.VideogameAsset, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(12.dp))
-                    Text(selectedContainer.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Text(selectedContainer?.name ?: "—", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     Text(stringResource(R.string.change), color = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -913,8 +1015,13 @@ private fun ImportConfirmUI(
                             AppUtils.showToast(ctx, R.string.name_and_exe_required)
                             return@GlassSolidPill
                         }
+                        val target = selectedContainer
+                        if (target == null) {
+                            onContainerMissing()
+                            return@GlassSolidPill
+                        }
                         try {
-                            importExeToContainer(ctx, File(exePath), selectedContainer, name, description)
+                            importExeToContainer(ctx, File(exePath), target, name, description)
                             AppUtils.showToast(ctx, R.string.game_imported)
                             onImported()
                         } catch (e: Exception) {

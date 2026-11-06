@@ -1612,7 +1612,9 @@
     <string name="import_to_library">Импорт в библиотеку</string>
     <string name="scan_pick_folder">Не нашли? Укажите папку</string>
     <string name="imported_status">Импортировано</string>
+    <string name="in_container_suffix">в %1$s</string>
     <string name="scan_done_btn">Готово</string>
+    <string name="select_container_for_import">Сначала выберите контейнер</string>
 
     <!-- Contents source dialog -->
     <string name="contents_source">Источник контента</string>

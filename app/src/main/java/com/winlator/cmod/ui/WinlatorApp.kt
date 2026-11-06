@@ -146,7 +146,6 @@ fun WinlatorApp(
     }
     var showContainerImportInfo by remember { mutableStateOf(false) }
     var showImportGame by remember { mutableStateOf(false) }
-    var importGameContainerId by remember { mutableStateOf(0) }
     var isShortcutsGridView by remember { mutableStateOf(true) }
     var showShortcutSettings by remember { mutableStateOf(false) }
     var shortcutSettingsShortcut by remember { mutableStateOf<Shortcut?>(null) }
@@ -432,8 +431,7 @@ fun WinlatorApp(
                         refreshKey = containersRefreshKey,
                         isGridView = isShortcutsGridView,
                         onToggleView = { isShortcutsGridView = !isShortcutsGridView },
-                        onImportGame = { container ->
-                            importGameContainerId = container.id
+                        onImportGame = {
                             showImportGame = true
                         },
                         onOpenShortcutSettings = { shortcut ->
@@ -603,13 +601,9 @@ fun WinlatorApp(
             }
             if (showImportGame) {
                 OverlayBackdrop(preferences) {
-                    val container = appContainerManager.getContainerById(importGameContainerId)
-                    if (container != null) {
-                        ImportGameScreen(
-                            container = container,
-                            onBack = { showImportGame = false; containersRefreshKey++ },
-                        )
-                    }
+                    ImportGameScreen(
+                        onBack = { showImportGame = false; containersRefreshKey++ },
+                    )
                 }
             }
             if (showShortcutSettings) {
