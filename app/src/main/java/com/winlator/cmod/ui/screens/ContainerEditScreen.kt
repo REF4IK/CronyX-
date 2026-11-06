@@ -3,6 +3,7 @@ package com.winlator.cmod.ui.screens
 import com.winlator.cmod.ui.components.GlassPill
 import com.winlator.cmod.ui.components.GlassSolidPill
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.ui.components.glassAccent
@@ -416,11 +417,17 @@ fun ContainerEditScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
-                actions = {
-
-                    IconButton(
-                                    onClick = {
-                                        saveContainer(
+                actions = {},
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    saveContainer(
                                             ctx = ctx, isEditMode = isEditMode, container = container,
                                             containerManager = containerManager, contentsManager = contentsManager,
                                             name = name,
@@ -444,16 +451,13 @@ fun ContainerEditScreen(
                                             onPreloader = { text -> showPreloader = true; preloaderText = text },
                                             onPreloaderClose = { showPreloader = false },
                                             onDone = onBack)
-                                    }) {
-                                    Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
-                                }
-
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 24.dp, end = 4.dp),
+            ) {
+                Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
+            }
         },
     ) { padding ->
         Column(

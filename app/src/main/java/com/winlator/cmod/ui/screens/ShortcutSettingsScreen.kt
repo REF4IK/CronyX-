@@ -563,14 +563,19 @@ fun ShortcutSettingsScreen(
                     }
                 },
                 actions = {
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    IconButton(
-                                        onClick = { showPublishDialog = true }) {
-                                        Icon(Icons.Filled.CloudUpload, contentDescription = stringResource(R.string.publish_config))
-                                    }
-                                    IconButton(
-                                        onClick = {
+                    IconButton(onClick = { showPublishDialog = true }) {
+                        Icon(Icons.Filled.CloudUpload, contentDescription = stringResource(R.string.publish_config))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
                                             // Rename if needed (inline, matching old ShortcutSettingsDialog.renameShortcut via reflection)
                                             val newName = name.trim()
                                         if (newName.isNotEmpty() && newName != shortcut.name) {
@@ -687,17 +692,13 @@ fun ShortcutSettingsScreen(
                                         shortcut.saveData()
                                         AppUtils.showToast(ctx, R.string.saved)
                                         onBack()
-                                    }) {
-                                    Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
-                                        }
-                                    }
-
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+            },
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 24.dp, end = 4.dp),
+            ) {
+                Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
+            }
         },
     ) { padding ->
         Column(
