@@ -21,6 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.R
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.glassDescColor
+import com.winlator.cmod.ui.components.glassTitleColor
 
 @Composable
 fun InstallerScreen(
@@ -37,78 +40,77 @@ fun InstallerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                )
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        GlassSurface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
+                .padding(horizontal = 24.dp),
         ) {
-            // App Logo
-            Image(
-                painter = painterResource(id = R.drawable.logowi),
-                contentDescription = "Winlator Logo",
-                modifier = Modifier
-                    .width(220.dp)
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Fit
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Unpacking Text Status
-            Text(
-                text = if (isFinished) stringResource(id = R.string.inst_setup_finished) else stringResource(id = R.string.installing_system_files),
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = stringResource(id = R.string.inst_please_wait),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                lineHeight = 20.sp,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Premium Linear Progress Indicator
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-            )
+                    .padding(horizontal = 24.dp, vertical = 32.dp)
+            ) {
+                // App Logo
+                Image(
+                    painter = painterResource(id = R.drawable.logowi),
+                    contentDescription = "Winlator Logo",
+                    modifier = Modifier
+                        .width(200.dp)
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Fit
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            // Percentage Text
-            Text(
-                text = "$progress%",
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+                // Unpacking Text Status
+                Text(
+                    text = if (isFinished) stringResource(id = R.string.inst_setup_finished) else stringResource(id = R.string.installing_system_files),
+                    color = glassTitleColor(),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(id = R.string.inst_please_wait),
+                    color = glassDescColor(),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Progress
+                LinearProgressIndicator(
+                    progress = { animatedProgress },
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Percentage Text
+                Text(
+                    text = "$progress%",
+                    color = glassTitleColor(),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
         }
     }
 }

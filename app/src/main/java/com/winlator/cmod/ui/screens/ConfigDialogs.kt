@@ -1,5 +1,6 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.glassAccent
 import com.winlator.cmod.ui.components.glassTitleColor
 
 import com.winlator.cmod.ui.components.glassAlwaysDivider
@@ -467,12 +468,21 @@ fun GraphicsDriverConfigDialogCompose(
                 if (showDownloadListDialog) {
                     val grouped = remember(downloadableDrivers) { downloadableDrivers.groupBy { it.repoName } }
                     val resolver = remember(context) { DriverResolver(context) }
-                    AlertDialog(
-                        onDismissRequest = { 
+                    Dialog(
+                        onDismissRequest = {
                             showDownloadListDialog = false
                             selectedRepo = null
                         },
-                        title = {
+                        properties = DialogProperties(usePlatformDefaultWidth = false),
+                    ) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            shape = RoundedCornerShape(GlassTokens.CardRadius),
+                            color = glassSheetFill(),
+                            contentColor = glassTitleColor(),
+                            border = glassCardBorder(),
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (selectedRepo != null) {
                                     IconButton(onClick = { selectedRepo = null }) {
@@ -491,8 +501,7 @@ fun GraphicsDriverConfigDialogCompose(
                                     }
                                 )
                             }
-                        },
-                        text = {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Box(modifier = Modifier.fillMaxWidth().heightIn(max = 550.dp)) {
                                 val scrollState = rememberScrollState()
                                 Column(modifier = Modifier.verticalScroll(scrollState)) {
@@ -635,17 +644,18 @@ fun GraphicsDriverConfigDialogCompose(
                                     }
                                 }
                             }
-                        },
-                        confirmButton = {},
-                        dismissButton = {
-                            TextButton(onClick = { 
-                                showDownloadListDialog = false
-                                selectedRepo = null
-                            }) {
-                                Text(stringResource(R.string.cancel))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(onClick = {
+                                    showDownloadListDialog = false
+                                    selectedRepo = null
+                                }) {
+                                    Text(stringResource(R.string.cancel), color = glassAccent())
+                                }
                             }
                         }
-                    )
+                    }
+                }
                 }
 
                 // Progress Loading Dialog
@@ -2024,6 +2034,10 @@ fun ContentDownloadDialogCompose(
     if (showDownloadListDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,
+            shape = RoundedCornerShape(GlassTokens.CardRadius),
+            containerColor = glassSheetFill(),
+            titleContentColor = glassTitleColor(),
+            textContentColor = glassTitleColor(),
             title = { Text(context.getString(R.string.download_component_title, displayName, downloadableProfiles.size)) },
             text = {
                 Box(modifier = Modifier.fillMaxWidth().heightIn(max = 550.dp)) {
