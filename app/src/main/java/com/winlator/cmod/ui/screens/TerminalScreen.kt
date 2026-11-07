@@ -1,12 +1,16 @@
 package com.winlator.cmod.ui.screens
 
+import com.winlator.cmod.ui.components.GlassSurface
+import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.glassAccent
 import com.winlator.cmod.ui.components.glassChevronColor
+import com.winlator.cmod.ui.components.glassTitleColor
 
 import com.winlator.cmod.ui.components.GlassFieldShape
 import com.winlator.cmod.ui.components.GlassBottomNavClearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -101,13 +105,12 @@ fun TerminalScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1E1E1E))
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // Simple Top Header Bar (No separate TopAppBar component to avoid extra space)
+        // Шапка в стекло-стиле: прозрачная, цвета из темы
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF2D2D2D))
                 .padding(vertical = 4.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -115,56 +118,61 @@ fun TerminalScreen(onBack: () -> Unit) {
                 Icon(
                     Icons.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = glassTitleColor()
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.terminal),
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
+                color = glassTitleColor(),
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
             )
         }
 
-        // Terminal Output Area
+        // Вывод терминала — стеклянная панель
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
+            GlassSurface(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(GlassTokens.InnerRadius),
             ) {
-                Text(
-                    text = outputText,
-                    color = Color(0xFF4AF626),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = outputText,
+                        color = Color(0xFF4AF626),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp
+                    )
+                }
             }
         }
 
-        // Command Input Row
+        // Поле ввода — прозрачная строка, стеклянное поле
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF2D2D2D))
-                .padding(8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
                 value = commandInput,
                 onValueChange = { commandInput = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(stringResource(R.string.terminal_command_hint), color = Color.Gray) },
+                placeholder = { Text(stringResource(R.string.terminal_command_hint), color = glassChevronColor()) },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontFamily = FontFamily.Monospace,
-                    color = Color.White
+                    color = glassTitleColor()
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
                     // Акцент по теме один на весь интерфейс, поэтому бордюр и
@@ -183,8 +191,8 @@ fun TerminalScreen(onBack: () -> Unit) {
                 onClick = { executeCommand(commandInput) },
                 enabled = !isExecuting && commandInput.isNotBlank(),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = Color(0xFF4AF626),
-                    disabledContentColor = Color.DarkGray
+                    contentColor = glassAccent(),
+                    disabledContentColor = glassChevronColor()
                 )
             ) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = "Run")

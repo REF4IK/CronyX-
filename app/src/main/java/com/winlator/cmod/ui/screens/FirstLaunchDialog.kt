@@ -2,6 +2,7 @@ package com.winlator.cmod.ui.screens
 
 import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.ui.components.glassCardFill
+import com.winlator.cmod.ui.components.glassSheetFill
 import com.winlator.cmod.ui.components.glassTitleColor
 import com.winlator.cmod.ui.components.GlassTokens
 import com.winlator.cmod.ui.components.glassCardBorder
@@ -70,7 +71,9 @@ fun FirstLaunchDialog(
                 .padding(24.dp),
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = glassCardFill(), contentColor = glassTitleColor()),
+            // Диалог перекрывает экран: почти непрозрачное стекло,
+            // иначе сквозь панель просвечивает текст и кнопки под ним
+            colors = CardDefaults.cardColors(containerColor = glassSheetFill(), contentColor = glassTitleColor()),
             border = glassCardBorder(),
         ) {
             Column(
