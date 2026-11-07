@@ -38,6 +38,8 @@ class XServerMenuController(private val activity: XServerDisplayActivity) {
     private val composeOverlay: ComposeView = activity.findViewById(R.id.ComposeOverlay)
     var isMenuVisible by mutableStateOf(false)
         private set
+    var isControlsEditorVisible by mutableStateOf(false)
+        private set
 
     init {
         composeOverlay.setContent {
@@ -49,6 +51,14 @@ class XServerMenuController(private val activity: XServerDisplayActivity) {
                     XServerMenuOverlay(
                         activity = activity,
                         onDismiss = { hideMenu() }
+                    )
+                } else if (isControlsEditorVisible) {
+                    com.winlator.cmod.ui.screens.InGameControlsEditorOverlay(
+                        activity = activity,
+                        onClose = {
+                            hideControlsEditor()
+                            activity.exitControlsEditMode()
+                        }
                     )
                 }
             }
@@ -76,13 +86,26 @@ class XServerMenuController(private val activity: XServerDisplayActivity) {
     }
 
     fun showMenu() {
+        isControlsEditorVisible = false
         isMenuVisible = true
         composeOverlay.visibility = View.VISIBLE
     }
 
     fun hideMenu() {
         isMenuVisible = false
-        composeOverlay.visibility = View.GONE
+        if (!isControlsEditorVisible) composeOverlay.visibility = View.GONE
+    }
+
+    /** Редактор кнопок поверх игры: тулбар, ввод не перехватывается. */
+    fun showControlsEditor() {
+        isMenuVisible = false
+        isControlsEditorVisible = true
+        composeOverlay.visibility = View.VISIBLE
+    }
+
+    fun hideControlsEditor() {
+        isControlsEditorVisible = false
+        if (!isMenuVisible) composeOverlay.visibility = View.GONE
     }
 
     fun toggleMenu() {

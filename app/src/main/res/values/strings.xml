@@ -1652,6 +1652,11 @@
     <string name="scan_done_btn">Done</string>
     <string name="select_container_for_import">Select a container first</string>
 
+    <!-- In-game controls editor -->
+    <string name="controls_edit_ingame">Edit on screen</string>
+    <string name="controls_edit_exit">Done</string>
+    <string name="no_profiles">No profiles. Create one first</string>
+
     <!-- Import Game Dialog -->
     <string name="description_optional">Description (optional)</string>
     <string name="path_to_launch_file">Path to launch file</string>

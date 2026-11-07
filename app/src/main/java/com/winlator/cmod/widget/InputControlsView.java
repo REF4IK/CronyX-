@@ -295,11 +295,12 @@ public class InputControlsView extends View {
     private void drawGrid(Canvas canvas) {
         paint.setStyle(Paint.Style.FILL);
         paint.setStrokeWidth(snappingSize * 0.0625f);
-        paint.setColor(0xff000000);
-        canvas.drawColor(Color.BLACK);
+        // Редактор поверх игры: полупрозрачная вуаль вместо непрозрачного чёрного
+        paint.setColor(0x73000000);
+        canvas.drawColor(0x73000000);
 
         paint.setAntiAlias(false);
-        paint.setColor(0xff303030);
+        paint.setColor(0x50303030);
 
         int width = getMaxWidth();
         int height = getMaxHeight();
@@ -311,7 +312,7 @@ public class InputControlsView extends View {
 
         float cx = Mathf.roundTo(width * 0.5f, snappingSize);
         float cy = Mathf.roundTo(height * 0.5f, snappingSize);
-        paint.setColor(0xff424242);
+        paint.setColor(0x60424242);
 
         for (int i = 0; i < width; i += snappingSize * 2) {
             canvas.drawLine(cx, i, cx, i + snappingSize, paint);
@@ -379,7 +380,7 @@ public class InputControlsView extends View {
         return selectedElement;
     }
 
-    private synchronized void deselectAllElements() {
+    public synchronized void deselectAllElements() {
         selectedElement = null;
         if (profile != null) {
             for (ControlElement element : profile.getElements()) element.setSelected(false);

@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -130,6 +131,15 @@ fun XPanelInput(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                         selected = profileItems[selectedProfileIdx],
                         onSelected = { selectedProfileIdx = profileItems.indexOf(it).coerceAtLeast(0) }
                     )
+                }
+                // Редактор кнопок прямо поверх игры
+                IconButton(onClick = {
+                    val editProfileId = if (selectedProfileIdx > 0) profiles[selectedProfileIdx - 1].id else 0
+                    activity.showProfileForEditing(editProfileId)
+                    onDismiss()
+                    activity.enterControlsEditMode()
+                }) {
+                    Icon(Icons.Filled.Edit, stringResource(R.string.controls_edit_ingame), tint = GameOverlayColors.Accent)
                 }
                 IconButton(onClick = {
                     val position = selectedProfileIdx

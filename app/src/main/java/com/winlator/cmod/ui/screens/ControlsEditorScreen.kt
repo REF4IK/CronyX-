@@ -267,7 +267,7 @@ private fun ToolbarIconButton(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun QuickAddControlDialog(
+internal fun QuickAddControlDialog(
     onDismiss: () -> Unit,
     onAdd: (ControlElement.Type, Binding) -> Unit,
 ) {
@@ -316,7 +316,7 @@ private fun QuickAddControlDialog(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun ElementSettingsDialog(
+internal fun ElementSettingsDialog(
     element: ControlElement,
     view: InputControlsView,
     profile: ControlsProfile,
@@ -858,7 +858,7 @@ private fun AccentChip(theme: AccentTheme, selected: Boolean, onClick: () -> Uni
 }
 
 @Composable
-private fun ThemePickerDialog(
+internal fun ThemePickerDialog(
     profile: ControlsProfile,
     view: InputControlsView,
     onChanged: () -> Unit,
@@ -930,7 +930,7 @@ private fun ThemePickerDialog(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun BindingPickerDialog(
+internal fun BindingPickerDialog(
     element: ControlElement,
     index: Int,
     view: InputControlsView,

@@ -1633,6 +1633,11 @@
     <string name="scan_done_btn">Готово</string>
     <string name="select_container_for_import">Сначала выберите контейнер</string>
 
+    <!-- Редактор кнопок поверх игры -->
+    <string name="controls_edit_ingame">Редактировать на экране</string>
+    <string name="controls_edit_exit">Готово</string>
+    <string name="no_profiles">Нет профилей. Сначала создайте профиль</string>
+
     <!-- Contents source dialog -->
     <string name="contents_source">Источник контента</string>
     <string name="custom_profile">Свой профиль</string>

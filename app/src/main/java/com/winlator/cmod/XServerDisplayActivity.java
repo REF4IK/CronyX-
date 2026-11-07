@@ -830,6 +830,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
                     && inputControlsView != null
 
+                    && !inputControlsView.isEditMode()
+
                     && !inputControlsView.isShowTouchscreenControls()) {
 
                 inputControlsView.setVisibility(View.GONE);
@@ -5868,6 +5870,43 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             if (onResultCallback != null) onResultCallback.run();
         };
         controlsEitorActivityResultLauncher.launch(intent);
+    }
+
+    /** Показать выбранный профиль на живом оверлее перед входом в редактор. */
+    public void showProfileForEditing(int profileId) {
+        if (inputControlsView == null) return;
+        ControlsProfile profile = inputControlsManager.getProfile(profileId);
+        if (profile != null) showInputControls(profile);
+    }
+
+    /** Редактор кнопок прямо поверх игры (edit-mode живого InputControlsView). */
+    public void enterControlsEditMode() {
+        if (inputControlsView == null || xserverMenuController == null) return;
+        // Профиль должен быть показан, иначе edit-mode молча ничего не делает
+        if (inputControlsView.getProfile() == null) {
+            java.util.ArrayList<ControlsProfile> profiles = inputControlsManager.getProfiles();
+            if (profiles == null || profiles.isEmpty()) {
+                AppUtils.showToast(this, R.string.no_profiles);
+                return;
+            }
+            showInputControls(profiles.get(0));
+        }
+        // Авто-скрытие кнопок не должно срабатывать во время редактирования
+        timeoutHandler.removeCallbacks(hideControlsRunnable);
+        inputControlsView.setEditMode(true);
+        inputControlsView.invalidate();
+        xserverMenuController.showControlsEditor();
+    }
+
+    /** Выход из редактора поверх игры: кнопки снова работают вручную. */
+    public void exitControlsEditMode() {
+        if (inputControlsView == null) return;
+        inputControlsView.setEditMode(false);
+        inputControlsView.deselectAllElements();
+        inputControlsView.invalidate();
+        if (xserverMenuController != null) xserverMenuController.hideControlsEditor();
+        // Вернуть авто-скрытие, если оно включено в настройках
+        startTouchscreenTimeout();
     }
 
 
