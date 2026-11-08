@@ -459,6 +459,7 @@
     <string name="fps_counter_style_glass">Панель</string>
     <string name="fps_counter_style_winlator_ludashi">Winlator Ludashi</string>
     <string name="fps_counter_style_gamenative">GameNative</string>
+    <string name="fps_counter_style_mangohud">MangoHud</string>
     <string name="fps_limit_applied">Применён лимит FPS: %s</string>
     <string name="frame_rate">Частота кадров</string>
     <string name="fullscreen_stretched">Включить полноэкранный режим (растянутый)</string>
@@ -1653,6 +1654,9 @@
     <string name="fps_short_cpu_temp">Темп. CPU</string>
     <string name="fps_short_batt_temp">Темп. бат.</string>
     <string name="fps_short_power">Питание</string>
+    <string name="fps_short_cpu_cores">Ядра CPU</string>
+    <string name="fps_short_gpu_freq">Част. GPU</string>
+    <string name="fps_short_battery_level">Заряд</string>
 
     <!-- Game Detail / Steam-style page -->
     <string name="about_game">Об игре</string>

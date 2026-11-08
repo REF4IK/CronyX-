@@ -37,6 +37,9 @@ public class FpsCounterDialog {
     private CheckBox checkboxShowCpuTemp;
     private CheckBox checkboxShowBatteryTemp;
     private CheckBox checkboxShowBatteryVoltage;
+    private CheckBox checkboxShowCpuCores;
+    private CheckBox checkboxShowGpuFreq;
+    private CheckBox checkboxShowBatteryLevel;
     private CheckBox checkboxHorizontalLayout;
     private Spinner spinnerCounterStyle;
     private SeekBar seekbarBackgroundOpacity;
@@ -83,6 +86,9 @@ public class FpsCounterDialog {
         checkboxShowCpuTemp = view.findViewById(R.id.checkbox_show_cpu_temp);
         checkboxShowBatteryTemp = view.findViewById(R.id.checkbox_show_battery_temp);
         checkboxShowBatteryVoltage = view.findViewById(R.id.checkbox_show_battery_voltage);
+        checkboxShowCpuCores = view.findViewById(R.id.checkbox_show_cpu_cores);
+        checkboxShowGpuFreq = view.findViewById(R.id.checkbox_show_gpu_freq);
+        checkboxShowBatteryLevel = view.findViewById(R.id.checkbox_show_battery_level);
         checkboxHorizontalLayout = view.findViewById(R.id.checkbox_horizontal_layout);
         spinnerCounterStyle = view.findViewById(R.id.spinner_fps_counter_style);
         seekbarBackgroundOpacity = view.findViewById(R.id.seekbar_background_opacity);
@@ -142,6 +148,15 @@ public class FpsCounterDialog {
         checkboxShowCpuTemp.setChecked(config.isModuleVisible(FpsCounterConfig.Module.CPU_TEMP));
         checkboxShowBatteryTemp.setChecked(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP));
         checkboxShowBatteryVoltage.setChecked(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE));
+        if (checkboxShowCpuCores != null) {
+            checkboxShowCpuCores.setChecked(config.isModuleVisible(FpsCounterConfig.Module.CPU_CORES));
+        }
+        if (checkboxShowGpuFreq != null) {
+            checkboxShowGpuFreq.setChecked(config.isModuleVisible(FpsCounterConfig.Module.GPU_FREQ));
+        }
+        if (checkboxShowBatteryLevel != null) {
+            checkboxShowBatteryLevel.setChecked(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL));
+        }
         checkboxHorizontalLayout.setChecked(config.isHorizontalLayout());
 
         if (spinnerCounterStyle != null) {
@@ -151,7 +166,8 @@ public class FpsCounterDialog {
                 context.getString(R.string.fps_counter_style_retro),
                 context.getString(R.string.fps_counter_style_glass),
                 context.getString(R.string.fps_counter_style_winlator_ludashi),
-                context.getString(R.string.fps_counter_style_gamenative)
+                context.getString(R.string.fps_counter_style_gamenative),
+                context.getString(R.string.fps_counter_style_mangohud)
             };
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 context,
@@ -234,6 +250,9 @@ public class FpsCounterDialog {
         checkboxShowCpuTemp.setEnabled(enabled);
         checkboxShowBatteryTemp.setEnabled(enabled);
         checkboxShowBatteryVoltage.setEnabled(enabled);
+        if (checkboxShowCpuCores != null) checkboxShowCpuCores.setEnabled(enabled);
+        if (checkboxShowGpuFreq != null) checkboxShowGpuFreq.setEnabled(enabled);
+        if (checkboxShowBatteryLevel != null) checkboxShowBatteryLevel.setEnabled(enabled);
         if (spinnerCounterStyle != null) spinnerCounterStyle.setEnabled(enabled);
     }
 
@@ -250,6 +269,15 @@ public class FpsCounterDialog {
         config.setModuleVisible(FpsCounterConfig.Module.CPU_TEMP, checkboxShowCpuTemp.isChecked());
         config.setModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP, checkboxShowBatteryTemp.isChecked());
         config.setModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE, checkboxShowBatteryVoltage.isChecked());
+        if (checkboxShowCpuCores != null) {
+            config.setModuleVisible(FpsCounterConfig.Module.CPU_CORES, checkboxShowCpuCores.isChecked());
+        }
+        if (checkboxShowGpuFreq != null) {
+            config.setModuleVisible(FpsCounterConfig.Module.GPU_FREQ, checkboxShowGpuFreq.isChecked());
+        }
+        if (checkboxShowBatteryLevel != null) {
+            config.setModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL, checkboxShowBatteryLevel.isChecked());
+        }
         config.setHorizontalLayout(checkboxHorizontalLayout.isChecked());
         if (spinnerCounterStyle != null) {
             config.setCounterStyle(spinnerCounterStyle.getSelectedItemPosition());

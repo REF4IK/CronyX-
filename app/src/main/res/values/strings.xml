@@ -470,6 +470,7 @@
     <string name="fps_counter_style_glass">Glass</string>
     <string name="fps_counter_style_winlator_ludashi">Winlator Ludashi</string>
     <string name="fps_counter_style_gamenative">GameNative</string>
+    <string name="fps_counter_style_mangohud">MangoHud</string>
     <string name="fps_limit_applied">FPS limit applied: %s</string>
     <string name="frame_rate">Frame Rate</string>
     <string name="fullscreen_stretched">Enable Fullscreen (Stretched)</string>
@@ -1608,6 +1609,9 @@
     <string name="fps_short_cpu_temp">CPU Temp</string>
     <string name="fps_short_batt_temp">Batt Temp</string>
     <string name="fps_short_power">Power</string>
+    <string name="fps_short_cpu_cores">CPU Cores</string>
+    <string name="fps_short_gpu_freq">GPU Freq</string>
+    <string name="fps_short_battery_level">Battery</string>
 
     <!-- Contents source dialog -->
     <string name="contents_source">Contents Source</string>

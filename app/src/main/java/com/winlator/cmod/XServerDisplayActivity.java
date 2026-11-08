@@ -2030,6 +2030,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             fps.put("show_cpu_temp", fpsCounterConfig.isModuleVisible(FpsCounterConfig.Module.CPU_TEMP));
             fps.put("show_battery_temp", fpsCounterConfig.isModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP));
             fps.put("show_battery_voltage", fpsCounterConfig.isModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE));
+            fps.put("show_cpu_cores", fpsCounterConfig.isModuleVisible(FpsCounterConfig.Module.CPU_CORES));
+            fps.put("show_gpu_freq", fpsCounterConfig.isModuleVisible(FpsCounterConfig.Module.GPU_FREQ));
+            fps.put("show_battery_percent", fpsCounterConfig.isModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL));
             fps.put("horizontal_layout", fpsCounterConfig.isHorizontalLayout());
             fps.put("background_opacity", fpsCounterConfig.getBackgroundOpacity());
             fps.put("scale", fpsCounterConfig.getCounterScale());
@@ -2110,6 +2113,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 if (fps.has("show_cpu_temp")) fpsCounterConfig.setModuleVisible(FpsCounterConfig.Module.CPU_TEMP, fps.getBoolean("show_cpu_temp"));
                 if (fps.has("show_battery_temp")) fpsCounterConfig.setModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP, fps.getBoolean("show_battery_temp"));
                 if (fps.has("show_battery_voltage")) fpsCounterConfig.setModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE, fps.getBoolean("show_battery_voltage"));
+                if (fps.has("show_cpu_cores")) fpsCounterConfig.setModuleVisible(FpsCounterConfig.Module.CPU_CORES, fps.getBoolean("show_cpu_cores"));
+                if (fps.has("show_gpu_freq")) fpsCounterConfig.setModuleVisible(FpsCounterConfig.Module.GPU_FREQ, fps.getBoolean("show_gpu_freq"));
+                if (fps.has("show_battery_percent")) fpsCounterConfig.setModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL, fps.getBoolean("show_battery_percent"));
                 if (fps.has("horizontal_layout")) fpsCounterConfig.setHorizontalLayout(fps.getBoolean("horizontal_layout"));
                 if (fps.has("background_opacity")) fpsCounterConfig.setBackgroundOpacity(fps.getInt("background_opacity"));
                 if (fps.has("scale")) fpsCounterConfig.setCounterScale(fps.getInt("scale"));

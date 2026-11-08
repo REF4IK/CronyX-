@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.R
 import com.winlator.cmod.container.Container
+import com.winlator.cmod.core.CPUStatus
 import com.winlator.cmod.core.GPUInformation
 import com.winlator.cmod.core.SensorReader
 import com.winlator.cmod.core.StringUtils
@@ -94,6 +95,11 @@ class FrameRating @JvmOverloads constructor(
     private var cpuTempState by mutableStateOf("")
     private var batteryTempState by mutableStateOf("")
     private var batteryVoltageState by mutableStateOf("")
+    private var gpuFreqState by mutableStateOf("")
+    private var batteryPercentState by mutableStateOf("")
+    private var ramUsedGiBState by mutableStateOf("")
+    private var cpuCoreLoadStates by mutableStateOf(emptyList<Float>())
+    private var cpuCoreFreqStates by mutableStateOf(emptyList<Int>())
 
     // Graph samples state
     private val samples = mutableStateListOf<Float>().apply {
@@ -119,6 +125,9 @@ class FrameRating @JvmOverloads constructor(
     private var showCpuTemp by mutableStateOf(true)
     private var showBatteryTemp by mutableStateOf(true)
     private var showBatteryVoltage by mutableStateOf(true)
+    private var showCpuCores by mutableStateOf(true)
+    private var showGpuFreq by mutableStateOf(true)
+    private var showBatteryLevel by mutableStateOf(true)
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -207,6 +216,7 @@ class FrameRating @JvmOverloads constructor(
             FpsCounterConfig.STYLE_GLASS -> FrameRatingSidebar(activeModules, bgColor, strokeColor)
             FpsCounterConfig.STYLE_WINLATOR_LUDASHI -> FrameRatingWinlatorLudashi(activeModules)
             FpsCounterConfig.STYLE_GAMENATIVE -> FrameRatingGameNative(activeModules)
+            FpsCounterConfig.STYLE_MANGOHUD -> FrameRatingMangoHud()
             else -> FrameRatingClassic(activeModules, bgColor, strokeColor)
         }
     }
@@ -397,11 +407,14 @@ class FrameRating @JvmOverloads constructor(
         return when (type) {
             FpsCounterConfig.Module.GPU,
             FpsCounterConfig.Module.GPU_LOAD,
-            FpsCounterConfig.Module.GPU_TEMP -> ComposeColor(0xFFE040FB)
+            FpsCounterConfig.Module.GPU_TEMP,
+            FpsCounterConfig.Module.GPU_FREQ -> ComposeColor(0xFFE040FB)
             FpsCounterConfig.Module.CPU_LOAD,
-            FpsCounterConfig.Module.CPU_TEMP -> ComposeColor(0xFF00E5FF)
+            FpsCounterConfig.Module.CPU_TEMP,
+            FpsCounterConfig.Module.CPU_CORES -> ComposeColor(0xFF00E5FF)
             FpsCounterConfig.Module.BATTERY_TEMP -> ComposeColor(0xFFEF5350)
-            FpsCounterConfig.Module.BATTERY_VOLTAGE -> ComposeColor(0xFFFF8000)
+            FpsCounterConfig.Module.BATTERY_VOLTAGE,
+            FpsCounterConfig.Module.BATTERY_LEVEL -> ComposeColor(0xFFFF8000)
             FpsCounterConfig.Module.FPS -> ComposeColor(0xFF76FF03)
             FpsCounterConfig.Module.RENDERER -> ComposeColor(0xFFFFEA00)
             FpsCounterConfig.Module.RAM -> ComposeColor(0xFFB0FFB0)
@@ -414,11 +427,14 @@ class FrameRating @JvmOverloads constructor(
             FpsCounterConfig.Module.RENDERER -> 0
             FpsCounterConfig.Module.GPU,
             FpsCounterConfig.Module.GPU_LOAD,
-            FpsCounterConfig.Module.GPU_TEMP -> 1
+            FpsCounterConfig.Module.GPU_TEMP,
+            FpsCounterConfig.Module.GPU_FREQ -> 1
             FpsCounterConfig.Module.CPU_LOAD,
-            FpsCounterConfig.Module.CPU_TEMP -> 2
+            FpsCounterConfig.Module.CPU_TEMP,
+            FpsCounterConfig.Module.CPU_CORES -> 2
             FpsCounterConfig.Module.RAM -> 3
             FpsCounterConfig.Module.BATTERY_VOLTAGE,
+            FpsCounterConfig.Module.BATTERY_LEVEL,
             FpsCounterConfig.Module.BATTERY_TEMP -> 4
             FpsCounterConfig.Module.FPS -> 5
             FpsCounterConfig.Module.FRAME_TIME_GRAPH -> 6
@@ -531,13 +547,16 @@ class FrameRating @JvmOverloads constructor(
         return when (type) {
             FpsCounterConfig.Module.FPS -> ComposeColor(0xFF4CAF50)
             FpsCounterConfig.Module.CPU_LOAD,
-            FpsCounterConfig.Module.CPU_TEMP -> ComposeColor(0xFF42A5F5)
+            FpsCounterConfig.Module.CPU_TEMP,
+            FpsCounterConfig.Module.CPU_CORES -> ComposeColor(0xFF42A5F5)
             FpsCounterConfig.Module.GPU,
             FpsCounterConfig.Module.GPU_LOAD,
-            FpsCounterConfig.Module.GPU_TEMP -> ComposeColor(0xFFEF5350)
+            FpsCounterConfig.Module.GPU_TEMP,
+            FpsCounterConfig.Module.GPU_FREQ -> ComposeColor(0xFFEF5350)
             FpsCounterConfig.Module.RAM -> ComposeColor(0xFFFFEE58)
             FpsCounterConfig.Module.BATTERY_TEMP -> ComposeColor(0xFFBDBDBD)
-            FpsCounterConfig.Module.BATTERY_VOLTAGE -> ComposeColor(0xFF4DD0E1)
+            FpsCounterConfig.Module.BATTERY_VOLTAGE,
+            FpsCounterConfig.Module.BATTERY_LEVEL -> ComposeColor(0xFF4DD0E1)
             FpsCounterConfig.Module.RENDERER -> ComposeColor(0xFFA5D6A7)
             FpsCounterConfig.Module.FRAME_TIME_GRAPH -> ComposeColor(0xFF4CAF50)
         }
@@ -547,15 +566,270 @@ class FrameRating @JvmOverloads constructor(
         return when (type) {
             FpsCounterConfig.Module.FPS -> 0
             FpsCounterConfig.Module.CPU_LOAD,
-            FpsCounterConfig.Module.CPU_TEMP -> 1
+            FpsCounterConfig.Module.CPU_TEMP,
+            FpsCounterConfig.Module.CPU_CORES -> 1
             FpsCounterConfig.Module.GPU,
             FpsCounterConfig.Module.GPU_LOAD,
-            FpsCounterConfig.Module.GPU_TEMP -> 2
+            FpsCounterConfig.Module.GPU_TEMP,
+            FpsCounterConfig.Module.GPU_FREQ -> 2
             FpsCounterConfig.Module.RAM -> 3
-            FpsCounterConfig.Module.BATTERY_VOLTAGE -> 4
+            FpsCounterConfig.Module.BATTERY_VOLTAGE,
+            FpsCounterConfig.Module.BATTERY_LEVEL -> 4
             FpsCounterConfig.Module.BATTERY_TEMP -> 5
             FpsCounterConfig.Module.RENDERER -> 6
             FpsCounterConfig.Module.FRAME_TIME_GRAPH -> 7
+        }
+    }
+
+    // ── MangoHud ──
+    // Цвета по скринам MangoHud: GPU/FPS/батарея зелёные, CPU голубой, RAM фиолетовый,
+    // движок красный; значения белые, единицы мелкие серые. Вертикаль = блок строк
+    // (включая CPU0..N), горизонталь = компактный бар без строк ядер.
+
+    @Composable
+    private fun FrameRatingMangoHud() {
+        val opacity = (backgroundOpacity / 255f).coerceIn(0f, 1f)
+        val background = ComposeColor.Black.copy(alpha = opacity)
+        val valueColor = if (whiteFonts) ComposeColor.White else ComposeColor(0xFFF2F2F2)
+        val unitColor = if (whiteFonts) ComposeColor.White.copy(alpha = 0.7f) else ComposeColor(0xFF9E9E9E)
+        val gpuColor = if (whiteFonts) ComposeColor.White else ComposeColor(0xFF2ECC71)
+        val cpuColor = if (whiteFonts) ComposeColor.White else ComposeColor(0xFF29B6F6)
+        val ramColor = if (whiteFonts) ComposeColor.White else ComposeColor(0xFFAB7BF0)
+        val engineColor = if (whiteFonts) ComposeColor.White else ComposeColor(0xFFFF5252)
+        val fpsColor = gpuColor
+        val separatorColor = ComposeColor(0xFF6A6A6A)
+        val graphColor = if (whiteFonts) ComposeColor.White else ComposeColor(0xFFFF4757)
+        val graphGlow = ComposeColor(0x55FF4757)
+
+        val gpuLoadValue = gpuLoadState.trimEnd('%')
+        val gpuTempValue = gpuTempState.removeSuffix("C")
+        val cpuLoadValue = cpuLoadState.trimEnd('%')
+        val cpuTempValue = cpuTempState.removeSuffix("C")
+        val frameTimeValue = frameTimeState.removeSuffix("ms")
+        val showFrametimeText = frameTimeState != "--"
+
+        Box(
+            modifier = Modifier
+                .wrapContentSize()
+                .clip(RoundedCornerShape(6.dp))
+                .background(background)
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+        ) {
+            if (isHorizontalLayout) {
+                val items = mutableListOf<@Composable () -> Unit>()
+                if (showGpuLoad && gpuLoadValue.isNotEmpty()) {
+                    items.add {
+                        MangoRow {
+                            MangoLabel("GPU", gpuColor)
+                            MangoMetric(gpuLoadValue, "%", valueColor, unitColor)
+                            if (showGpuTemp && gpuTempValue.isNotEmpty() && gpuTempValue != "N/A") {
+                                MangoMetric(gpuTempValue, "°C", valueColor, unitColor)
+                            }
+                            if (showGpuFreq && gpuFreqState.isNotEmpty()) {
+                                MangoMetric(gpuFreqState, "MHz", valueColor, unitColor)
+                            }
+                        }
+                    }
+                }
+                if (showCpuLoad && cpuLoadValue.isNotEmpty()) {
+                    items.add {
+                        MangoRow {
+                            MangoLabel("CPU", cpuColor)
+                            MangoMetric(cpuLoadValue, "%", valueColor, unitColor)
+                            if (showCpuTemp && cpuTempValue.isNotEmpty() && cpuTempValue != "N/A") {
+                                MangoMetric(cpuTempValue, "°C", valueColor, unitColor)
+                            }
+                        }
+                    }
+                }
+                if (showRam && ramUsedGiBState.isNotEmpty()) {
+                    items.add {
+                        MangoRow {
+                            MangoLabel("RAM", ramColor)
+                            MangoMetric(ramUsedGiBState, "GiB", valueColor, unitColor)
+                        }
+                    }
+                }
+                if (showBatteryLevel && batteryPercentState.isNotEmpty()) {
+                    items.add {
+                        MangoRow {
+                            MangoLabel("BATT", fpsColor)
+                            MangoMetric(batteryPercentState, "%", valueColor, unitColor)
+                            if (showBatteryTemp && batteryTempState.isNotEmpty() && batteryTempState != "N/A") {
+                                MangoMetric(batteryTempState.removeSuffix("C"), "°C", valueColor, unitColor)
+                            }
+                        }
+                    }
+                }
+                if (showFps && fpsState.isNotEmpty()) {
+                    items.add {
+                        MangoRow {
+                            MangoLabel("FPS", fpsColor)
+                            MangoMetric(fpsState, "", valueColor, unitColor)
+                            if (showFrametimeText) {
+                                MangoMetric(frameTimeValue, "ms", valueColor, unitColor)
+                            }
+                        }
+                    }
+                }
+                if (showFrameTimeGraph) {
+                    items.add {
+                        MangoRow { FrameTimeLineGraph(lineColor = graphColor, glowColor = graphGlow) }
+                    }
+                }
+
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier.widthIn(max = maxHudWidth()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    maxItemsInEachRow = Int.MAX_VALUE
+                ) {
+                    items.forEachIndexed { index, item ->
+                        if (index > 0) {
+                            Text(
+                                text = " | ",
+                                color = separatorColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                        item()
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    if (showGpu && gpuState.isNotEmpty()) {
+                        Text(
+                            text = gpuState,
+                            color = valueColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    if (showGpuLoad && gpuLoadValue.isNotEmpty()) {
+                        MangoRow {
+                            MangoLabel("GPU", gpuColor)
+                            MangoMetric(gpuLoadValue, "%", valueColor, unitColor)
+                            if (showGpuTemp && gpuTempValue.isNotEmpty() && gpuTempValue != "N/A") {
+                                MangoMetric(gpuTempValue, "°C", valueColor, unitColor)
+                            }
+                            if (showGpuFreq && gpuFreqState.isNotEmpty()) {
+                                MangoMetric(gpuFreqState, "MHz", valueColor, unitColor)
+                            }
+                        }
+                    }
+                    if (showCpuLoad && cpuLoadValue.isNotEmpty()) {
+                        MangoRow {
+                            MangoLabel("CPU", cpuColor)
+                            MangoMetric(cpuLoadValue, "%", valueColor, unitColor)
+                            if (showCpuTemp && cpuTempValue.isNotEmpty() && cpuTempValue != "N/A") {
+                                MangoMetric(cpuTempValue, "°C", valueColor, unitColor)
+                            }
+                        }
+                    }
+                    if (showCpuCores) {
+                        val coreCount = maxOf(cpuCoreLoadStates.size, cpuCoreFreqStates.size)
+                        for (i in 0 until coreCount) {
+                            val load = cpuCoreLoadStates.getOrNull(i) ?: -1f
+                            val freq = cpuCoreFreqStates.getOrNull(i) ?: 0
+                            if (load < 0f && freq <= 0) continue
+                            MangoRow {
+                                MangoLabel("CPU$i", cpuColor)
+                                MangoMetric(
+                                    if (load >= 0f) Math.round(load).toString() else "--",
+                                    "%", valueColor, unitColor
+                                )
+                                if (freq > 0) {
+                                    MangoMetric(freq.toString(), "MHz", valueColor, unitColor)
+                                }
+                            }
+                        }
+                    }
+                    if (showRam && ramUsedGiBState.isNotEmpty()) {
+                        MangoRow {
+                            MangoLabel("RAM", ramColor)
+                            MangoMetric(ramUsedGiBState, "GiB", valueColor, unitColor)
+                        }
+                    }
+                    if (showBatteryLevel && batteryPercentState.isNotEmpty()) {
+                        MangoRow {
+                            MangoLabel("BATT", fpsColor)
+                            MangoMetric(batteryPercentState, "%", valueColor, unitColor)
+                            if (showBatteryTemp && batteryTempState.isNotEmpty() && batteryTempState != "N/A") {
+                                MangoMetric(batteryTempState.removeSuffix("C"), "°C", valueColor, unitColor)
+                            }
+                        }
+                    }
+                    if (showRenderer && rendererState.isNotEmpty()) {
+                        MangoRow {
+                            MangoLabel(rendererState, engineColor)
+                            if (showFps && fpsState.isNotEmpty()) {
+                                MangoMetric(fpsState, "FPS", valueColor, unitColor)
+                                if (showFrametimeText) {
+                                    MangoMetric(frameTimeValue, "ms", valueColor, unitColor)
+                                }
+                            }
+                        }
+                    } else if (showFps && fpsState.isNotEmpty()) {
+                        MangoRow {
+                            MangoLabel("FPS", fpsColor)
+                            MangoMetric(fpsState, "", valueColor, unitColor)
+                            if (showFrametimeText) {
+                                MangoMetric(frameTimeValue, "ms", valueColor, unitColor)
+                            }
+                        }
+                    }
+                    if (showFrameTimeGraph) {
+                        FrameTimeLineGraph(lineColor = graphColor, glowColor = graphGlow)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun MangoRow(content: @Composable RowScope.() -> Unit) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            content = content
+        )
+    }
+
+    @Composable
+    private fun RowScope.MangoLabel(text: String, color: ComposeColor) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.alignByBaseline()
+        )
+    }
+
+    @Composable
+    private fun RowScope.MangoMetric(value: String, unit: String, valueColor: ComposeColor, unitColor: ComposeColor) {
+        Text(
+            text = value,
+            color = valueColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.alignByBaseline()
+        )
+        if (unit.isNotEmpty()) {
+            Text(
+                text = unit,
+                color = unitColor,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.alignByBaseline()
+            )
         }
     }
 
@@ -999,6 +1273,15 @@ class FrameRating @JvmOverloads constructor(
         return StringUtils.formatBytes(usedMem, false)
     }
 
+    /** Использованная RAM в ГиБ (формат MangoHud "2.5GiB"), "" если недоступна. */
+    private fun getUsedRamGiB(): String {
+        if (activityManager == null) return ""
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+        val usedGiB = (memoryInfo.totalMem - memoryInfo.availMem) / 1073741824.0
+        return String.format(Locale.ENGLISH, "%.1f", usedGiB)
+    }
+
     fun reset() {
         Log.d(TAG, "Resetting FrameRating")
         renderer = null
@@ -1056,6 +1339,9 @@ class FrameRating @JvmOverloads constructor(
         showCpuTemp = config.isModuleVisible(FpsCounterConfig.Module.CPU_TEMP)
         showBatteryTemp = config.isModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP)
         showBatteryVoltage = config.isModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE)
+        showCpuCores = config.isModuleVisible(FpsCounterConfig.Module.CPU_CORES)
+        showGpuFreq = config.isModuleVisible(FpsCounterConfig.Module.GPU_FREQ)
+        showBatteryLevel = config.isModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL)
         counterStyle = config.counterStyle
         whiteFonts = config.isWhiteFonts()
         updateBackgroundOpacity()
@@ -1209,6 +1495,7 @@ class FrameRating @JvmOverloads constructor(
         }
         if (config.isModuleVisible(FpsCounterConfig.Module.RAM)) {
             ramState = "${getUsedRAM()} / $totalRAM"
+            ramUsedGiBState = getUsedRamGiB()
         }
         if (config.isModuleVisible(FpsCounterConfig.Module.CPU_LOAD)) {
             cpuLoadState = sensorReader.cpuLoad
@@ -1223,6 +1510,17 @@ class FrameRating @JvmOverloads constructor(
             refreshBatteryCurrent()
             val powerWatts = getBatteryPowerWatts()
             batteryVoltageState = if (powerWatts != -1.0f) String.format(Locale.ENGLISH, "%.2fW", powerWatts) else "N/A"
+        }
+        if (config.isModuleVisible(FpsCounterConfig.Module.GPU_FREQ)) {
+            gpuFreqState = sensorReader.getGpuFrequencyMhz()
+        }
+        if (config.isModuleVisible(FpsCounterConfig.Module.CPU_CORES)) {
+            cpuCoreLoadStates = sensorReader.cpuCoreLoads.toList()
+            cpuCoreFreqStates = CPUStatus.getCurrentClockSpeeds().map { it.toInt() }
+        }
+        if (config.isModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL)) {
+            val percent = sensorReader.getBatteryPercent(batteryManager)
+            batteryPercentState = if (percent >= 0) Integer.toString(percent) else ""
         }
     }
 

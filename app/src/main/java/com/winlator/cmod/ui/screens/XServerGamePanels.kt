@@ -557,6 +557,9 @@ fun XPanelFps(onDismiss: () -> Unit, onConfigChanged: () -> Unit) {
     var showCpuTemp by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.CPU_TEMP)) }
     var showBatteryTemp by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP)) }
     var showBatteryVoltage by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE)) }
+    var showCpuCores by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.CPU_CORES)) }
+    var showGpuFreq by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.GPU_FREQ)) }
+    var showBatteryLevel by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL)) }
     var horizontalLayout by remember { mutableStateOf(config.isHorizontalLayout()) }
     var backgroundOpacity by remember { mutableFloatStateOf(config.getBackgroundOpacity().toFloat()) }
     var counterScale by remember { mutableFloatStateOf(config.getCounterScale().toFloat().coerceAtLeast(60f)) }
@@ -581,6 +584,9 @@ fun XPanelFps(onDismiss: () -> Unit, onConfigChanged: () -> Unit) {
                     config.setModuleVisible(FpsCounterConfig.Module.CPU_TEMP, showCpuTemp)
                     config.setModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP, showBatteryTemp)
                     config.setModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE, showBatteryVoltage)
+                    config.setModuleVisible(FpsCounterConfig.Module.CPU_CORES, showCpuCores)
+                    config.setModuleVisible(FpsCounterConfig.Module.GPU_FREQ, showGpuFreq)
+                    config.setModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL, showBatteryLevel)
                     config.setHorizontalLayout(horizontalLayout)
                     config.setBackgroundOpacity(backgroundOpacity.toInt())
                     config.setCounterScale(counterScale.toInt().coerceAtLeast(60))
@@ -611,6 +617,9 @@ fun XPanelFps(onDismiss: () -> Unit, onConfigChanged: () -> Unit) {
             GameCheckRow(stringResource(R.string.fps_counter_show_frame_time_graph), showFrameTimeGraph) { showFrameTimeGraph = it }
             GameCheckRow(stringResource(R.string.fps_counter_show_battery_temp), showBatteryTemp) { showBatteryTemp = it }
             GameCheckRow(stringResource(R.string.fps_counter_show_battery_voltage), showBatteryVoltage) { showBatteryVoltage = it }
+            GameCheckRow(stringResource(R.string.fps_short_cpu_cores), showCpuCores) { showCpuCores = it }
+            GameCheckRow(stringResource(R.string.fps_short_gpu_freq), showGpuFreq) { showGpuFreq = it }
+            GameCheckRow(stringResource(R.string.fps_short_battery_level), showBatteryLevel) { showBatteryLevel = it }
             GameSwitchRow(stringResource(R.string.fps_counter_horizontal_layout), horizontalLayout) { horizontalLayout = it }
             GameSectionTitle(stringResource(R.string.fps_counter_background_opacity_title))
             GameSliderRow("", "${((backgroundOpacity / 255f) * 100).toInt()}%", backgroundOpacity, { backgroundOpacity = it }, 0f..255f)
@@ -623,7 +632,8 @@ fun XPanelFps(onDismiss: () -> Unit, onConfigChanged: () -> Unit) {
                 stringResource(R.string.fps_counter_style_retro),
                 stringResource(R.string.fps_counter_style_glass),
                 stringResource(R.string.fps_counter_style_winlator_ludashi),
-                stringResource(R.string.fps_counter_style_gamenative)
+                stringResource(R.string.fps_counter_style_gamenative),
+                stringResource(R.string.fps_counter_style_mangohud)
             )
             GameChipGroup(styles, counterStyle.coerceIn(styles.indices), { counterStyle = it })
             GameSwitchRow(stringResource(R.string.fps_counter_white_fonts), whiteFonts) { whiteFonts = it }

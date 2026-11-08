@@ -57,6 +57,9 @@ fun FpsCounterSettingsDialog(
     var showCpuTemp by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.CPU_TEMP)) }
     var showBatteryTemp by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP)) }
     var showBatteryVoltage by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE)) }
+    var showCpuCores by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.CPU_CORES)) }
+    var showGpuFreq by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.GPU_FREQ)) }
+    var showBatteryLevel by remember { mutableStateOf(config.isModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL)) }
     var horizontalLayout by remember { mutableStateOf(config.isHorizontalLayout()) }
 
     var backgroundOpacity by remember { mutableFloatStateOf(config.getBackgroundOpacity().toFloat()) }
@@ -165,6 +168,9 @@ fun FpsCounterSettingsDialog(
                         stringResource(R.string.fps_counter_show_frame_time_graph) to showFrameTimeGraph,
                         stringResource(R.string.fps_counter_show_battery_temp) to showBatteryTemp,
                         stringResource(R.string.fps_counter_show_battery_voltage) to showBatteryVoltage,
+                        stringResource(R.string.fps_short_cpu_cores) to showCpuCores,
+                        stringResource(R.string.fps_short_gpu_freq) to showGpuFreq,
+                        stringResource(R.string.fps_short_battery_level) to showBatteryLevel,
                     )
 
                     // Сетка 2 колонки
@@ -193,6 +199,9 @@ fun FpsCounterSettingsDialog(
                                             ctx.getString(R.string.fps_counter_show_frame_time_graph) -> showFrameTimeGraph = newVal
                                             ctx.getString(R.string.fps_counter_show_battery_temp) -> showBatteryTemp = newVal
                                             ctx.getString(R.string.fps_counter_show_battery_voltage) -> showBatteryVoltage = newVal
+                                            ctx.getString(R.string.fps_short_cpu_cores) -> showCpuCores = newVal
+                                            ctx.getString(R.string.fps_short_gpu_freq) -> showGpuFreq = newVal
+                                            ctx.getString(R.string.fps_short_battery_level) -> showBatteryLevel = newVal
                                         }
                                     }
                                 )
@@ -294,6 +303,9 @@ fun FpsCounterSettingsDialog(
                         config.setModuleVisible(FpsCounterConfig.Module.CPU_TEMP, showCpuTemp)
                         config.setModuleVisible(FpsCounterConfig.Module.BATTERY_TEMP, showBatteryTemp)
                         config.setModuleVisible(FpsCounterConfig.Module.BATTERY_VOLTAGE, showBatteryVoltage)
+                        config.setModuleVisible(FpsCounterConfig.Module.CPU_CORES, showCpuCores)
+                        config.setModuleVisible(FpsCounterConfig.Module.GPU_FREQ, showGpuFreq)
+                        config.setModuleVisible(FpsCounterConfig.Module.BATTERY_LEVEL, showBatteryLevel)
                         config.setHorizontalLayout(horizontalLayout)
                         config.setBackgroundOpacity(backgroundOpacity.toInt())
                         config.setCounterScale(counterScale.toInt().coerceAtLeast(60))
@@ -439,7 +451,8 @@ private fun FpsStyleSelectionRow(
         stringResource(R.string.fps_counter_style_retro),
         stringResource(R.string.fps_counter_style_glass),
         stringResource(R.string.fps_counter_style_winlator_ludashi),
-        stringResource(R.string.fps_counter_style_gamenative)
+        stringResource(R.string.fps_counter_style_gamenative),
+        stringResource(R.string.fps_counter_style_mangohud)
     )
     Column(
         modifier = Modifier

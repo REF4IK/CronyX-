@@ -11,6 +11,7 @@ public class FpsCounterConfig {
     public static final int STYLE_GLASS = 3;
     public static final int STYLE_WINLATOR_LUDASHI = 4;
     public static final int STYLE_GAMENATIVE = 5;
+    public static final int STYLE_MANGOHUD = 6;
 
     private static final String PREFS_NAME = "fps_counter_config";
     private static final String KEY_ENABLED = "fps_counter_enabled";
@@ -25,6 +26,9 @@ public class FpsCounterConfig {
     private static final String KEY_SHOW_CPU_TEMP = "fps_counter_show_cpu_temp";
     private static final String KEY_SHOW_BATTERY_TEMP = "fps_counter_show_battery_temp";
     private static final String KEY_SHOW_BATTERY_VOLTAGE = "fps_counter_show_battery_voltage";
+    private static final String KEY_SHOW_CPU_CORES = "fps_counter_show_cpu_cores";
+    private static final String KEY_SHOW_GPU_FREQ = "fps_counter_show_gpu_freq";
+    private static final String KEY_SHOW_BATTERY_LEVEL = "fps_counter_show_battery_percent";
     private static final String KEY_HORIZONTAL_LAYOUT = "fps_counter_horizontal_layout";
     private static final String KEY_BACKGROUND_OPACITY = "fps_counter_background_opacity";
     private static final String KEY_COUNTER_SCALE = "fps_counter_scale";
@@ -45,7 +49,10 @@ public class FpsCounterConfig {
         CPU_LOAD,
         CPU_TEMP,
         BATTERY_TEMP,
-        BATTERY_VOLTAGE
+        BATTERY_VOLTAGE,
+        CPU_CORES,
+        GPU_FREQ,
+        BATTERY_LEVEL
     }
 
     private final SharedPreferences prefs;
@@ -87,6 +94,12 @@ public class FpsCounterConfig {
                 return prefs.getBoolean(KEY_SHOW_BATTERY_TEMP, false);
             case BATTERY_VOLTAGE:
                 return prefs.getBoolean(KEY_SHOW_BATTERY_VOLTAGE, false);
+            case CPU_CORES:
+                return prefs.getBoolean(KEY_SHOW_CPU_CORES, false);
+            case GPU_FREQ:
+                return prefs.getBoolean(KEY_SHOW_GPU_FREQ, false);
+            case BATTERY_LEVEL:
+                return prefs.getBoolean(KEY_SHOW_BATTERY_LEVEL, false);
             default:
                 return false;
         }
@@ -127,6 +140,15 @@ public class FpsCounterConfig {
                 break;
             case BATTERY_VOLTAGE:
                 key = KEY_SHOW_BATTERY_VOLTAGE;
+                break;
+            case CPU_CORES:
+                key = KEY_SHOW_CPU_CORES;
+                break;
+            case GPU_FREQ:
+                key = KEY_SHOW_GPU_FREQ;
+                break;
+            case BATTERY_LEVEL:
+                key = KEY_SHOW_BATTERY_LEVEL;
                 break;
             default:
                 return;
@@ -199,6 +221,9 @@ public class FpsCounterConfig {
             .putBoolean(KEY_SHOW_CPU_TEMP, false)
             .putBoolean(KEY_SHOW_BATTERY_TEMP, false)
             .putBoolean(KEY_SHOW_BATTERY_VOLTAGE, false)
+            .putBoolean(KEY_SHOW_CPU_CORES, false)
+            .putBoolean(KEY_SHOW_GPU_FREQ, false)
+            .putBoolean(KEY_SHOW_BATTERY_LEVEL, false)
             .putBoolean(KEY_HORIZONTAL_LAYOUT, false)
             .putInt(KEY_BACKGROUND_OPACITY, DEFAULT_BACKGROUND_OPACITY)
             .putInt(KEY_COUNTER_SCALE, 60)

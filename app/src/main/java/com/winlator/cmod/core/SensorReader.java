@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,6 +26,9 @@ public class SensorReader {
 
     private long lastCpuTotal = -1L;
     private long lastCpuIdle = -1L;
+    // Предыдущие дельты /proc/stat по ядрам (для per-core загрузки в HUD).
+    private long[] lastCoreTotal = null;
+    private long[] lastCoreIdle = null;
     private long lastMaliGpuInfoMs = -1L;
     private long lastMaliGpuInfoWallMs = 0L;
 
@@ -210,6 +214,127 @@ public class SensorReader {
         return String.format(Locale.ENGLISH, "%.0f%%", usage);
     }
 
+    /**
+     * Загрузка по ядрам: дельты строк cpu0..N из /proc/stat. Индекс берётся из имени строки,
+     * поэтому выпавшее (offline) ядро не смещает остальные. -1 в слоте = данных нет
+     * (первый сэмпл или offline-ядро). Fallback при недоступном /proc/stat — оценка по частотам.
+     */
+    public float[] getCpuCoreLoads() {
+        File file = new File(SystemSensorPaths.CPU_PROC_STAT);
+        if (!file.exists()) {
+            return getCpuCoreLoadsFromFrequency();
+        }
+        long[] totals = null;
+        long[] idles = null;
+        try (RandomAccessFile reader = new RandomAccessFile(file, "r")) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.startsWith("cpu") || line.length() < 4 || !Character.isDigit(line.charAt(3))) {
+                    continue;
+                }
+                int digitsEnd = 3;
+                while (digitsEnd < line.length() && Character.isDigit(line.charAt(digitsEnd))) {
+                    digitsEnd++;
+                }
+                int coreIndex;
+                try {
+                    coreIndex = Integer.parseInt(line.substring(3, digitsEnd));
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+                CpuTimes times = parseCpuTimes(line);
+                if (times == null) continue;
+                if (totals == null) {
+                    int cores = Math.max(Runtime.getRuntime().availableProcessors(), coreIndex + 1);
+                    totals = new long[cores];
+                    idles = new long[cores];
+                    Arrays.fill(totals, -1L);
+                    Arrays.fill(idles, -1L);
+                }
+                if (coreIndex >= totals.length) {
+                    long[] newTotals = new long[coreIndex + 1];
+                    long[] newIdles = new long[coreIndex + 1];
+                    Arrays.fill(newTotals, -1L);
+                    Arrays.fill(newIdles, -1L);
+                    System.arraycopy(totals, 0, newTotals, 0, totals.length);
+                    System.arraycopy(idles, 0, newIdles, 0, idles.length);
+                    totals = newTotals;
+                    idles = newIdles;
+                }
+                totals[coreIndex] = times.total;
+                idles[coreIndex] = times.idle;
+            }
+        } catch (Exception e) {
+            Log.d(TAG, "Failed to read per-core CPU load: " + e.getMessage());
+            return getCpuCoreLoadsFromFrequency();
+        }
+        if (totals == null) {
+            return getCpuCoreLoadsFromFrequency();
+        }
+
+        if (lastCoreTotal == null || lastCoreTotal.length != totals.length) {
+            lastCoreTotal = totals;
+            lastCoreIdle = idles;
+            float[] result = new float[totals.length];
+            Arrays.fill(result, -1f);
+            return result;
+        }
+        float[] result = new float[totals.length];
+        for (int i = 0; i < totals.length; i++) {
+            if (totals[i] < 0L || lastCoreTotal[i] < 0L) {
+                result[i] = -1f;
+                continue;
+            }
+            long totalDelta = totals[i] - lastCoreTotal[i];
+            long idleDelta = idles[i] - lastCoreIdle[i];
+            if (totalDelta <= 0L || idleDelta < 0L) {
+                result[i] = 0f;
+            } else {
+                float usage = ((totalDelta - idleDelta) * 100f) / totalDelta;
+                result[i] = Math.max(0f, Math.min(100f, usage));
+            }
+        }
+        lastCoreTotal = totals;
+        lastCoreIdle = idles;
+        return result;
+    }
+
+    /** Оценка загрузки каждого ядра по частоте (fallback, когда /proc/stat недоступен). */
+    private float[] getCpuCoreLoadsFromFrequency() {
+        int cores = Runtime.getRuntime().availableProcessors();
+        float[] result = new float[cores];
+        for (int i = 0; i < cores; i++) {
+            Long cur = readLong(SystemSensorPaths.cpuCurFreqPath(i));
+            Long max = readLong(SystemSensorPaths.cpuMaxFreqPath(i));
+            if (cur == null || max == null || max <= 0L) {
+                result[i] = -1f;
+            } else {
+                result[i] = Math.max(0f, Math.min(100f, (cur * 100f) / max));
+            }
+        }
+        return result;
+    }
+
+    /** Текущая частота GPU в МГц строкой, "" если недоступна. Частота в sysfs — в Гц (как в GPUPerformanceManager). */
+    public String getGpuFrequencyMhz() {
+        long khz = readGpuCurFreqKhz();
+        if (khz <= 0L) return "";
+        long mhz = khz / 1000000L;
+        if (mhz <= 0L) return "";
+        return String.format(Locale.ENGLISH, "%d", mhz);
+    }
+
+    private long readGpuCurFreqKhz() {
+        Long value = readLong(SystemSensorPaths.GPU_CUR_FREQ_PATH);
+        if (value == null || value <= 0L) {
+            for (String path : SystemSensorPaths.GPU_CUR_FREQ_ALTERNATIVES) {
+                value = readLong(path);
+                if (value != null && value > 0L) break;
+            }
+        }
+        return value != null ? value : 0L;
+    }
+
     public float getBatteryPowerWatts(BatteryManager batteryManager, float batteryVoltage, float batteryCurrent) {
         float directPower = readPowerWattsFromSysfs();
         if (directPower != -1.0f) {
@@ -340,6 +465,8 @@ public class SensorReader {
     public void resetCpuState() {
         lastCpuTotal = -1L;
         lastCpuIdle = -1L;
+        lastCoreTotal = null;
+        lastCoreIdle = null;
     }
 
     public void resetMaliState() {
