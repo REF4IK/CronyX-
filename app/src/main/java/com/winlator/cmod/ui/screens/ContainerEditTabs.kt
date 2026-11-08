@@ -985,8 +985,11 @@ fun AdvancedTab(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (emulator.lowercase(java.util.Locale.ENGLISH) != "fexcore") {
-            // Box64
-            SectionCard(title = stringResource(R.string.box64), icon = Icons.Filled.Code) {
+            // Box64; на arm64ec wine вместо него используется WOWBox64
+            SectionCard(
+                title = if (isArm64EC) "WOWBox64" else stringResource(R.string.box64),
+                icon = Icons.Filled.Code
+            ) {
                 ContainerSpinnerRowWithDownload(
                     label = stringResource(R.string.version),
                     entries = box64Versions, selected = box64Version,

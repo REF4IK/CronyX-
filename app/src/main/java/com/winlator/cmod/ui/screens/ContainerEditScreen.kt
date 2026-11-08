@@ -812,10 +812,17 @@ fun ContainerEditScreen(
     }
 
     if (showBox64Download) {
+        // На arm64ec wine скачивается WOWBox64, а не обычный Box64
+        val box64ContentType = if (isArm64EC) {
+            com.winlator.cmod.contents.ContentProfile.ContentType.CONTENT_TYPE_WOWBOX64
+        } else {
+            com.winlator.cmod.contents.ContentProfile.ContentType.CONTENT_TYPE_BOX64
+        }
+        val box64DisplayName = if (isArm64EC) "WOWBox64" else "Box64"
         ContentDownloadDialogCompose(
             context = ctx,
-            contentType = com.winlator.cmod.contents.ContentProfile.ContentType.CONTENT_TYPE_BOX64,
-            displayName = "Box64",
+            contentType = box64ContentType,
+            displayName = box64DisplayName,
             onDismiss = { showBox64Download = false },
             onInstalled = { installedVersion ->
                 box64Version = installedVersion
