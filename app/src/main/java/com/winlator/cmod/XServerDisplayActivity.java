@@ -2430,28 +2430,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 }
                 closeXServerMenu();
                 touchpadView.toggleFullscreen();
-                if (renderer instanceof VulkanRenderer && ((VulkanRenderer) renderer).isFullscreen()) {
-                    preferences.edit().putBoolean("effect_sharpen", true).apply();
-                    ((VulkanRenderer) renderer).disableScanoutForEffects();
-                    ((VulkanRenderer) renderer).setEffects(
-                        new int[]{EffectComposer.EFFECT_SHARPEN},
-                        new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
-                    );
-                } else if (renderer instanceof VulkanRenderer) {
-                    preferences.edit().putBoolean("effect_sharpen", false).apply();
-                    ((VulkanRenderer) renderer).clearEffects();
-                } else if (renderer instanceof GLRenderer) {
-                    if (((GLRenderer) renderer).isFullscreen()) {
-                        preferences.edit().putBoolean("effect_sharpen", true).apply();
-                        ((GLRenderer) renderer).setEffects(
-                            new int[]{EffectComposer.EFFECT_SHARPEN},
-                            new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
-                        );
-                    } else {
-                        preferences.edit().putBoolean("effect_sharpen", false).apply();
-                        ((GLRenderer) renderer).clearEffects();
-                    }
-                }
+                // Авто-включение резкости при полноэкранном режиме убрано:
+                // эффекты управляются только из меню эффектов.
                 break;
 
             case R.id.main_menu_pause:
@@ -4682,26 +4662,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
             applyScreenStretch(stretchToApply);
 
-            // Auto-enable sharpen effect when stretch mode is active
-
-            if (stretchToApply > 0f) {
-
-                if (renderer instanceof VulkanRenderer) {
-                    preferences.edit().putBoolean("effect_sharpen", true).apply();
-                    ((VulkanRenderer) renderer).disableScanoutForEffects();
-                    ((VulkanRenderer) renderer).setEffects(
-                        new int[]{EffectComposer.EFFECT_SHARPEN},
-                        new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
-                    );
-                } else if (renderer instanceof GLRenderer) {
-                    preferences.edit().putBoolean("effect_sharpen", true).apply();
-                    ((GLRenderer) renderer).setEffects(
-                        new int[]{EffectComposer.EFFECT_SHARPEN},
-                        new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
-                    );
-                }
-
-            }
+            // Авто-включение резкости при растяжении убрано: эффекты — только из меню эффектов.
 
         }
 
