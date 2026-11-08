@@ -331,6 +331,9 @@ public class ASurfaceRenderer implements HostRenderer, WindowManager.OnWindowMod
         cachedDesktopDst = null;
     }
 
+    @Override public int getSurfaceWidth() { return surfaceWidth; }
+    @Override public int getSurfaceHeight() { return surfaceHeight; }
+
     private void updateTransform() {
         Log.d("ASurfaceRenderer", "updateTransform vOff=" + viewTransformation.viewOffsetX + "," + viewTransformation.viewOffsetY +
                 " vSize=" + viewTransformation.viewWidth + "x" + viewTransformation.viewHeight +

@@ -1789,6 +1789,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         }
 
+        // Возврат из PiP/фона: рендерер мог остаться на размере PiP-окна.
+        if (xServerView != null) xServerView.post(xServerView::reassertSurfaceSize);
+
         startTime = System.currentTimeMillis();
 
         handler.postDelayed(savePlaytimeRunnable, SAVE_INTERVAL_MS);
@@ -1835,6 +1838,17 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         handler.removeCallbacks(savePlaytimeRunnable);
 
+    }
+
+
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPipMode, Configuration newConfig) {
+        super.onPictureInPictureModeChanged(isInPipMode, newConfig);
+        // Вход/выход из PiP меняет размер окна и surface: подтягиваем рендерер к
+        // фактическому размеру surface, если surfaceChanged потерялся — иначе после
+        // возврата из PiP картинка остаётся в разрешении PiP-окна (пиксели).
+        if (xServerView != null) xServerView.post(xServerView::reassertSurfaceSize);
     }
 
 

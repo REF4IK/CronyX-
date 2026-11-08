@@ -34,6 +34,10 @@ public class XServerView extends FrameLayout {
     // (e.g. 60 -> 59.94) itself.
     private float lastFrameRate = 0f;
     private int lastFrameRateCompat = 0;
+    // Жив ли surface с точки зрения наших колбэков. Если surfaceDestroyed был, а
+    // surfaceCreated потерялся (PiP/ресайз на некоторых прошивках), рендерер остаётся
+    // в detached-состоянии и не рисует — реанимируем его в reassertSurfaceSize().
+    private boolean surfaceAlive = false;
     // Flip to true to only switch the panel mode when it can be done seamlessly (no black frame).
     // API 31+ only; default keeps it simple and lets SurfaceFlinger decide.
     private static final boolean FRAME_RATE_SEAMLESS_ONLY = false;
@@ -64,6 +68,7 @@ public class XServerView extends FrameLayout {
             vulkanSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
+                    surfaceAlive = true;
                     asrRenderer.onSurfaceCreated(holder.getSurface());
                 }
                 @Override
@@ -73,6 +78,7 @@ public class XServerView extends FrameLayout {
                 }
                 @Override
                 public void surfaceDestroyed(SurfaceHolder holder) {
+                    surfaceAlive = false;
                     asrRenderer.onSurfaceDestroyed();
                 }
             });
@@ -85,6 +91,7 @@ public class XServerView extends FrameLayout {
             vulkanSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
+                    surfaceAlive = true;
                     ((VulkanRenderer)renderer).onSurfaceCreated(holder.getSurface());
                 }
                 @Override
@@ -94,6 +101,7 @@ public class XServerView extends FrameLayout {
                 }
                 @Override
                 public void surfaceDestroyed(SurfaceHolder holder) {
+                    surfaceAlive = false;
                     ((VulkanRenderer)renderer).onSurfaceDestroyed();
                 }
             });
@@ -152,6 +160,32 @@ public class XServerView extends FrameLayout {
 
     public void onResume() {
         if (glSurfaceView != null) glSurfaceView.onResume();
+    }
+
+    /**
+     * Принудительно синхронизирует рендерер с реальным размером surface. Нужна после
+     * выхода из PiP: если surfaceChanged при ресайзе окна потерялся, рендерер
+     * продолжает рисовать в размере PiP-окна — картинка становится пиксельной.
+     */
+    public void reassertSurfaceSize() {
+        if (renderer == null) return;
+        SurfaceView sv = vulkanSurfaceView != null ? vulkanSurfaceView : glSurfaceView;
+        if (sv == null) return;
+        SurfaceHolder holder = sv.getHolder();
+        Surface surface = holder.getSurface();
+        // Surface жив, а наш колбэк surfaceCreated после последнего surfaceDestroyed
+        // не пришёл — рендерер застрял в detached: реанимируем вручную.
+        if (surface != null && surface.isValid() && !surfaceAlive && glSurfaceView == null) {
+            surfaceAlive = true;
+            renderer.onSurfaceCreated(surface);
+            return;
+        }
+        android.graphics.Rect frame = holder.getSurfaceFrame();
+        int w = frame.width(), h = frame.height();
+        if (w <= 0 || h <= 0) return;
+        if (renderer.getSurfaceWidth() == w && renderer.getSurfaceHeight() == h) return;
+        renderer.onSurfaceChanged(w, h);
+        renderer.requestRender();
     }
 
     public Object getSurfaceControl() {

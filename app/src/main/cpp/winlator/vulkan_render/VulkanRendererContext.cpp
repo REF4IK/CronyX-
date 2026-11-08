@@ -1222,6 +1222,33 @@ void VulkanRendererContext::renderFrame() {
     cursorMoved.store(false,std::memory_order_relaxed);
 
     if (surfaceDetached.load(std::memory_order_acquire)) return;
+    if (surfaceWidth==0||surfaceHeight==0) return;
+
+    // Самолечение ресайза: на некоторых прошивках (PiP/multi-window) surfaceChanged
+    // теряется, и свапчейн остаётся в старом (например, PiP) размере — кадр
+    // растягивается на всё окно (пиксели). Сверяем фактический размер ANativeWindow
+    // со свапчейном и форсим пересоздание при расхождении. Проверка дешёвая.
+    if (window) {
+        int32_t ww = ANativeWindow_getWidth(window);
+        int32_t wh = ANativeWindow_getHeight(window);
+        if (ww > 0 && wh > 0 && ((uint32_t)ww != swapchainExt.width || (uint32_t)wh != swapchainExt.height)) {
+            fbResized.store(true);
+        }
+    }
+
+    // Пересоздание свапчейна обязано работать и в scanout-режиме: ниже scanout-ветка
+    // выходит раньше, и пропущенный здесь ресайз (например, PiP) оставил бы устаревший
+    // свапчейн — после отключения scanout он показывается растянутым (пиксели).
+    if (fbResized.load()) {
+        for (auto& f:inFlightFences) vk_.WaitForFences(device,1,&f,VK_TRUE,2000000000ULL);
+        cleanupSwapchain();
+        bool ok=false;
+        try{createSwapchain();createFramebuffers();createCmdBufs();recreateSyncObjects();imgInFlight.assign(swapchainImages.size(),VK_NULL_HANDLE);
+ok=true;}catch(...){}
+        if (ok) fbResized.store(false);
+        return;
+    }
+
     if (scanoutActive.load() && !scanoutDisabled.load()) {
         applyScanoutBuffer();
 
@@ -1235,17 +1262,6 @@ void VulkanRendererContext::renderFrame() {
         }
     } else {
         scanoutBlackFrameDone.store(false);
-    }
-    if (surfaceWidth==0||surfaceHeight==0) return;
-
-    if (fbResized.load()) {
-        for (auto& f:inFlightFences) vk_.WaitForFences(device,1,&f,VK_TRUE,2000000000ULL);
-        cleanupSwapchain();
-        bool ok=false;
-        try{createSwapchain();createFramebuffers();createCmdBufs();recreateSyncObjects();imgInFlight.assign(swapchainImages.size(),VK_NULL_HANDLE);
-ok=true;}catch(...){}
-        if (ok) fbResized.store(false);
-        return;
     }
 
     if (cmdSlot(kMaxPresentsPerFrame - 1) >= cmdBufs.size() || cmdBufs[cmdSlot(0)] == VK_NULL_HANDLE) return;

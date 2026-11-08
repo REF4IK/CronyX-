@@ -1,5 +1,7 @@
 package com.winlator.cmod.renderer;
 
+import android.view.Surface;
+
 import com.winlator.cmod.widget.XServerView;
 
 public interface HostRenderer {
@@ -30,5 +32,9 @@ public interface HostRenderer {
     default void setFpsLimit(int limit) {}
     default int getSurfaceWidth() { return 0; }
     default int getSurfaceHeight() { return 0; }
+    /** Подтолкнуть реальный размер surface, если surfaceChanged потерялся (выход из PiP). */
+    default void onSurfaceChanged(int width, int height) {}
+    /** Реанимировать рендерер, если surfaceCreated потерялся, а surface жив. */
+    default void onSurfaceCreated(Surface surface) {}
 }
 
