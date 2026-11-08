@@ -454,7 +454,11 @@ fun ContainerEditScreen(
                 },
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 24.dp, end = 4.dp),
+                // Защита от среза кнопки системным баром/вырезом в ландшафте:
+                // инсеты навигации прибавляются к отступам со всех сторон
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(bottom = 24.dp, end = 4.dp),
             ) {
                 Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.save))
             }

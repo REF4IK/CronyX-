@@ -256,6 +256,8 @@ Column(modifier = Modifier.fillMaxSize()) {
             containerColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                // Защита от среза системным баром/вырезом в ландшафте
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 98.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add), tint = MaterialTheme.colorScheme.onPrimary)
