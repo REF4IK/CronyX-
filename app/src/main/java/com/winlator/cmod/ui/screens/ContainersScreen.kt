@@ -344,34 +344,45 @@ fun ContainerCard(
         mutableStateOf(containerCardSizeCache[container.id] ?: "")
     }
 
+    // КЛЮЧЕВОЕ: ключи эффектов — id (+сигнатура версий), НЕ объект Container.
+    // reload() на входе пересоздаёт Container-объекты → эффект с ключом-объектом
+    // отменялся посреди вычисления, catch ловил CancellationException и писал в
+    // общий кеш ПЛЕЙСХОЛДЕР с сигнатурой → карточка навсегда показывала «…»
+    // (у кого успел досчитать — показывало, отсюда «работает только у одного»).
+    val signature = containerChipSignature(container)
+
     // Чипы: дешёвые, пересчитываются только при изменении версионной сигнатуры
-    // (правки в редакторе). try/catch — чтобы сбой чтения не убил композицию.
-    LaunchedEffect(container) {
-        val signature = containerChipSignature(container)
+    // (правки в редакторе). В кеш пишется только УСПЕШНЫЙ результат.
+    LaunchedEffect(container.id, signature) {
         val cached = containerCardInfoCache[container.id]
-        val newChips = if (cached != null && cached.signature == signature) cached else {
+        if (cached != null && cached.signature == signature) {
+            chips = cached
+        } else {
             try {
-                withContext(Dispatchers.IO) {
+                val computed = withContext(Dispatchers.IO) {
                     computeContainerChips(ctx, contentsManager, adrenotoolsManager, container, signature)
                 }
+                containerCardInfoCache[container.id] = computed
+                chips = computed
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e // отмена — не ошибка данных; кеш не трогаем
             } catch (e: Exception) {
                 android.util.Log.e("ContainerCard", "chips failed for container ${container.id}", e)
-                cached ?: ContainerCardInfo(signature = signature)
+                chips = cached ?: ContainerCardInfo() // «…» на экране, кеш чистый
             }
         }
-        containerCardInfoCache[container.id] = newChips
-        chips = newChips
     }
 
     // Размер: долгий обход папок — отдельным эффектом, чтобы не задерживал чипы.
-    // Пересчитывается при каждом новом объекте контейнера (файлы могли измениться).
-    LaunchedEffect(container) {
+    LaunchedEffect(container.id) {
         try {
             val text = withContext(Dispatchers.IO) {
                 container.rootDir?.let { StringUtils.formatBytes(calculateDirectorySize(it)) } ?: ""
             }
             containerCardSizeCache[container.id] = text
             sizeText = text
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             android.util.Log.e("ContainerCard", "size failed for container ${container.id}", e)
         }
