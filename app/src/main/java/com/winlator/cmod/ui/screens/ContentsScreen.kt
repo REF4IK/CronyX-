@@ -464,14 +464,17 @@ fun ContentsScreen(
                     Executors.newSingleThreadExecutor().execute {
                         contentsManager.finishInstallContent(p, object : ContentsManager.OnInstallFinishedCallback {
                             override fun onFailed(reason: ContentsManager.InstallFailedReason, e: Exception?) {
-                                installing = false
+                                // Колбэк приходит на потоке executor'а: Toast/состояние — только с UI.
+                                android.os.Handler(android.os.Looper.getMainLooper()).post { installing = false }
                             }
                             override fun onSucceed(p: ContentProfile) {
-                                installing = false
                                 contentsManager.syncContents()
-                                currentContentType = p.type
-                                reloadList()
-                                Toast.makeText(ctx, R.string.content_installed_success, Toast.LENGTH_LONG).show()
+                                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                    installing = false
+                                    currentContentType = p.type
+                                    reloadList()
+                                    Toast.makeText(ctx, R.string.content_installed_success, Toast.LENGTH_LONG).show()
+                                }
                             }
                         })
                     }
@@ -498,14 +501,17 @@ fun ContentsScreen(
                     Executors.newSingleThreadExecutor().execute {
                         contentsManager.finishInstallContent(p, object : ContentsManager.OnInstallFinishedCallback {
                             override fun onFailed(reason: ContentsManager.InstallFailedReason, e: Exception?) {
-                                installing = false
+                                // Колбэк приходит на потоке executor'а: Toast/состояние — только с UI.
+                                android.os.Handler(android.os.Looper.getMainLooper()).post { installing = false }
                             }
                             override fun onSucceed(p: ContentProfile) {
-                                installing = false
                                 contentsManager.syncContents()
-                                currentContentType = p.type
-                                reloadList()
-                                Toast.makeText(ctx, R.string.content_installed_success, Toast.LENGTH_LONG).show()
+                                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                    installing = false
+                                    currentContentType = p.type
+                                    reloadList()
+                                    Toast.makeText(ctx, R.string.content_installed_success, Toast.LENGTH_LONG).show()
+                                }
                             }
                         })
                     }

@@ -222,15 +222,80 @@ private fun runContainer(ctx: android.content.Context, container: Container) {
     }
 }
 
-/** Данные чипов и подзаголовка карточки контейнера (считаются в фоне). */
+/** Данные чипов карточки контейнера (считаются в фоне). */
 private data class ContainerCardInfo(
-    val sizeText: String = "",
+    val signature: String = "",
     val wineText: String = "…",
     val dxvkText: String = "…",
     val turnipText: String = "…",
     val emulatorLabel: String = "Box64",
     val emulatorText: String = "…",
 )
+
+// Кеши переживают уход с экрана (WinlatorApp выкидывает ContainersScreen из
+// композиции): чипы — по версионной сигнатуре, размер — по id контейнера.
+// Без них при каждом возврате карточка мигала «…».
+// Размер сознательно ОТДЕЛЁН от чипов: обход папок долгий (большие контейнеры),
+// раньше он задерживал чипы, а отмена эффекта при уходе с экрана оставляла
+// карточку с «…» навсегда.
+private val containerCardInfoCache = java.util.concurrent.ConcurrentHashMap<Int, ContainerCardInfo>()
+private val containerCardSizeCache = java.util.concurrent.ConcurrentHashMap<Int, String>()
+
+// Сигнатура версий: чипы пересчитываются только если она изменилась.
+// Размер в неё не входит — файлы контейнера могли измениться без правки версий.
+private fun containerChipSignature(c: Container): String = listOf(
+    c.name, c.wineVersion ?: "", c.dxWrapper ?: "", c.dxWrapperConfig ?: "",
+    c.graphicsDriverConfig ?: "", c.emulator ?: "", c.box64Version ?: "",
+    c.getFEXCoreVersion() ?: "",
+).joinToString("|")
+
+/** Чипы (Wine/DXVK/Turnip/Box64-FEX) — вызывать из Dispatchers.IO. */
+private fun computeContainerChips(
+    ctx: android.content.Context,
+    contentsManager: ContentsManager,
+    adrenotoolsManager: AdrenotoolsManager,
+    container: Container,
+    signature: String,
+): ContainerCardInfo {
+    val wineInfo = WineInfo.fromIdentifier(ctx, contentsManager, container.wineVersion ?: "")
+    val dxw = (container.dxWrapper ?: "").lowercase()
+    val dxConfig = DXVKConfigDialog.parseConfig(
+        container.dxWrapperConfig ?: Container.DEFAULT_DXWRAPPERCONFIG
+    )
+    val dxvkText = when {
+        dxw.contains("vkd3d") -> dxConfig.get("vkd3dVersion").ifBlank { "VKD3D" }
+        dxw.contains("dxvk") -> dxConfig.get("version").ifBlank { "DXVK" }
+        else -> container.dxWrapper ?: "-"
+    }
+    // Графический драйвер: "System" (встроенный) или id adrenotools-драйвера,
+    // точная версия лежит в его meta.json. meta.json может отсутствовать
+    // (драйвер удалён) — FileUtils.read вернёт null и getDriverVersion кинет
+    // NPE (ловит только JSONException), поэтому оборачиваем.
+    val driverId = GraphicsDriverConfigDialog.getVersion(container.graphicsDriverConfig ?: "")
+    val turnipText = if (driverId.isNullOrEmpty() || driverId == DefaultVersion.WRAPPER) {
+        DefaultVersion.WRAPPER
+    } else {
+        try {
+            adrenotoolsManager.getDriverVersion(driverId).ifBlank { driverId }
+        } catch (e: Exception) {
+            driverId
+        }
+    }
+    // Дефолт этого форка — FEXCore: вместо Box64 показываем FEX.
+    val isFex = (container.emulator ?: "").lowercase().contains("fex")
+    return ContainerCardInfo(
+        signature = signature,
+        wineText = "${wineInfo.version} ${wineInfo.arch ?: ""}".trim(),
+        dxvkText = dxvkText,
+        turnipText = turnipText,
+        emulatorLabel = if (isFex) "FEX" else "Box64",
+        emulatorText = if (isFex) {
+            container.getFEXCoreVersion()?.ifBlank { DefaultVersion.FEXCORE } ?: DefaultVersion.FEXCORE
+        } else {
+            container.box64Version?.ifBlank { "-" } ?: "-"
+        },
+    )
+}
 
 /** Рекурсивный размер каталога (обход стеком). */
 private fun calculateDirectorySize(dir: File): Long {
@@ -271,43 +336,44 @@ fun ContainerCard(
 ) {
     val ctx = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
-    var info by remember(container.id) { mutableStateOf(ContainerCardInfo()) }
+    // Инициализация из кеша: при возврате на экран данные показываются сразу.
+    var chips by remember(container.id) {
+        mutableStateOf(containerCardInfoCache[container.id] ?: ContainerCardInfo())
+    }
+    var sizeText by remember(container.id) {
+        mutableStateOf(containerCardSizeCache[container.id] ?: "")
+    }
 
-    // Версии/размер читаются с диска — считаем в фоне один раз на контейнер.
-    LaunchedEffect(container.id, container) {
-        info = withContext(Dispatchers.IO) {
-            val wineInfo = WineInfo.fromIdentifier(ctx, contentsManager, container.wineVersion ?: "")
-            val dxw = (container.dxWrapper ?: "").lowercase()
-            val dxConfig = DXVKConfigDialog.parseConfig(
-                container.dxWrapperConfig ?: Container.DEFAULT_DXWRAPPERCONFIG
-            )
-            val dxvkText = when {
-                dxw.contains("vkd3d") -> dxConfig.get("vkd3dVersion").ifBlank { "VKD3D" }
-                dxw.contains("dxvk") -> dxConfig.get("version").ifBlank { "DXVK" }
-                else -> container.dxWrapper ?: "-"
+    // Чипы: дешёвые, пересчитываются только при изменении версионной сигнатуры
+    // (правки в редакторе). try/catch — чтобы сбой чтения не убил композицию.
+    LaunchedEffect(container) {
+        val signature = containerChipSignature(container)
+        val cached = containerCardInfoCache[container.id]
+        val newChips = if (cached != null && cached.signature == signature) cached else {
+            try {
+                withContext(Dispatchers.IO) {
+                    computeContainerChips(ctx, contentsManager, adrenotoolsManager, container, signature)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ContainerCard", "chips failed for container ${container.id}", e)
+                cached ?: ContainerCardInfo(signature = signature)
             }
-            // Графический драйвер: "System" (встроенный) или id adrenotools-драйвера,
-            // точная версия лежит в его meta.json.
-            val driverId = GraphicsDriverConfigDialog.getVersion(container.graphicsDriverConfig ?: "")
-            val turnipText = if (driverId.isNullOrEmpty() || driverId == DefaultVersion.WRAPPER) {
-                DefaultVersion.WRAPPER
-            } else {
-                adrenotoolsManager.getDriverVersion(driverId).ifBlank { driverId }
+        }
+        containerCardInfoCache[container.id] = newChips
+        chips = newChips
+    }
+
+    // Размер: долгий обход папок — отдельным эффектом, чтобы не задерживал чипы.
+    // Пересчитывается при каждом новом объекте контейнера (файлы могли измениться).
+    LaunchedEffect(container) {
+        try {
+            val text = withContext(Dispatchers.IO) {
+                container.rootDir?.let { StringUtils.formatBytes(calculateDirectorySize(it)) } ?: ""
             }
-            // Дефолт этого форка — FEXCore: вместо Box64 показываем FEX.
-            val isFex = (container.emulator ?: "").lowercase().contains("fex")
-            ContainerCardInfo(
-                sizeText = container.rootDir?.let { StringUtils.formatBytes(calculateDirectorySize(it)) } ?: "",
-                wineText = "${wineInfo.version} ${wineInfo.arch ?: ""}".trim(),
-                dxvkText = dxvkText,
-                turnipText = turnipText,
-                emulatorLabel = if (isFex) "FEX" else "Box64",
-                emulatorText = if (isFex) {
-                    container.getFEXCoreVersion()?.ifBlank { DefaultVersion.FEXCORE } ?: DefaultVersion.FEXCORE
-                } else {
-                    container.box64Version?.ifBlank { "-" } ?: "-"
-                },
-            )
+            containerCardSizeCache[container.id] = text
+            sizeText = text
+        } catch (e: Exception) {
+            android.util.Log.e("ContainerCard", "size failed for container ${container.id}", e)
         }
     }
 
@@ -342,8 +408,8 @@ fun ContainerCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (info.sizeText.isNotEmpty()) {
-                        Text(text = info.sizeText, fontSize = 13.sp, color = glassDescColor())
+                    if (sizeText.isNotEmpty()) {
+                        Text(text = sizeText, fontSize = 13.sp, color = glassDescColor())
                     }
                 }
                 // Анкор для меню — кнопка ⋮; меню выпадает справа, прижато к правому краю экрана
@@ -422,13 +488,13 @@ fun ContainerCard(
 
             // Чипы версий 2×2: Wine / DXVK / Turnip / Box64 (или FEX).
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ContainerInfoChip("Wine", info.wineText, Modifier.weight(1f))
-                ContainerInfoChip("DXVK", info.dxvkText, Modifier.weight(1f))
+                ContainerInfoChip("Wine", chips.wineText, Modifier.weight(1f))
+                ContainerInfoChip("DXVK", chips.dxvkText, Modifier.weight(1f))
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ContainerInfoChip("Turnip", info.turnipText, Modifier.weight(1f))
-                ContainerInfoChip(info.emulatorLabel, info.emulatorText, Modifier.weight(1f))
+                ContainerInfoChip("Turnip", chips.turnipText, Modifier.weight(1f))
+                ContainerInfoChip(chips.emulatorLabel, chips.emulatorText, Modifier.weight(1f))
             }
 
             Spacer(Modifier.height(14.dp))
