@@ -98,6 +98,10 @@ fun SettingsScreen(
     var showGyroModeDialog by remember { mutableStateOf(false) }
     var showReinstallConfirm by remember { mutableStateOf(false) }
     var showBackupConfirm by remember { mutableStateOf(false) }
+    var showUserBox64Vars by remember { mutableStateOf(false) }
+    var showUserFexVars by remember { mutableStateOf(false) }
+    var box64VarCount by remember { mutableIntStateOf(loadUserEnvVars("box64").size) }
+    var fexVarCount by remember { mutableIntStateOf(loadUserEnvVars("fexcore").size) }
     var cursorSpeedSlider by remember { mutableStateOf((cursorSpeed * 100).toInt()) }
 
     // ---- Состояния апдейтера ----
@@ -445,6 +449,24 @@ fun SettingsScreen(
                 }
             }
 
+            // 10.5. Box64 / FEX пользовательские переменные
+            SectionHeader("Box64 / FEX " + stringResource(com.winlator.cmod.R.string.environment_variables).lowercase(), Icons.Filled.Tune)
+            SettingsCard {
+                SettingsClickRow(
+                    icon = Icons.Filled.Code,
+                    title = "Box64 " + stringResource(com.winlator.cmod.R.string.environment_variables).lowercase(),
+                    subtitle = if (box64VarCount > 0) box64VarCount.toString() else stringResource(com.winlator.cmod.R.string.no_env_vars),
+                    onClick = { showUserBox64Vars = true }
+                )
+                SettingsDivider()
+                SettingsClickRow(
+                    icon = Icons.Filled.Code,
+                    title = "FEXCore " + stringResource(com.winlator.cmod.R.string.environment_variables).lowercase(),
+                    subtitle = if (fexVarCount > 0) fexVarCount.toString() else stringResource(com.winlator.cmod.R.string.no_env_vars),
+                    onClick = { showUserFexVars = true }
+                )
+            }
+
             // 11. Experimental
             SectionHeader(stringResource(com.winlator.cmod.R.string.experimental), Icons.Filled.Science)
             SettingsCard {
@@ -666,6 +688,18 @@ fun SettingsScreen(
             },
             dismissButton = { TextButton(onClick = { showReinstallConfirm = false }) { Text(stringResource(com.winlator.cmod.R.string.no)) } }
         )
+    }
+    if (showUserBox64Vars) {
+        UserEnvVarsDialog(prefix = "box64", onDismiss = {
+            showUserBox64Vars = false
+            box64VarCount = loadUserEnvVars("box64").size
+        })
+    }
+    if (showUserFexVars) {
+        UserEnvVarsDialog(prefix = "fexcore", onDismiss = {
+            showUserFexVars = false
+            fexVarCount = loadUserEnvVars("fexcore").size
+        })
     }
     if (showBackupConfirm) {
         AlertDialog(

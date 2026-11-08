@@ -57,8 +57,22 @@ fun EditPresetDialog(
     val context = LocalContext.current
     val isBox64 = prefix == "box64"
 
+    // Is it a readonly preset?
+    val readonly = remember(prefix, presetId) {
+        if (presetId == null) false
+        else {
+            if (isBox64) {
+                val p = Box86_64PresetManager.getPreset(prefix, context, presetId)
+                p != null && !p.isCustom
+            } else {
+                val p = FEXCorePresetManager.getPreset(context, presetId)
+                p != null && !p.isCustom
+            }
+        }
+    }
+
     // Load vars definition from JSON
-    val vars = remember(prefix) {
+    val vars = remember(prefix, readonly) {
         val varsList = mutableListOf<PresetEnvVar>()
         try {
             val jsonString = FileUtils.readString(context, "${prefix}_env_vars.json")
@@ -76,6 +90,16 @@ fun EditPresetDialog(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        // Пользовательские переменные из настроек (SettingsScreen -> UserEnvVarsDialog):
+        // значение из настроек = дефолт, пресет может переопределить (сохраняется через currentValues).
+        // К встроенным (readonly) пресетам не применяются — там их не показываем вовсе.
+        if (!readonly) {
+            loadUserEnvVars(prefix).forEach { (name, value) ->
+                if (varsList.none { it.name == name }) {
+                    varsList.add(PresetEnvVar(name, listOf(value), value, false, true))
+                }
+            }
+        }
         varsList
     }
 
@@ -87,20 +111,6 @@ fun EditPresetDialog(
                 FEXCorePresetManager.getEnvVars(context, presetId)
             }
         } else null
-    }
-
-    // Is it a readonly preset?
-    val readonly = remember(prefix, presetId) {
-        if (presetId == null) false
-        else {
-            if (isBox64) {
-                val p = Box86_64PresetManager.getPreset(prefix, context, presetId)
-                p != null && !p.isCustom
-            } else {
-                val p = FEXCorePresetManager.getPreset(context, presetId)
-                p != null && !p.isCustom
-            }
-        }
     }
 
     // Preset Name State
