@@ -5,10 +5,8 @@ import com.winlator.cmod.ui.components.glassTitleColor
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
-import com.winlator.cmod.ui.components.GlassDivider
 import com.winlator.cmod.ui.components.GlassRoundIconButton
 import com.winlator.cmod.ui.components.GlassSurface
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +23,7 @@ import android.os.Environment
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,6 +53,14 @@ import com.winlator.cmod.XrActivity
 import com.winlator.cmod.container.Container
 import com.winlator.cmod.container.ContainerManager
 import com.winlator.cmod.core.AppUtils
+import com.winlator.cmod.core.DefaultVersion
+import com.winlator.cmod.core.StringUtils
+import com.winlator.cmod.core.WineInfo
+import com.winlator.cmod.contentdialog.DXVKConfigDialog
+import com.winlator.cmod.contentdialog.GraphicsDriverConfigDialog
+import com.winlator.cmod.contents.AdrenotoolsManager
+import com.winlator.cmod.contents.ContentsManager
+import com.winlator.cmod.ui.components.GlassSolidPill
 import com.winlator.cmod.xenvironment.ImageFs
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +78,9 @@ fun ContainersScreen(
 ) {
     val ctx = LocalContext.current
     val manager = containerManager ?: remember(ctx) { ContainerManager(ctx) }
+    // Профили Wine для чипа Wine и установленные adrenotools-драйверы (Turnip).
+    val contentsManager = remember(ctx) { ContentsManager(ctx) }
+    val adrenotoolsManager = remember(ctx) { AdrenotoolsManager(ctx) }
     var containers by remember { mutableStateOf(manager.containers?.toList() ?: emptyList()) }
     var showPreloader by remember { mutableStateOf(false) }
     var preloaderText by remember { mutableStateOf("") }
@@ -108,7 +118,8 @@ fun ContainersScreen(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                // Широкая карточка на всю ширину — по одной в ряд.
+                columns = GridCells.Fixed(1),
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 176.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -117,6 +128,8 @@ fun ContainersScreen(
                 items(containers, key = { it.id }) { container ->
                     ContainerCard(
                         container = container,
+                        contentsManager = contentsManager,
+                        adrenotoolsManager = adrenotoolsManager,
                         onRun = { runContainer(ctx, container) },
                         onEdit = { onEditContainer(container.id) },
                         onDuplicate = {
@@ -209,9 +222,44 @@ private fun runContainer(ctx: android.content.Context, container: Container) {
     }
 }
 
+/** Данные чипов и подзаголовка карточки контейнера (считаются в фоне). */
+private data class ContainerCardInfo(
+    val sizeText: String = "",
+    val wineText: String = "…",
+    val dxvkText: String = "…",
+    val turnipText: String = "…",
+    val emulatorLabel: String = "Box64",
+    val emulatorText: String = "…",
+)
+
+/** Рекурсивный размер каталога (обход стеком). */
+private fun calculateDirectorySize(dir: File): Long {
+    if (!dir.exists()) return 0L
+    if (dir.isFile) return dir.length()
+    var size = 0L
+    val stack = java.util.Stack<File>()
+    stack.push(dir)
+    while (!stack.isEmpty()) {
+        val current = stack.pop()
+        val files = current.listFiles()
+        if (files != null) {
+            for (f in files) {
+                if (f.isDirectory) {
+                    stack.push(f)
+                } else {
+                    size += f.length()
+                }
+            }
+        }
+    }
+    return size
+}
+
 @Composable
 fun ContainerCard(
     container: Container,
+    contentsManager: ContentsManager,
+    adrenotoolsManager: AdrenotoolsManager,
     onRun: () -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
@@ -221,130 +269,222 @@ fun ContainerCard(
     onReconfigure: () -> Unit,
     onExport: () -> Unit,
 ) {
+    val ctx = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
+    var info by remember(container.id) { mutableStateOf(ContainerCardInfo()) }
 
-    GlassSurface(modifier = Modifier.fillMaxWidth()) {
-        // Обложка вместо картинки игры: иконка контейнера на акцентном
-        // градиенте. Нижние блоки повторяют референс: title, meta, разделитель,
-        // ряд круглых иконок-действий.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(92.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(glassAccent().copy(alpha = 0.20f), Color.Transparent),
-                    ),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.icon_container),
-                contentDescription = null,
-                modifier = Modifier.size(50.dp),
-                tint = glassAccent(),
+    // Версии/размер читаются с диска — считаем в фоне один раз на контейнер.
+    LaunchedEffect(container.id, container) {
+        info = withContext(Dispatchers.IO) {
+            val wineInfo = WineInfo.fromIdentifier(ctx, contentsManager, container.wineVersion ?: "")
+            val dxw = (container.dxWrapper ?: "").lowercase()
+            val dxConfig = DXVKConfigDialog.parseConfig(
+                container.dxWrapperConfig ?: Container.DEFAULT_DXWRAPPERCONFIG
+            )
+            val dxvkText = when {
+                dxw.contains("vkd3d") -> dxConfig.get("vkd3dVersion").ifBlank { "VKD3D" }
+                dxw.contains("dxvk") -> dxConfig.get("version").ifBlank { "DXVK" }
+                else -> container.dxWrapper ?: "-"
+            }
+            // Графический драйвер: "System" (встроенный) или id adrenotools-драйвера,
+            // точная версия лежит в его meta.json.
+            val driverId = GraphicsDriverConfigDialog.getVersion(container.graphicsDriverConfig ?: "")
+            val turnipText = if (driverId.isNullOrEmpty() || driverId == DefaultVersion.WRAPPER) {
+                DefaultVersion.WRAPPER
+            } else {
+                adrenotoolsManager.getDriverVersion(driverId).ifBlank { driverId }
+            }
+            // Дефолт этого форка — FEXCore: вместо Box64 показываем FEX.
+            val isFex = (container.emulator ?: "").lowercase().contains("fex")
+            ContainerCardInfo(
+                sizeText = container.rootDir?.let { StringUtils.formatBytes(calculateDirectorySize(it)) } ?: "",
+                wineText = "${wineInfo.version} ${wineInfo.arch ?: ""}".trim(),
+                dxvkText = dxvkText,
+                turnipText = turnipText,
+                emulatorLabel = if (isFex) "FEX" else "Box64",
+                emulatorText = if (isFex) {
+                    container.getFEXCoreVersion()?.ifBlank { DefaultVersion.FEXCORE } ?: DefaultVersion.FEXCORE
+                } else {
+                    container.box64Version?.ifBlank { "-" } ?: "-"
+                },
             )
         }
+    }
+
+    GlassSurface(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = GlassTokens.RowPaddingH, end = GlassTokens.RowPaddingH, bottom = 8.dp),
+                .padding(16.dp),
         ) {
-            Text(
-                text = container.name,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold,
-                color = glassTitleColor(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // Версия Wine с карточки убрана по требованию интерфейса: остаётся
-            // только имя контейнера.
-        }
-        GlassDivider()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = GlassTokens.RowPaddingH, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            GlassRoundIconButton(
-                icon = Icons.Filled.PlayArrow,
-                description = stringResource(R.string.run),
-                onClick = onRun,
-                size = 44.dp,
-            )
-            Spacer(Modifier.width(10.dp))
+            // Шапка: аватар, имя + размер, кебаб.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(glassAccent().copy(alpha = 0.18f), RoundedCornerShape(GlassTokens.InnerRadius)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.icon_container),
+                        contentDescription = null,
+                        modifier = Modifier.size(30.dp),
+                        tint = glassAccent(),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = container.name,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = glassTitleColor(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (info.sizeText.isNotEmpty()) {
+                        Text(text = info.sizeText, fontSize = 13.sp, color = glassDescColor())
+                    }
+                }
+                // Анкор для меню — кнопка ⋮; меню выпадает справа, прижато к правому краю экрана
+                Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.options),
+                            tint = glassTitleColor(),
+                        )
+                    }
 
-            // Анкор для меню — кнопка ⋮; меню выпадает справа, прижато к правому краю экрана
-            Box {
-                GlassRoundIconButton(
-                    icon = Icons.Filled.MoreVert,
-                    description = stringResource(R.string.options),
-                    onClick = { menuOpen = true },
-                    size = 44.dp,
-                )
-
-                if (menuOpen) {
-                    val density = LocalDensity.current
-                    Popup(
-                        alignment = Alignment.TopEnd,
-                        offset = with(density) { IntOffset(0, 52.dp.roundToPx()) },
-                        properties = PopupProperties(focusable = true),
-                        onDismissRequest = { menuOpen = false }
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(GlassTokens.InnerRadius),
-                            color = glassSheetFill(), contentColor = glassTitleColor(),
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = glassDividerColor(),
-                                    shape = RoundedCornerShape(GlassTokens.InnerRadius)
-                                )
+                    if (menuOpen) {
+                        val density = LocalDensity.current
+                        Popup(
+                            alignment = Alignment.TopEnd,
+                            offset = with(density) { IntOffset(0, 52.dp.roundToPx()) },
+                            properties = PopupProperties(focusable = true),
+                            onDismissRequest = { menuOpen = false }
                         ) {
-                            Column(Modifier.width(IntrinsicSize.Max)) {
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.Folder, null, tint = MaterialTheme.colorScheme.primary) },
-                                    text = { Text(stringResource(R.string.container_file_manager)) },
-                                    onClick = { menuOpen = false; onFileManager() }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.Edit, null, tint = MaterialTheme.colorScheme.primary) },
-                                    text = { Text(stringResource(R.string.edit)) },
-                                    onClick = { menuOpen = false; onEdit() }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.ContentCopy, null, tint = MaterialTheme.colorScheme.primary) },
-                                    text = { Text(stringResource(R.string.duplicate)) },
-                                    onClick = { menuOpen = false; onDuplicate() }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                                    text = { Text(stringResource(R.string.remove)) },
-                                    onClick = { menuOpen = false; onRemove() }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.primary) },
-                                    text = { Text(stringResource(R.string.storage_info)) },
-                                    onClick = { menuOpen = false; onStorageInfo() }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.Refresh, null, tint = MaterialTheme.colorScheme.primary) },
-                                    text = { Text(stringResource(R.string.reconfigure)) },
-                                    onClick = { menuOpen = false; onReconfigure() }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.Download, null, tint = MaterialTheme.colorScheme.primary) },
-                                    text = { Text(stringResource(R.string.export_container)) },
-                                    onClick = { menuOpen = false; onExport() }
-                                )
+                            Surface(
+                                shape = RoundedCornerShape(GlassTokens.InnerRadius),
+                                color = glassSheetFill(), contentColor = glassTitleColor(),
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .border(
+                                        width = 1.dp,
+                                        color = glassDividerColor(),
+                                        shape = RoundedCornerShape(GlassTokens.InnerRadius)
+                                    )
+                            ) {
+                                Column(Modifier.width(IntrinsicSize.Max)) {
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.Folder, null, tint = MaterialTheme.colorScheme.primary) },
+                                        text = { Text(stringResource(R.string.container_file_manager)) },
+                                        onClick = { menuOpen = false; onFileManager() }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.Edit, null, tint = MaterialTheme.colorScheme.primary) },
+                                        text = { Text(stringResource(R.string.edit)) },
+                                        onClick = { menuOpen = false; onEdit() }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.ContentCopy, null, tint = MaterialTheme.colorScheme.primary) },
+                                        text = { Text(stringResource(R.string.duplicate)) },
+                                        onClick = { menuOpen = false; onDuplicate() }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                                        text = { Text(stringResource(R.string.remove)) },
+                                        onClick = { menuOpen = false; onRemove() }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.primary) },
+                                        text = { Text(stringResource(R.string.storage_info)) },
+                                        onClick = { menuOpen = false; onStorageInfo() }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.Refresh, null, tint = MaterialTheme.colorScheme.primary) },
+                                        text = { Text(stringResource(R.string.reconfigure)) },
+                                        onClick = { menuOpen = false; onReconfigure() }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Filled.Download, null, tint = MaterialTheme.colorScheme.primary) },
+                                        text = { Text(stringResource(R.string.export_container)) },
+                                        onClick = { menuOpen = false; onExport() }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Чипы версий 2×2: Wine / DXVK / Turnip / Box64 (или FEX).
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ContainerInfoChip("Wine", info.wineText, Modifier.weight(1f))
+                ContainerInfoChip("DXVK", info.dxvkText, Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ContainerInfoChip("Turnip", info.turnipText, Modifier.weight(1f))
+                ContainerInfoChip(info.emulatorLabel, info.emulatorText, Modifier.weight(1f))
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Запуск + настройки контейнера (шестерёнка открывает редактор).
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassSolidPill(onClick = onRun, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.run),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                GlassRoundIconButton(
+                    icon = Icons.Filled.Settings,
+                    description = stringResource(R.string.edit),
+                    onClick = onEdit,
+                    size = 46.dp,
+                )
+            }
+        }
+    }
+}
+
+/** Чип с версией: подпись сверху, значение снизу. */
+@Composable
+private fun ContainerInfoChip(label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(GlassTokens.InnerRadius),
+        color = glassCardFill(),
+        contentColor = glassTitleColor(),
+        border = BorderStroke(1.dp, glassDividerColor()),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = glassDescColor(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -366,28 +506,6 @@ fun StorageInfoDialogCompose(
     val rootDir = container.rootDir
     val driveCDir = remember(rootDir) { File(rootDir, ".wine/drive_c") }
     val cacheDir = remember(rootDir) { File(rootDir, ".cache") }
-
-    fun calculateDirectorySize(dir: File): Long {
-        if (!dir.exists()) return 0L
-        if (dir.isFile) return dir.length()
-        var size = 0L
-        val stack = java.util.Stack<File>()
-        stack.push(dir)
-        while (!stack.isEmpty()) {
-            val current = stack.pop()
-            val files = current.listFiles()
-            if (files != null) {
-                for (f in files) {
-                    if (f.isDirectory) {
-                        stack.push(f)
-                    } else {
-                        size += f.length()
-                    }
-                }
-            }
-        }
-        return size
-    }
 
     LaunchedEffect(container) {
         isLoading = true
