@@ -27,6 +27,9 @@ public interface XServerRenderer {
     boolean isNativeMode();
     boolean isFullscreen();
 
+    /** Эффективное растяжение экрана ползунком (0..1); 0 — обычный aspect-fit. */
+    default float getStretchAmount() { return 0f; }
+
     void setFrameRating(Object frameRating);
     void setFpsWindowId(int windowId);
 

@@ -2379,6 +2379,30 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
 
 
+    /**
+     * Растяжение экрана ползунком из «Эффектов экрана»: 0 — как есть (aspect-fit),
+     * 1 — во весь экран (прежний фиксированный stretch), промежуточные — частичное
+     * растяжение по бокам. Живое применение + пересчёт маппинга ввода.
+     */
+    public void applyScreenStretch(float amount) {
+        final float v = Mathf.clamp(amount, 0f, 1f);
+        HostRenderer r = xServerView != null ? xServerView.getRenderer() : null;
+        if (r instanceof VulkanRenderer) {
+            VulkanRenderer vr = (VulkanRenderer) r;
+            boolean needOn = v > 0f;
+            if (vr.isFullscreen() != needOn) vr.toggleFullscreen();
+            vr.setStretchAmount(v);
+        } else if (r instanceof GLRenderer) {
+            GLRenderer gl = (GLRenderer) r;
+            gl.setFullscreenMode(v > 0f ? Container.FULLSCREEN_STRETCH : Container.FULLSCREEN_OFF);
+            gl.setStretchAmount(v);
+        } else if (r instanceof ASurfaceRenderer) {
+            // Surfacer не имеет fullscreen-режимов — растяжение применяется напрямую.
+            ((ASurfaceRenderer) r).setStretchAmount(v);
+        }
+        if (touchpadView != null) touchpadView.toggleFullscreen();
+    }
+
     public void handleXServerMenuAction(int itemId) {
         final HostRenderer renderer = xServerView.getRenderer();
 
@@ -4636,30 +4660,47 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
 
 
-        if (shouldStretch) {
+        // Растяжение экрана: ползунок «Растяжение экрана» из меню эффектов (pref stretch_amount)
+        // главнее фиксированного fullscreenStretched; pref < 0 — ползунок ещё не трогали,
+        // работает старое поведение контейнера/ярлыка (полное растяжение).
 
-            // Toggle fullscreen mode based on the final decision
+        float stretchToApply = -1f;
 
-            if (renderer instanceof VulkanRenderer) {
-                ((VulkanRenderer) renderer).toggleFullscreen();
-            }
+        float prefStretch = preferences.getFloat("stretch_amount", -1f);
 
-            touchpadView.toggleFullscreen();
+        if (prefStretch >= 0f) {
+
+            stretchToApply = prefStretch;
+
+        } else if (shouldStretch) {
+
+            stretchToApply = 1f;
+
+        }
+
+        if (stretchToApply >= 0f) {
+
+            applyScreenStretch(stretchToApply);
 
             // Auto-enable sharpen effect when stretch mode is active
-            if (renderer instanceof VulkanRenderer) {
-                preferences.edit().putBoolean("effect_sharpen", true).apply();
-                ((VulkanRenderer) renderer).disableScanoutForEffects();
-                ((VulkanRenderer) renderer).setEffects(
-                    new int[]{EffectComposer.EFFECT_SHARPEN},
-                    new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
-                );
-            } else if (renderer instanceof GLRenderer) {
-                preferences.edit().putBoolean("effect_sharpen", true).apply();
-                ((GLRenderer) renderer).setEffects(
-                    new int[]{EffectComposer.EFFECT_SHARPEN},
-                    new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
-                );
+
+            if (stretchToApply > 0f) {
+
+                if (renderer instanceof VulkanRenderer) {
+                    preferences.edit().putBoolean("effect_sharpen", true).apply();
+                    ((VulkanRenderer) renderer).disableScanoutForEffects();
+                    ((VulkanRenderer) renderer).setEffects(
+                        new int[]{EffectComposer.EFFECT_SHARPEN},
+                        new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
+                    );
+                } else if (renderer instanceof GLRenderer) {
+                    preferences.edit().putBoolean("effect_sharpen", true).apply();
+                    ((GLRenderer) renderer).setEffects(
+                        new int[]{EffectComposer.EFFECT_SHARPEN},
+                        new float[][]{{1.0f, 0, 0, 0, 0, 0, 0, 0}}
+                    );
+                }
+
             }
 
         }

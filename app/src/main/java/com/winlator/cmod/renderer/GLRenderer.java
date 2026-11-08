@@ -52,6 +52,9 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     private volatile int fullscreenMode = Container.FULLSCREEN_OFF;
     private boolean toggleFullscreen = false;
     private boolean isStretch() { return fullscreenMode == Container.FULLSCREEN_STRETCH; }
+    // Ползунок «Растяжение экрана» (0..1): 0 — aspect-fit, 1 — во весь экран (прежний фиксированный
+    // STRETCH). Применяется только когда fullscreenMode == STRETCH; живое управление из эффектов.
+    private volatile float stretchAmount = 1.0f;
     public boolean viewportNeedsUpdate = true;
     private boolean cursorVisible = true;
     private boolean screenOffsetYRelativeToCursor = false;
@@ -285,8 +288,19 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
         }
 
         if (viewportNeedsUpdate && magnifierEnabled) {
-            if (isStretch()) {
-                GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
+            float t = isStretch() ? stretchAmount : 0f;
+            if (t > 0f) {
+                // Растяжение ползунком: вьюпорт интерполируется от aspect-fit-прямоугольника
+                // (t=0) до всей поверхности (t=1). Контент всегда натягивается на вьюпорт целиком,
+                // так что промежуточные значения дают частичное растяжение «по бокам».
+                float sx = (float) surfaceWidth / xServer.screenInfo.width;
+                float sy = (float) surfaceHeight / xServer.screenInfo.height;
+                float fit = Math.min(sx, sy);
+                int fitW = (int) Math.ceil(xServer.screenInfo.width * fit);
+                int fitH = (int) Math.ceil(xServer.screenInfo.height * fit);
+                int w = Math.round(fitW + (surfaceWidth - fitW) * t);
+                int h = Math.round(fitH + (surfaceHeight - fitH) * t);
+                GLES20.glViewport((surfaceWidth - w) / 2, (surfaceHeight - h) / 2, w, h);
             }
             else {
                 GLES20.glViewport(viewTransformation.viewOffsetX, viewTransformation.viewOffsetY, viewTransformation.viewWidth, viewTransformation.viewHeight);
@@ -542,6 +556,13 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     public void setScreenOffsetYRelativeToCursor(boolean screenOffsetYRelativeToCursor) { this.screenOffsetYRelativeToCursor = screenOffsetYRelativeToCursor; xServerView.requestRender(); }
     public boolean isFullscreen() { return fullscreenMode != Container.FULLSCREEN_OFF; }
     @Override public int getFullscreenMode() { return fullscreenMode; }
+    @Override public float getStretchAmount() { return isStretch() ? stretchAmount : 0f; }
+    public void setStretchAmount(float amount) {
+        this.stretchAmount = Mathf.clamp(amount, 0f, 1f);
+        viewportNeedsUpdate = true;
+        if (nativeMode) xServerView.queueEvent(this::updateScanoutDst);
+        xServerView.requestRender();
+    }
     @Override public void setFullscreenMode(int mode) {
         this.fullscreenMode = mode;
         viewportNeedsUpdate = true;
@@ -707,8 +728,17 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     // the GL pass uses for its glViewport. Same data the Vulkan updateTransform feeds nativeScanoutSetDst.
     private void updateScanoutDst() {
         if (scanout == null || !nativeMode) return;
-        if (isStretch()) {
-            scanout.setDst(0, 0, surfaceWidth, surfaceHeight);
+        float t = isStretch() ? stretchAmount : 0f;
+        if (t > 0f) {
+            // Тот же интерполированный прямоугольник, что и в drawFrame (растяжение ползунком).
+            float sx = (float) surfaceWidth / xServer.screenInfo.width;
+            float sy = (float) surfaceHeight / xServer.screenInfo.height;
+            float fit = Math.min(sx, sy);
+            int fitW = (int) Math.ceil(xServer.screenInfo.width * fit);
+            int fitH = (int) Math.ceil(xServer.screenInfo.height * fit);
+            int w = Math.round(fitW + (surfaceWidth - fitW) * t);
+            int h = Math.round(fitH + (surfaceHeight - fitH) * t);
+            scanout.setDst((surfaceWidth - w) / 2, (surfaceHeight - h) / 2, w, h);
         } else {
             scanout.setDst(viewTransformation.viewOffsetX, viewTransformation.viewOffsetY,
                            viewTransformation.viewWidth, viewTransformation.viewHeight);

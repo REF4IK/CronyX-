@@ -18,6 +18,8 @@ public interface HostRenderer {
     default float getMagnifierZoom() { return 1f; }
     default void toggleFullscreen() {}
     default boolean isFullscreen() { return false; }
+    /** Эффективное растяжение экрана ползунком (0..1); 0 — обычный aspect-fit. */
+    default float getStretchAmount() { return 0f; }
     default void setFullscreenMode(int mode) {}
     default int getFullscreenMode() { return 0; }
     default void setScreenOffsetYRelativeToCursor(boolean b) {}

@@ -54,6 +54,7 @@ public class ScreenEffectDialog extends ContentDialog {
     private final SeekBar sbBrightness;
     private final SeekBar sbContrast;
     private final SeekBar sbGamma;
+    private final SeekBar sbStretch;
 
     private static final String TAG = "ScreenEffectDialog";
 
@@ -72,6 +73,7 @@ public class ScreenEffectDialog extends ContentDialog {
         sbBrightness = findViewById(R.id.SBBrightness);
         sbContrast = findViewById(R.id.SBContrast);
         sbGamma = findViewById(R.id.SBGamma);
+        sbStretch = findViewById(R.id.SBStretch);
         cbEnableFXAA = findViewById(R.id.CBEnableFXAA);
         cbEnableCRTShader = findViewById(R.id.CBEnableCRTShader);
 
@@ -97,8 +99,18 @@ public class ScreenEffectDialog extends ContentDialog {
 
         Log.d(TAG, "ScreenEffectDialog initialized");
 
+        // Растяжение экрана: живой предпросмотр при перетаскивании (0% = как есть, 100% = во весь экран)
+        sbStretch.setOnValueChangeListener((seekBar, value) -> activity.applyScreenStretch(value / 100f));
+
         // Load saved effect settings from SharedPreferences
         loadEffectSettingsFromPrefs();
+
+        // Ползунок растяжения: сохранённое значение, иначе текущее состояние рендера
+        float stretchPref = preferences.getFloat("stretch_amount", -1f);
+        sbStretch.setValue((stretchPref >= 0f ? stretchPref : renderer.getStretchAmount()) * 100f);
+
+        // Отмена — вернуть растяжение, которое было до открытия диалога
+        setOnCancelCallback(() -> activity.applyScreenStretch(renderer.getStretchAmount()));
 
         loadProfileSpinner(sProfile, activity.getScreenEffectProfile());
 
@@ -336,6 +348,8 @@ public class ScreenEffectDialog extends ContentDialog {
         sbBrightness.setValue(0);
         sbContrast.setValue(0);
         sbGamma.setValue(1.0f);
+        sbStretch.setValue(0);
+        activity.applyScreenStretch(0f);
         cbEnableFXAA.setChecked(false);
         cbEnableCRTShader.setChecked(false);
         cbEnableToonShader.setChecked(false);
@@ -425,6 +439,7 @@ public class ScreenEffectDialog extends ContentDialog {
             .putBoolean("effect_sharpen", cbEnableSharpenEffect.isChecked())
             .putBoolean("effect_smooth", cbEnableSmoothEffect.isChecked())
             .putBoolean("effect_hdr", cbEnableHDREffect.isChecked())
+            .putFloat("stretch_amount", sbStretch.getValue() / 100f)
             .apply();
     }
 

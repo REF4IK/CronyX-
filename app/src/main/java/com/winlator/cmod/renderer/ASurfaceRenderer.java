@@ -335,10 +335,18 @@ public class ASurfaceRenderer implements HostRenderer, WindowManager.OnWindowMod
         Log.d("ASurfaceRenderer", "updateTransform vOff=" + viewTransformation.viewOffsetX + "," + viewTransformation.viewOffsetY +
                 " vSize=" + viewTransformation.viewWidth + "x" + viewTransformation.viewHeight +
                 " surf=" + surfaceWidth + "x" + surfaceHeight);
-        nativeScanoutSetDst(viewTransformation.viewOffsetX,
-                viewTransformation.viewOffsetY,
-                viewTransformation.viewWidth,
-                viewTransformation.viewHeight);
+        float t = getStretchAmount();
+        if (t > 0f) {
+            // Тот же интерполированный прямоугольник, что и в computeWindowRect (растяжение ползунком).
+            int w = Math.round(viewTransformation.viewWidth + (surfaceWidth - viewTransformation.viewWidth) * t);
+            int h = Math.round(viewTransformation.viewHeight + (surfaceHeight - viewTransformation.viewHeight) * t);
+            nativeScanoutSetDst((surfaceWidth - w) / 2, (surfaceHeight - h) / 2, w, h);
+        } else {
+            nativeScanoutSetDst(viewTransformation.viewOffsetX,
+                    viewTransformation.viewOffsetY,
+                    viewTransformation.viewWidth,
+                    viewTransformation.viewHeight);
+        }
     }
 
     public void updateScene() {
@@ -527,6 +535,17 @@ public class ASurfaceRenderer implements HostRenderer, WindowManager.OnWindowMod
         out.src.set(0, 0, w, h);
         if (isDesktopWindow && rootX == 0 && rootY == 0) {
             computeLetterboxRect(w, h, surfaceWidth, surfaceHeight, out.dst);
+            float t = getStretchAmount();
+            if (t > 0f) {
+                // Ползунок «Растяжение экрана»: десктоп-прямоугольник интерполируется от
+                // aspect-fit letterbox до всей поверхности; дочерние окна масштабируются
+                // от него через cachedDesktopDst.
+                int fitW = out.dst.width(), fitH = out.dst.height();
+                int newW = Math.round(fitW + (surfaceWidth - fitW) * t);
+                int newH = Math.round(fitH + (surfaceHeight - fitH) * t);
+                int left = (surfaceWidth - newW) / 2, top = (surfaceHeight - newH) / 2;
+                out.dst.set(left, top, left + newW, top + newH);
+            }
             if (cachedDesktopDst == null) cachedDesktopDst = new Rect();
             cachedDesktopDst.set(out.dst);
             cachedDesktopSrcW = w;
@@ -648,6 +667,20 @@ public class ASurfaceRenderer implements HostRenderer, WindowManager.OnWindowMod
 
     @Override
     public boolean isFullscreen() { return false; }
+
+    // Ползунок «Растяжение экрана» (0..1): 0 — aspect-fit letterbox, 1 — весь экран.
+    // ASurface не имеет fullscreen-режимов, действует всегда.
+    private volatile float stretchAmount = 1.0f;
+
+    @Override
+    public float getStretchAmount() { return Math.max(0f, Math.min(1f, stretchAmount)); }
+
+    public void setStretchAmount(float amount) {
+        stretchAmount = Math.max(0f, Math.min(1f, amount));
+        if (!surfaceInitialized) return; // применится в onSurfaceCreated → updateTransform/updateScene
+        updateTransform();
+        updateScene();
+    }
 
     @Override
     public boolean isNativeMode() { return true; }

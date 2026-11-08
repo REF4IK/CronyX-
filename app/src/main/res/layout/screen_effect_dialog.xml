@@ -29,6 +29,9 @@
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/gamma" />
                         <com.winlator.cmod.widget.SeekBar
                             android:id="@+id/SBGamma" android:layout_width="fill_parent" android:layout_height="60dp" app:maxValue="3.0" app:minValue="0.5" app:step="0.01" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/screen_stretch" />
+                        <com.winlator.cmod.widget.SeekBar
+                            android:id="@+id/SBStretch" android:layout_width="fill_parent" android:layout_height="60dp" app:sbMinValue="0" app:sbMaxValue="100" app:sbStep="1" app:suffix="%" />
                     </LinearLayout>
                     <TextView
                         android:id="@+id/LBLColorAdjustment"

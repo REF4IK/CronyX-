@@ -34,6 +34,9 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
 
     public final ViewTransformation viewTransformation = new ViewTransformation();
     private boolean fullscreen = false;
+    // Ползунок «Растяжение экрана» (0..1): 0 — aspect-fit, 1 — во весь экран. Действует,
+    // пока fullscreen == true; живое управление из эффектов.
+    private volatile float stretchAmount = 1.0f;
     private float magnifierZoom = 1.0f;
     private boolean screenOffsetYRelativeToCursor = false;
     public int surfaceWidth;
@@ -354,15 +357,40 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
         float cx = surfaceWidth / 2f;
         float cy = surfaceHeight / 2f;
         if (fullscreen) {
-            nativeSetTransform(nativeHandle,
-                cx * (1f - zoom), cy * (1f - zoom), zoom, zoom);
+            float t = Math.max(0f, Math.min(1f, stretchAmount));
             viewTransformation.update(surfaceWidth, surfaceHeight,
                 xServer.screenInfo.width, xServer.screenInfo.height);
-            nativeScanoutSetDst(nativeHandle,
-                viewTransformation.viewOffsetX,
-                viewTransformation.viewOffsetY,
-                viewTransformation.viewWidth,
-                viewTransformation.viewHeight);
+            if (t > 0f) {
+                // Растяжение ползунком: сценовая трансформация интерполируется от aspect-fit
+                // (sceneScale/sceneOffset, t=0) до fill всей поверхности (t=1, прежний
+                // фиксированный fullscreen-stretch). Нативная формула: surface = ox + x*sx
+                // (в единицах X-экрана, нормированных на surface), см. window.vert push.
+                float sx = viewTransformation.sceneScaleX + (1f - viewTransformation.sceneScaleX) * t;
+                float sy = viewTransformation.sceneScaleY + (1f - viewTransformation.sceneScaleY) * t;
+                float ox = viewTransformation.sceneOffsetX * (1f - t);
+                float oy = viewTransformation.sceneOffsetY * (1f - t);
+                nativeSetTransform(nativeHandle,
+                    ox * zoom + cx * (1f - zoom),
+                    oy * zoom + cy * (1f - zoom),
+                    sx * zoom, sy * zoom);
+                int w = Math.round(viewTransformation.viewWidth + (surfaceWidth - viewTransformation.viewWidth) * t);
+                int h = Math.round(viewTransformation.viewHeight + (surfaceHeight - viewTransformation.viewHeight) * t);
+                nativeScanoutSetDst(nativeHandle,
+                    (surfaceWidth - w) / 2,
+                    (surfaceHeight - h) / 2,
+                    w, h);
+            } else {
+                // Ползунок = 0: fullscreen-режим показывает aspect-fit letterbox.
+                nativeSetTransform(nativeHandle,
+                    viewTransformation.sceneOffsetX * zoom + cx * (1f - zoom),
+                    viewTransformation.sceneOffsetY * zoom + cy * (1f - zoom),
+                    viewTransformation.sceneScaleX * zoom, viewTransformation.sceneScaleY * zoom);
+                nativeScanoutSetDst(nativeHandle,
+                    viewTransformation.viewOffsetX,
+                    viewTransformation.viewOffsetY,
+                    viewTransformation.viewWidth,
+                    viewTransformation.viewHeight);
+            }
         } else {
             float py = 0;
             if (screenOffsetYRelativeToCursor) {
@@ -910,6 +938,12 @@ public class VulkanRenderer implements XServerRenderer, HostRenderer,
 
     public boolean isFullscreen() { return fullscreen; }
     public void toggleFullscreen() { fullscreen = !fullscreen; synchronized (lock) { updateTransform(); } xServerView.queueEvent(this::updateScene); }
+    @Override public float getStretchAmount() { return fullscreen ? Math.max(0f, Math.min(1f, stretchAmount)) : 0f; }
+    public void setStretchAmount(float amount) {
+        stretchAmount = amount;
+        synchronized (lock) { updateTransform(); }
+        xServerView.requestRender();
+    }
     public void setScreenOffsetYRelativeToCursor(boolean b) { screenOffsetYRelativeToCursor = b; synchronized (lock) { updateTransform(); } }
     public boolean isScreenOffsetYRelativeToCursor() { return screenOffsetYRelativeToCursor; }
     public void setMagnifierZoom(float zoom) {

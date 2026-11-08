@@ -355,6 +355,14 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
     var enableSharpen by remember { mutableStateOf(preferences.getBoolean("effect_sharpen", false)) }
     var enableSmooth by remember { mutableStateOf(preferences.getBoolean("effect_smooth", false)) }
     var enableHDR by remember { mutableStateOf(preferences.getBoolean("effect_hdr", false)) }
+    // Растяжение экрана: pref >= 0 — сохранённое ползунком значение; иначе текущее состояние рендера
+    // (контейнер/ярлык с фиксированным stretch = 1.0, иначе 0).
+    var stretchAmount by remember {
+        val saved = preferences.getFloat("stretch_amount", -1f)
+        val current = activity.xServerView?.renderer?.stretchAmount ?: 0f
+        mutableFloatStateOf(if (saved >= 0f) saved else current.coerceIn(0f, 1f))
+    }
+    val originalStretchAmount = remember { stretchAmount }
     var selectedProfile by remember { mutableStateOf(activity.screenEffectProfile ?: "") }
     var profileList by remember {
         mutableStateOf(run {
@@ -393,6 +401,8 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
         enableFXAA = false; enableCRT = false; enableToon = false; enableNTSC = false
         enableVignette = false; enableSepia = false; enableBlur = false; enablePixelate = false
         enableGrayscale = false; enableSharpen = false; enableSmooth = false; enableHDR = false
+        stretchAmount = 0f
+        activity.applyScreenStretch(0f)
     }
     fun applyVulkanEffects() {
         val renderer = activity.xServerView?.renderer ?: return
@@ -405,7 +415,8 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             .putBoolean("effect_sepia", enableSepia).putBoolean("effect_blur", enableBlur)
             .putBoolean("effect_pixelate", enablePixelate).putBoolean("effect_grayscale", enableGrayscale)
             .putBoolean("effect_sharpen", enableSharpen).putBoolean("effect_smooth", enableSmooth)
-            .putBoolean("effect_hdr", enableHDR).apply()
+            .putBoolean("effect_hdr", enableHDR)
+            .putFloat("stretch_amount", stretchAmount.coerceIn(0f, 1f)).apply()
         val types = ArrayList<Int>(); val paramsList = ArrayList<FloatArray>()
         if (brightness != 0f || contrast != 0f || gamma != 1.0f) {
             types.add(EffectComposer.EFFECT_COLOR)
@@ -453,7 +464,14 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
                 TextButton(onClick = { resetSettings() }) {
                     Text(stringResource(R.string.reset), color = MaterialTheme.colorScheme.error)
                 }
-                GameFooterOkCancel(onCancel = onDismiss, onOk = { applyVulkanEffects(); onDismiss() })
+                GameFooterOkCancel(
+                    onCancel = {
+                        // Отмена: вернуть растяжение, которое было до открытия панели.
+                        activity.applyScreenStretch(originalStretchAmount)
+                        onDismiss()
+                    },
+                    onOk = { applyVulkanEffects(); onDismiss() }
+                )
             }
         }
     ) {
@@ -462,6 +480,17 @@ fun XPanelEffects(activity: XServerDisplayActivity, onDismiss: () -> Unit) {
             GameSliderRow(stringResource(R.string.brightness), "${brightness.toInt()}", brightness, { brightness = it }, -50f..50f)
             GameSliderRow(stringResource(R.string.contrast), "${contrast.toInt()}", contrast, { contrast = it }, -100f..100f)
             GameSliderRow(stringResource(R.string.gamma), String.format(Locale.US, "%.2f", gamma), gamma, { gamma = it }, 0.5f..3.0f)
+            GameSectionTitle(stringResource(R.string.screen_stretch))
+            GameSliderRow(
+                label = stringResource(R.string.stretch_level),
+                valueText = "${(stretchAmount * 100).toInt()}%",
+                value = stretchAmount,
+                onValueChange = {
+                    stretchAmount = it
+                    activity.applyScreenStretch(it) // живой предпросмотр
+                },
+                valueRange = 0f..1f
+            )
             GameSectionTitle(stringResource(R.string.profile))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 var dd by remember { mutableStateOf(false) }

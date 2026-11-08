@@ -195,6 +195,8 @@
     <string name="clear_cache">Clear Cache</string>
     <string name="clear_text_end_icon_content_description">Clear text</string>
     <string name="color_adjustment">Color Adjustment</string>
+    <string name="screen_stretch">Screen Stretch</string>
+    <string name="stretch_level">Stretch (0%% — as is, 100%% — full screen)</string>
     <string name="columns">Columns</string>
     <string name="compatibility">Compatibility</string>
     <string name="graphics">Graphics</string>

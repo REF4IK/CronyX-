@@ -187,6 +187,8 @@
     <string name="clear_cache">Очистить кэш</string>
     <string name="clear_text_end_icon_content_description">Очистить текст</string>
     <string name="color_adjustment">Настройка цвета</string>
+    <string name="screen_stretch">Растяжение экрана</string>
+    <string name="stretch_level">Растяжение (0%% — как есть, 100%% — весь экран)</string>
     <string name="columns">Столбцы</string>
     <string name="compatibility">Совместимость</string>
     <string name="graphics">Графика</string>
