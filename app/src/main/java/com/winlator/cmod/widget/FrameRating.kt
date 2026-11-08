@@ -32,7 +32,10 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +75,9 @@ class FrameRating @JvmOverloads constructor(
     private val totalRAM = getTotalRAM()
     private val sensorReader = SensorReader()
     private var lastFrameTimestampNs: Long = 0
+    // Реальная (немасштабированная) ширина контента Compose: ComposeView меряется шире
+    // родителя при scale<1, а наши собственные границы View-система зажимает до родителя.
+    private var contentWidthPx = 0
 
     private var lastTime: Long = 0
     private var frameCount = 0
@@ -140,6 +146,10 @@ class FrameRating @JvmOverloads constructor(
     }
 
     init {
+        // Горизонтальный HUD при scale<1 меряется шире родителя (см. onMeasure) —
+        // без этого рисование обрезалось бы по нашим (узким) границам.
+        clipChildren = false
+
         // Compose view integration
         val composeView = ComposeView(context).apply {
             setContent {
@@ -608,6 +618,16 @@ class FrameRating @JvmOverloads constructor(
         val frameTimeValue = frameTimeState.removeSuffix("ms")
         val showFrametimeText = frameTimeState != "--"
 
+        // Сегмент показывается, если включён ХОТЬ один его показатель
+        // (например, только температура CPU без загрузки — сегмент не должен исчезать).
+        val gpuHasLoad = showGpuLoad && gpuLoadValue.isNotEmpty()
+        val gpuHasTemp = showGpuTemp && gpuTempValue.isNotEmpty() && gpuTempValue != "N/A"
+        val gpuHasFreq = showGpuFreq && gpuFreqState.isNotEmpty()
+        val cpuHasLoad = showCpuLoad && cpuLoadValue.isNotEmpty()
+        val cpuHasTemp = showCpuTemp && cpuTempValue.isNotEmpty() && cpuTempValue != "N/A"
+        val battHasLevel = showBatteryLevel && batteryPercentState.isNotEmpty()
+        val battHasTemp = showBatteryTemp && batteryTempState.isNotEmpty() && batteryTempState != "N/A"
+
         Box(
             modifier = Modifier
                 .wrapContentSize()
@@ -617,28 +637,22 @@ class FrameRating @JvmOverloads constructor(
         ) {
             if (isHorizontalLayout) {
                 val items = mutableListOf<@Composable () -> Unit>()
-                if (showGpuLoad && gpuLoadValue.isNotEmpty()) {
+                if (gpuHasLoad || gpuHasTemp || gpuHasFreq) {
                     items.add {
                         MangoRow {
                             MangoLabel("GPU", gpuColor)
-                            MangoMetric(gpuLoadValue, "%", valueColor, unitColor)
-                            if (showGpuTemp && gpuTempValue.isNotEmpty() && gpuTempValue != "N/A") {
-                                MangoMetric(gpuTempValue, "°C", valueColor, unitColor)
-                            }
-                            if (showGpuFreq && gpuFreqState.isNotEmpty()) {
-                                MangoMetric(gpuFreqState, "MHz", valueColor, unitColor)
-                            }
+                            if (gpuHasLoad) MangoMetric(gpuLoadValue, "%", valueColor, unitColor)
+                            if (gpuHasTemp) MangoMetric(gpuTempValue, "°C", valueColor, unitColor)
+                            if (gpuHasFreq) MangoMetric(gpuFreqState, "MHz", valueColor, unitColor)
                         }
                     }
                 }
-                if (showCpuLoad && cpuLoadValue.isNotEmpty()) {
+                if (cpuHasLoad || cpuHasTemp) {
                     items.add {
                         MangoRow {
                             MangoLabel("CPU", cpuColor)
-                            MangoMetric(cpuLoadValue, "%", valueColor, unitColor)
-                            if (showCpuTemp && cpuTempValue.isNotEmpty() && cpuTempValue != "N/A") {
-                                MangoMetric(cpuTempValue, "°C", valueColor, unitColor)
-                            }
+                            if (cpuHasLoad) MangoMetric(cpuLoadValue, "%", valueColor, unitColor)
+                            if (cpuHasTemp) MangoMetric(cpuTempValue, "°C", valueColor, unitColor)
                         }
                     }
                 }
@@ -650,14 +664,12 @@ class FrameRating @JvmOverloads constructor(
                         }
                     }
                 }
-                if (showBatteryLevel && batteryPercentState.isNotEmpty()) {
+                if (battHasLevel || battHasTemp) {
                     items.add {
                         MangoRow {
                             MangoLabel("BATT", fpsColor)
-                            MangoMetric(batteryPercentState, "%", valueColor, unitColor)
-                            if (showBatteryTemp && batteryTempState.isNotEmpty() && batteryTempState != "N/A") {
-                                MangoMetric(batteryTempState.removeSuffix("C"), "°C", valueColor, unitColor)
-                            }
+                            if (battHasLevel) MangoMetric(batteryPercentState, "%", valueColor, unitColor)
+                            if (battHasTemp) MangoMetric(batteryTempState.removeSuffix("C"), "°C", valueColor, unitColor)
                         }
                     }
                 }
@@ -709,25 +721,19 @@ class FrameRating @JvmOverloads constructor(
                             fontFamily = FontFamily.Monospace
                         )
                     }
-                    if (showGpuLoad && gpuLoadValue.isNotEmpty()) {
+                    if (gpuHasLoad || gpuHasTemp || gpuHasFreq) {
                         MangoRow {
                             MangoLabel("GPU", gpuColor)
-                            MangoMetric(gpuLoadValue, "%", valueColor, unitColor)
-                            if (showGpuTemp && gpuTempValue.isNotEmpty() && gpuTempValue != "N/A") {
-                                MangoMetric(gpuTempValue, "°C", valueColor, unitColor)
-                            }
-                            if (showGpuFreq && gpuFreqState.isNotEmpty()) {
-                                MangoMetric(gpuFreqState, "MHz", valueColor, unitColor)
-                            }
+                            if (gpuHasLoad) MangoMetric(gpuLoadValue, "%", valueColor, unitColor)
+                            if (gpuHasTemp) MangoMetric(gpuTempValue, "°C", valueColor, unitColor)
+                            if (gpuHasFreq) MangoMetric(gpuFreqState, "MHz", valueColor, unitColor)
                         }
                     }
-                    if (showCpuLoad && cpuLoadValue.isNotEmpty()) {
+                    if (cpuHasLoad || cpuHasTemp) {
                         MangoRow {
                             MangoLabel("CPU", cpuColor)
-                            MangoMetric(cpuLoadValue, "%", valueColor, unitColor)
-                            if (showCpuTemp && cpuTempValue.isNotEmpty() && cpuTempValue != "N/A") {
-                                MangoMetric(cpuTempValue, "°C", valueColor, unitColor)
-                            }
+                            if (cpuHasLoad) MangoMetric(cpuLoadValue, "%", valueColor, unitColor)
+                            if (cpuHasTemp) MangoMetric(cpuTempValue, "°C", valueColor, unitColor)
                         }
                     }
                     if (showCpuCores) {
@@ -754,13 +760,11 @@ class FrameRating @JvmOverloads constructor(
                             MangoMetric(ramUsedGiBState, "GiB", valueColor, unitColor)
                         }
                     }
-                    if (showBatteryLevel && batteryPercentState.isNotEmpty()) {
+                    if (battHasLevel || battHasTemp) {
                         MangoRow {
                             MangoLabel("BATT", fpsColor)
-                            MangoMetric(batteryPercentState, "%", valueColor, unitColor)
-                            if (showBatteryTemp && batteryTempState.isNotEmpty() && batteryTempState != "N/A") {
-                                MangoMetric(batteryTempState.removeSuffix("C"), "°C", valueColor, unitColor)
-                            }
+                            if (battHasLevel) MangoMetric(batteryPercentState, "%", valueColor, unitColor)
+                            if (battHasTemp) MangoMetric(batteryTempState.removeSuffix("C"), "°C", valueColor, unitColor)
                         }
                     }
                     if (showRenderer && rendererState.isNotEmpty()) {
@@ -813,24 +817,20 @@ class FrameRating @JvmOverloads constructor(
 
     @Composable
     private fun RowScope.MangoMetric(value: String, unit: String, valueColor: ComposeColor, unitColor: ComposeColor) {
+        // Единый Text: единица прижата к значению без зазора и на общей базовой линии (как в MangoHud).
         Text(
-            text = value,
-            color = valueColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = valueColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)) {
+                    append(value)
+                }
+                if (unit.isNotEmpty()) {
+                    withStyle(SpanStyle(color = unitColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)) {
+                        append(unit)
+                    }
+                }
+            },
             modifier = Modifier.alignByBaseline()
         )
-        if (unit.isNotEmpty()) {
-            Text(
-                text = unit,
-                color = unitColor,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.alignByBaseline()
-            )
-        }
     }
 
     @Composable
@@ -881,7 +881,7 @@ class FrameRating @JvmOverloads constructor(
     private fun maxHudWidth(): androidx.compose.ui.unit.Dp {
         val screenWidthDp = LocalConfiguration.current.screenWidthDp
         val scale = config.counterScale.coerceAtLeast(60) / 100f
-        return ((screenWidthDp - 24).coerceAtLeast(180) / scale)
+        return ((screenWidthDp - 8).coerceAtLeast(180) / scale)
             .coerceAtLeast(180f)
             .dp
     }
@@ -1359,15 +1359,42 @@ class FrameRating @JvmOverloads constructor(
         pivotY = 0f
         scaleX = scaleFactor
         scaleY = scaleFactor
+        // Доступная ширина зависит от масштаба — перемерять контент.
+        requestLayout()
 
         post { clampToParentBounds() }
     }
+
+    /**
+     * Горизонтальный HUD при scale<1 должен помещаться в ширину экрана НА ЭКРАНЕ,
+     * но Compose меряется в немасштабированных координатах и упирается в ширину
+     * родителя → ранний перенос строк. Разрешаем ComposeView замер до
+     * ширина_родителя/scale (на экране после масштабирования это ширина родителя).
+     */
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        var spec = widthMeasureSpec
+        val parentView = parent as? View
+        val parentWidth = parentView?.width ?: 0
+        if (parentWidth > 0) {
+            val mode = View.MeasureSpec.getMode(widthMeasureSpec)
+            if (mode == View.MeasureSpec.AT_MOST || mode == View.MeasureSpec.UNSPECIFIED) {
+                val scale = if (scaleX > 0f) scaleX else 1f
+                val widened = Math.max(View.MeasureSpec.getSize(widthMeasureSpec), (parentWidth / scale).toInt())
+                spec = View.MeasureSpec.makeMeasureSpec(widened, View.MeasureSpec.AT_MOST)
+            }
+        }
+        super.onMeasure(spec, heightMeasureSpec)
+        contentWidthPx = if (childCount > 0) getChildAt(0).measuredWidth else measuredWidth
+    }
+
+    /** Ширина контента для клампа/драга: ComposeView может быть шире наших зажатых границ. */
+    private fun hudWidthPx(): Int = if (contentWidthPx > 0) contentWidthPx else width
 
     private fun clampToParentBounds() {
         val parentView = parent as? View ?: return
         val parentWidth = parentView.width
         val parentHeight = parentView.height
-        val scaledWidth = Math.ceil((width * scaleX).toDouble()).toInt()
+        val scaledWidth = Math.ceil((hudWidthPx() * scaleX).toDouble()).toInt()
         val scaledHeight = Math.ceil((height * scaleY).toDouble()).toInt()
 
         if (parentWidth <= 0 || parentHeight <= 0 || scaledWidth <= 0 || scaledHeight <= 0) return
@@ -1400,7 +1427,7 @@ class FrameRating @JvmOverloads constructor(
                     if (parentView != null) {
                         val parentWidth = parentView.width
                         val parentHeight = parentView.height
-                        val scaledWidth = Math.ceil((width * scaleX).toDouble()).toInt()
+                        val scaledWidth = Math.ceil((hudWidthPx() * scaleX).toDouble()).toInt()
                         val scaledHeight = Math.ceil((height * scaleY).toDouble()).toInt()
                         if (parentWidth > 0 && parentHeight > 0 && scaledWidth > 0 && scaledHeight > 0) {
                             val maxX = Math.max(0f, (parentWidth - scaledWidth).toFloat())
@@ -1547,6 +1574,9 @@ class FrameRating @JvmOverloads constructor(
             context.registerReceiver(batteryReceiver, filter)
             batteryReceiverRegistered = true
         }
+        // Ширина родителя известна только после первой раскладки — перемериться,
+        // чтобы горизонтальный HUD сразу занял всю ширину с учётом масштаба.
+        post { requestLayout() }
     }
 
     override fun onDetachedFromWindow() {
